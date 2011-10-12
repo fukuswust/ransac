@@ -1,0 +1,2 @@
+C:\Kinect Data\depthData1
+C:\Kinect Data\colorImages1

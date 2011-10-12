@@ -1,0 +1,24 @@
+﻿Build started 1/5/2011 12:25:30 AM.
+     1>Project "C:\Users\John\Documents\Visual Studio 2010\Projects\WiimoteTest\WiimoteTest\Demo.vcxproj" on node 2 (build target(s)).
+     1>InitializeBuildStatus:
+         Touching "Debug\Demo.unsuccessfulbuild".
+       ClCompile:
+         All outputs are up-to-date.
+       ManifestResourceCompile:
+         All outputs are up-to-date.
+       Link:
+         All outputs are up-to-date.
+       Manifest:
+         All outputs are up-to-date.
+       PostBuildEvent:
+         Description: - Copying .exe to demo dir -
+         copy C:\Users\John\Documents\Visual Studio 2010\Projects\WiimoteTest\WiimoteTest\Debug\Demo.exe C:\Users\John\Documents\Visual Studio 2010\Projects\WiimoteTest\WiimoteTest\
+         :VCEnd
+         The system cannot find the file specified.
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\Microsoft.CppCommon.targets(113,5): error MSB3073: The command "copy C:\Users\John\Documents\Visual Studio 2010\Projects\WiimoteTest\WiimoteTest\Debug\Demo.exe C:\Users\John\Documents\Visual Studio 2010\Projects\WiimoteTest\WiimoteTest\
+C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\Microsoft.CppCommon.targets(113,5): error MSB3073: :VCEnd" exited with code 1.
+     1>Done Building Project "C:\Users\John\Documents\Visual Studio 2010\Projects\WiimoteTest\WiimoteTest\Demo.vcxproj" (build target(s)) -- FAILED.
+
+Build FAILED.
+
+Time Elapsed 00:00:00.16
