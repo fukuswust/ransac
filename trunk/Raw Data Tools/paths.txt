@@ -1,0 +1,4 @@
+C:\Kinect Data\06-30-11\depthData
+C:\Kinect Data\06-30-11\colorImages
+C:\Kinect Data\06-30-11\colorData
+C:\Kinect Data\06-30-11\individualPointClouds
