@@ -1,0 +1,12 @@
+function [ outMtrx ] = shrinkMatrix( inMtrx, ratio )
+
+outMtrx = zeros(size(inImage,1)/ratio,size(inImage,2)/ratio);
+for i = 1:(size(inImage,1)/ratio)
+    for j = 1:(size(inImage,2)/ratio)
+        inI = (((i-1)*4)+1):((i*4)+1);
+        outMtrx(i,j) = mean(mean(inMtrx(inI,inJ)));
+    end
+end
+
+end
+
