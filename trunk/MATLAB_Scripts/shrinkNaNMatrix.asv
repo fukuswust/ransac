@@ -1,0 +1,24 @@
+function [ outMtrx ] = shrinkNaNMatrix( inMtrx )
+
+outMtrx = zeros(floor(size(inMtrx,1)/ratio),floor(size(inMtrx,2)/ratio));
+for i = 1:(floor(size(inMtrx,1)/ratio))
+    for j = 1:(floor(size(inMtrx,2)/ratio))
+        count = 0;
+        total = 0;
+        for inI = (((i-1)*ratio)+1):(i*ratio);
+            for inJ = (((j-1)*ratio)+1):(j*ratio);
+                tmpOn = inMtrx(inI,inJ);
+                if (~ISNAN(tmpOn))
+                    total = total + 
+                end
+                    
+                
+                
+                outMtrx(i,j) = mean(mean(inMtrx(inI,inJ)));
+            end
+        end
+    end
+end
+
+end
+
