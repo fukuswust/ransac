@@ -1,0 +1,13 @@
+function [ output_args ] = localizeCorners( inMtrx, cornerPeaksC, cornerPeaksI, cornerPeaksJ )
+
+%for index = 1:size(cornerPeaksC,1)
+    index = 7;
+    I = ((cornerPeaksI(index)-1)*4)-5;
+    J = ((cornerPeaksJ(index)-1)*4)-5;
+    subMtrx = inMtrx(I:I+15,J:J+15);
+    [cornerMaxC cornerMaxI cornerMaxJ] = localizeCorner(subMtrx);
+    
+%end
+
+end
+
