@@ -36,7 +36,7 @@ function [ zArray ] = depthToZ( depthArray )
 %     
 %     for i=1:480
 %         for j=1:640
-%             depthArray(i,j) = precalculatedArray(depthArray(i,j));
+%             zArray(i,j) = precalculatedArray(depthArray(i,j));
 %         end
 %     end
 end
