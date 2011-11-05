@@ -12,6 +12,9 @@ function [ zArray ] = depthToZ( depthArray )
 %
 %   Change Log
 %       11/01/2011 - John Gideon - Created Shell Script
+%       11/05/2011 - Tom Dickman - Added intial code for script - two versions
+%        available. One that precalculates all values, and one that calculates
+%        all values.
     
     for i=1:480
         for j=1:640
