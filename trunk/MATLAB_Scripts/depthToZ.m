@@ -16,12 +16,13 @@ function [ zArray ] = depthToZ( depthArray )
 %        available. One that precalculates all values, and one that calculates
 %        all values.
     
+    zArray = zeros(size(depthArray,1), size(depthArray,2));
     for i=1:480
         for j=1:640
             % Equation conveniently borrowed from
             % http://openkinect.org/wiki/Imaging_Information. Used basic
             % approximation to reduce calculation time
-            depthArray(i,j) = 100/(-0.00307 * depthArray(i,j) + 3.33);
+            zArray(i,j) = 100/(-0.00307 * depthArray(i,j) + 3.33);
         end
     end
     
@@ -38,7 +39,5 @@ function [ zArray ] = depthToZ( depthArray )
 %             depthArray(i,j) = precalculatedArray(depthArray(i,j));
 %         end
 %     end
-    
-    zArray = depthArray;
 end
 
