@@ -1,23 +1,53 @@
 function exportMeshlab( pointCloud, filePath )
-%EXPORTMESHLAB Summary of this function goes here
+%EXPORTMESHLAB Converts Matlab point cloud to Meshlab format
 %   Input
 %       pointCloud - 3D array of point cloud coordinates
 %       filePath - Path to export Meshlab file
 %   Description
-%       What does this function do?
+%       This function takes a Matlab array formatted point cloud and
+%       formats it to Mashlab formatted data
 %
 %   Change Log
 %       11/05/2011 - John Gideon - Created Shell Script
+%       11/09/2011 - Benjamin Zerhusen - Updated Code to perform file
+%                    creation
 
-    for i = 1:size(zArray,1)
-        for j = 1:size(zArray,2)
-            x = pointCloud(i,j,1);
-            y = pointCloud(i,j,2);
-            z = pointCloud(i,j,3);
-            filePath;
+totNum = 0;
+for i = 1:size(pointCloud,1)
+    for j = 1:size(pointCloud,2)
+        if(~isnan(pointCloud(i,j,3)));
+            totNum = totNum + 1;
         end
     end
+end
+
+fid = fopen(filePath,'w');
+
+%Write header
+fprintf(fid,'ply\n');
+fprintf(fid,'format ascii 1.0\n');
+fprintf(fid,'element vertex %i\n',totNum);
+fprintf(fid,'property float x\n');
+fprintf(fid,'property float y\n');
+fprintf(fid,'property float z\n');
+fprintf(fid,'end_header\n');
+
+%Loop to write data points to file
+for i = 1:size(pointCloud,1)
+    for j = 1:size(pointCloud,2)
+        if(~isnan(pointCloud(i,j,3)))
+            fprintf(fid,'%f ',pointCloud(i,j,1));
+            fprintf(fid,'%f ',pointCloud(i,j,2));
+            fprintf(fid,'%f \n',pointCloud(i,j,3));
+        end
+    end
+end
     
+fclose(fid);
+
+str = sprintf('File %s Was Successfully Written', filePath);
+disp(str);
+
 %OUTPUT FILE FORMAT - 140160 is the # of total points in the file
 % ply
 % format ascii 1.0
