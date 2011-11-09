@@ -14,4 +14,4 @@ zData = depthToZ(depthData);
 pointCloud = zToPointCloud(zData);
 
 %% Export Point Cloud to Meshlab Format
-exportMeshlab(pointCloud, [dataPath '/individualPointClouds/' firstFile '.csv']);
+exportMeshlab(pointCloud, [dataPath '/individualPointClouds/' firstFile '.ply']);
