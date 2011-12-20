@@ -11,22 +11,21 @@ function [ pointCloud ] = zToPointCloud( zArray )
 %   Change Log
 %       11/02/2011 - John Gideon - Created Shell Script
 %       11/09/2011 - John Gideon - Initial equation input and tested
-    
+%       12/16/2011 - John Gideon - Clean up and y=-y z=-z
+
     fx_d = 5.9421434211923247e+02;
 	fy_d = 5.9104053696870778e+02;
 	cx_d = 3.3930780975300314e+02;
 	cy_d = 2.4273913761751615e+02;
     
-    pointCloud(:,:,1) = zeros(size(zArray,1),size(zArray,2));
-    pointCloud(:,:,2) = zeros(size(zArray,1),size(zArray,2));
-    pointCloud(:,:,3) = zArray;
+    pointCloud(:,:,:) = zeros(size(zArray,1),size(zArray,2),3);
     for i = 1:size(zArray,1)
         for j = 1:size(zArray,2)
             %Equation goes here
             z = zArray(i,j);
-            pointCloud(i,j,1) = ((j - cx_d) * z) / fx_d;
-            pointCloud(i,j,2) = ((i - cy_d) * z) / fy_d;
-            pointCloud(i,j,3) = z;
+            nx = ((j - cx_d) * z) / fx_d;
+            ny = ((i - cy_d) * z) / fy_d;            
+            pointCloud(i,j,:) = [nx -ny -z];
         end
     end
 
