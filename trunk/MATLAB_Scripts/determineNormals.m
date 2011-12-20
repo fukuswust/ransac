@@ -14,11 +14,11 @@ function [ normals ] = determineNormals( pointCloud )
 
     normals = zeros(size(pointCloud,1),size(pointCloud,2),3);
     for i = 1:size(pointCloud,1)
-        for j = 1:size(pointCloud,2)
+        for j = 10:size(pointCloud,2)
             %Equation goes here
-            normals(i,j,1) = pointCloud(i,j,1);
-            normals(i,j,2) = pointCloud(i,j,2);
-            normals(i,j,3) = pointCloud(i,j,3);
+            normals(i,j,1) = pointCloud(i,j,1)-pointCloud(i,j-9,1);
+            normals(i,j,2) = pointCloud(i,j,2)-pointCloud(i,j-9,2);
+            normals(i,j,3) = pointCloud(i,j,3)-pointCloud(i,j-9,3);
         end
     end
 end
