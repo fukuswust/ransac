@@ -59,7 +59,7 @@ tmp = printImage(fPointCloud(:,:,2)); %All floor should be black
 imwrite(tmp,[dataPath '/MATLAB_output/2_' firstFile '.bmp']);
 
 %% Convert to Polar
-pPointCloud = convertToPolar(gPointCloud);
+pPointCloud = cartesianToPolar(gPointCloud);
 tmp = printImage(pPointCloud(:,:,3));
 imwrite(tmp,[dataPath '/MATLAB_output/3_' firstFile '.bmp']);
 

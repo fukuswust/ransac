@@ -1,15 +1,18 @@
 function [ outImage ] = printImage( inMatrix )
 %PRINTIMAGE Takes matrix and prints normalized image to screen
 %   Input
-%       input_args - any 2D matrix
+%       input_args - Any 2D matrix
 %   Output
-%       outImage - normalized greyscale matrix with red for NaN
+%       outImage - Normalized greyscale matrix with red for NaN
 %   Description
-%       What does this function do?
+%       This function normalizes the input matrix to values between 0 and
+%       255. It then prints to the screen in greyscale except for NaN
+%       values, which it draw in red.
 %
 %   Change Log
 %       12/13/2011 - John Gideon - Created Script
 %       12/16/2011 - John Gideon - Added red for NaN
+%       12/19/2011 - John Gideon - Added Description
 
     outImage = zeros(size(inMatrix,1),size(inMatrix,2), 3);
     imMin = min(min(inMatrix));

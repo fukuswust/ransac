@@ -6,12 +6,17 @@ function [ pointCloud ] = zToPointCloud( zArray )
 %       pointCloud - Local created point cloud for the raw data consisting
 %       of a 3D array of coordinates
 %   Description
-%       What does this function do?
+%       Converts and array of z value at i,j locations into an x,y,z point
+%       cloud. This is approximated by the following equations:
+%           x = ((j - cx_d) * z) / fx_d
+%           y = -((i - cy_d) * z) / fy_d
+%           z = -z
 %
 %   Change Log
 %       11/02/2011 - John Gideon - Created Shell Script
 %       11/09/2011 - John Gideon - Initial equation input and tested
 %       12/16/2011 - John Gideon - Clean up and y=-y z=-z
+%       12/19/2011 - John Gideon - Added description
 
     fx_d = 5.9421434211923247e+02;
 	fy_d = 5.9104053696870778e+02;
@@ -21,11 +26,10 @@ function [ pointCloud ] = zToPointCloud( zArray )
     pointCloud(:,:,:) = zeros(size(zArray,1),size(zArray,2),3);
     for i = 1:size(zArray,1)
         for j = 1:size(zArray,2)
-            %Equation goes here
             z = zArray(i,j);
-            nx = ((j - cx_d) * z) / fx_d;
-            ny = ((i - cy_d) * z) / fy_d;            
-            pointCloud(i,j,:) = [nx -ny -z];
+            x = ((j - cx_d) * z) / fx_d;
+            y = ((i - cy_d) * z) / fy_d;            
+            pointCloud(i,j,:) = [x -y -z];
         end
     end
 
