@@ -19,11 +19,11 @@ function [ zArray ] = depthToZ( depthArray )
 %       11/05/2011 - Tom Dickman - Added intial code for script - two versions
 %        available. One that precalculates all values, and one that calculates
 %        all values.
-%       12/19/2011 - John Gideon - Edited description
+%       12/19/2011 - John Gideon - Edited description and made more general
 
     zArray = zeros(size(depthArray,1), size(depthArray,2));
-    for i=1:480
-        for j=1:640
+    for i=1:size(depthArray,1)
+        for j=1:size(depthArray,2)
             % http://openkinect.org/wiki/Imaging_Information. Used basic
             % approximation to reduce calculation time
             zArray(i,j) = 100/(-0.00307 * depthArray(i,j) + 3.33);
