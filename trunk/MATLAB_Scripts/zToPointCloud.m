@@ -8,9 +8,11 @@ function [ pointCloud ] = zToPointCloud( zArray )
 %   Description
 %       Converts and array of z value at i,j locations into an x,y,z point
 %       cloud. This is approximated by the following equations:
-%           x = ((j - cx_d) * z) / fx_d
-%           y = -((i - cy_d) * z) / fy_d
+%           x = ((i - cx_d) * z) / fx_d
+%           y = -((j - cy_d) * z) / fy_d
 %           z = -z
+%       NOTE: The above equations assumed a height of 480 and a width of
+%       640. This has been made more general for algorithm development.
 %
 %   Change Log
 %       11/02/2011 - John Gideon - Created Shell Script
@@ -23,13 +25,15 @@ function [ pointCloud ] = zToPointCloud( zArray )
 	cx_d = 3.3930780975300314e+02;
 	cy_d = 2.4273913761751615e+02;
     
+    factor = 640/size(zArray,2);
+    
     pointCloud(:,:,:) = zeros(size(zArray,1),size(zArray,2),3);
-    for i = 1:size(zArray,1)
-        for j = 1:size(zArray,2)
-            z = zArray(i,j);
-            x = ((j - cx_d) * z) / fx_d;
-            y = ((i - cy_d) * z) / fy_d;            
-            pointCloud(i,j,:) = [x -y -z];
+    for j = 1:size(zArray,1)
+        for i = 1:size(zArray,2)
+            z = zArray(j,i);
+            x = ((  ((i-1)*factor)+1 - cx_d) * z) / fx_d;
+            y = ((  ((j-1)*factor)+1 - cy_d) * z) / fy_d;            
+            pointCloud(j,i,:) = [x -y -z];
         end
     end
 

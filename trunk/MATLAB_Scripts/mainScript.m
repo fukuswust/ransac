@@ -28,28 +28,29 @@ image(colorData);
 sColorData = shrinkPointCloud(colorData,4);
 image(sColorData);
 
-%% Convert Depth to Point Cloud
+%% Shrink Depth Data and Replace NaN
+% Shrink Matrix
+sDepthData = shrinkMatrix(inDepthData, 16);
 % Interchange 0's for NaN
-depthData = replaceValue(inDepthData,2047,NaN);
+nanDepthData = replaceValue(sDepthData,2047,NaN);
+printImage(nanDepthData);
+
+%% Convert Depth to Point Cloud
 % Convert Depth to Z
-zData = depthToZ(depthData);
+zData = depthToZ(nanDepthData);
 % Convert Z Array to Point Cloud
 pointCloud = zToPointCloud(zData);
 printImage(pointCloud(:,:,3));
 
-%% Shrink Point Cloud
-sPointCloud = shrinkPointCloud(pointCloud, 16);
-printImage(sPointCloud(:,:,3));
-
 %% Determine Quality of Gravity Vector
 gravityVectorQuality(inAccelData)
-tmp = printImage(sPointCloud(:,:,2));
+tmp = printImage(pointCloud(:,:,2));
 imwrite(tmp,[dataPath '/MATLAB_output/0_' firstFile '.bmp']);
 
 %% Align to Gravity
 upVect = [0 1 0];
 gravityRotate = getRotationMatrix(inAccelData, upVect);
-gPointCloud = rotate3dMatrix(sPointCloud, gravityRotate);
+gPointCloud = transform3dMatrix(pointCloud, gravityRotate);
 tmp = printImage(gPointCloud(:,:,2)); %All floor should be black
 imwrite(tmp,[dataPath '/MATLAB_output/1_' firstFile '.bmp']);
 
