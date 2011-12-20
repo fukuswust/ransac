@@ -1,5 +1,5 @@
-function [ outPolarPC ] = convertToPolar( inPC )
-%CONVERTTOPOLAR Converts from cartesian coordinates to polar
+function [ outPolarPC ] = cartesianToPolar( inPC )
+%CARTESIANTOPOLAR Converts from cartesian coordinates to polar
 %   Input
 %       inPC - Point cloud with cartesian coordinates
 %   Output
@@ -10,6 +10,7 @@ function [ outPolarPC ] = convertToPolar( inPC )
 %
 %   Change Log
 %       12/17/2011 - John Gideon - Created Script
+%       12/19/2011 - Tom Dickman - Changed name to cartesianToPolar
 
     outPolarPC = zeros(size(inPC,1), size(inPC,2), 3);
     for i = 1:size(inPC,1)
