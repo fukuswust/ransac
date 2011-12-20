@@ -5,12 +5,16 @@ function exportMeshlab( pointCloud, filePath )
 %       filePath - Path to export Meshlab file
 %   Description
 %       This function takes a Matlab array formatted point cloud and
-%       formats it to Mashlab formatted data
+%       outputs it to a Mashlab formatted file. The point cloud can either
+%       have no color data or be in greyscale. The output format is given
+%       at the bottom of the scipt.
 %
 %   Change Log
 %       11/05/2011 - John Gideon - Created Shell Script
 %       11/09/2011 - Benjamin Zerhusen - Updated Code to perform file
 %                    creation
+%       12/19/2011 - John Gideon - Added support for greyscale clouds and
+%           edited description
 
 totNum = 0;
 for i = 1:size(pointCloud,1)
@@ -30,6 +34,11 @@ fprintf(fid,'element vertex %i\n',totNum);
 fprintf(fid,'property float x\n');
 fprintf(fid,'property float y\n');
 fprintf(fid,'property float z\n');
+if (size(pointCloud,3) == 4) %Greyscale
+    fprintf(fid, 'property uchar red\n');
+    fprintf(fid, 'property uchar green\n');
+    fprintf(fid, 'property uchar blue\n');
+end
 fprintf(fid,'end_header\n');
 
 %Loop to write data points to file
@@ -38,7 +47,13 @@ for i = 1:size(pointCloud,1)
         if(~isnan(pointCloud(i,j,3)))
             fprintf(fid,'%f ',pointCloud(i,j,1));
             fprintf(fid,'%f ',pointCloud(i,j,2));
-            fprintf(fid,'%f \n',pointCloud(i,j,3));
+            fprintf(fid,'%f ',pointCloud(i,j,3));
+            if (size(pointCloud,3) == 4) %Greyscale
+                fprintf(fid,'%u ',pointCloud(i,j,4));
+                fprintf(fid,'%u ',pointCloud(i,j,4));
+                fprintf(fid,'%u ',pointCloud(i,j,4));
+            end
+            fprintf(fid,'\n');            
         end
     end
 end
@@ -47,6 +62,8 @@ fclose(fid);
 
 str = sprintf('File %s Was Successfully Written', filePath);
 disp(str);
+
+end
 
 %OUTPUT FILE FORMAT - 140160 is the # of total points in the file
 % ply
@@ -62,6 +79,3 @@ disp(str);
 % ...
 % -1.56124336446591  -9.46503789707457  56.4655763233901
 % -1.65882107474503  -9.46503789707457  56.4655763233901
-
-end
-

@@ -1,5 +1,5 @@
 function [ Q ] = gravityVectorQuality( gravityVect )
-%GRAVITYVECTORQUALITY Summary of this function goes here
+%GRAVITYVECTORQUALITY Returns %error between gravity magnitude and 1g
 %   Input
 %       gravityVect - accelerometer values (3x1)
 %   Output
@@ -11,7 +11,7 @@ function [ Q ] = gravityVectorQuality( gravityVect )
 %       12/16/2011 - John Gideon - Created Function
 
     mag = sqrt(sum(gravityVect.*gravityVect));
-    Q = 1-(abs((819/512)-mag)/(819/512));
+    Q = (abs((819/512)-mag)/(819/512));
 
 end
 
