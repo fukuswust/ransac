@@ -13,9 +13,9 @@ prevTransform = [1 2 3 4 5 6];
 
 %% Import Data
 inDepthData = csvread([dataPath '/depthData/' firstFile '.csv']);
-inRColorData = csvRead([dataPath '/colorData/' firstFile '_R.csv']);
-inGColorData = csvRead([dataPath '/colorData/' firstFile '_G.csv']);
-inBColorData = csvRead([dataPath '/colorData/' firstFile '_B.csv']);
+inRColorData = csvread([dataPath '/colorData/' firstFile '_R.csv']);
+inGColorData = csvread([dataPath '/colorData/' firstFile '_G.csv']);
+inBColorData = csvread([dataPath '/colorData/' firstFile '_B.csv']);
 inAccelData = transpose(csvread([dataPath '/accelData/' firstFile '.csv']));
 
 %% Combine Color Values
@@ -23,6 +23,10 @@ colorData(:,:,1) = inRColorData(:,:)./256;
 colorData(:,:,2) = inGColorData(:,:)./256;
 colorData(:,:,3) = inBColorData(:,:)./256;
 image(colorData);
+
+%% Shrink Color Data
+sColorData = shrinkPointCloud(colorData,4);
+image(sColorData);
 
 %% Convert Depth to Point Cloud
 % Interchange 0's for NaN
@@ -64,7 +68,9 @@ wPointCloud = segmentWalls(pPointCloud);
 tmp = printImage(wPointCloud(:,:,3));
 imwrite(tmp,[dataPath '/MATLAB_output/4_' firstFile '.bmp']);
 
-%end
+%% Convert to Cartesian
+cwPointCloud = polarToCartesian(wPointCloud);
+tmp = printImage(cwPointCloud(:,:,3));
 
 %% Export Point Cloud to Meshlab Format
 exportMeshlab(gPointCloud, [dataPath '/pointClouds/' firstFile '_g.ply']);
