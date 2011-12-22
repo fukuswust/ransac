@@ -1,4 +1,4 @@
-function [ outPointCloud ] = addGreyscaleToPointCloud( inPointCloud, rColorData, gColorData, bColorData )
+function [ outPointCloud ] = addGreyscaleToPointCloud( inPointCloud, inColorData )
 %ADDGREYSCALETOPOINTCLOUD 
 % http://nicolas.burrus.name/index.php/Research/KinectCalibration
 %   Input
@@ -18,9 +18,14 @@ function [ outPointCloud ] = addGreyscaleToPointCloud( inPointCloud, rColorData,
 %
 %   Change Log
 %       12/19/2011 - Tom Dickman - Created initial script
+%       12/21/2011 - Tom Dickman - Script now adds 4th layer with greyscale
+%       value (sum of the r, g, and b values).
     
-    % Prealocate outPointCloud
-    outPointCloud = zeros(size(inPointCloud,1), size(inPointCloud,2), 4);
+    % Prealocate outPointCloud - copy contents from inPointCloud, and add a
+    % layer
+    outPointCloud = inPointCloud;
+    outPointCloud(:,:,4) = zeros(size(inPointCloud,1), size(inPointCloud,2), 1);
+    
     % Declare the constants we will need. These values are from:
     % http://nicolas.burrus.name/index.php/Research/KinectCalibration
     fx_rgb =  5.2921508098293293e+02;
@@ -42,34 +47,22 @@ function [ outPointCloud ] = addGreyscaleToPointCloud( inPointCloud, rColorData,
     %   Loop through inPointCloud
     for i=1:size(inPointCloud,1)
         for j=1:size(inPointCloud,2)
-            PC = [inPointCloud(i, j, 1);
-            y = inPointCloud(i, j, 2);
-            z = inPointCloud(i, j, 3);
-            
-            % Determine the average r value based on the values around the
-            % point we are looking at.
-            P3D = R*inPointCloud(i, j)+T;
-            nx = P3D(1);
-            ny = P3D(2);
-            nz = P3D(3);
-            
-            % Determine i and j coordinates on color image.
-            fi = (nx * fx_rgb / nz) + cx_rgb;
-            fj = (ny * fy_rgb / nz) + cy_rgb;
-            
-            
-            
-            % Repeat above for the g value
-            
-            % Repeat above for the b value
-            
-            % Combine 
+            if (~isnan(inPointCloud(i,j,3)))
+                % Create P3D
+                P3D = R*[inPointCloud(i,j,1); inPointCloud(i,j,2); inPointCloud(i,j,3)]+T;
+                nx = P3D(1);
+                ny = P3D(2);
+                nz = P3D(3);
+
+                % Determine i and j coordinates on color image for this point.
+                fj = (nx * fx_rgb / nz) + cx_rgb;
+                fi = (ny * fy_rgb / nz) + cy_rgb;
+
+                % Combine r, g, and b values for this point (add for now)
+                outPointCloud(i, j, 4) = (inColorData(floor(fi), floor(fj), 1) ...
+                    + inColorData(floor(fi), floor(fj), 2) ...
+                    + inColorData(floor(fi), floor(fj), 3));
+            end
         end
     end
-    
-    % Use some sort of averaging to determine the average value for each of
-    % these coordinates. Repeat this for the three colors.
-    
-    % Combine the r, g, and b values either by taking the average, or just
-    % adding them.
     
