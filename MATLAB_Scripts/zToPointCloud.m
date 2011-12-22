@@ -25,14 +25,21 @@ function [ pointCloud ] = zToPointCloud( zArray )
 	cx_d = 3.3930780975300314e+02;
 	cy_d = 2.4273913761751615e+02;
     
+    MinDistance = -10;
+	DepthScaleFactor = .0021;
+    
     factor = 640/size(zArray,2);
     
     pointCloud(:,:,:) = zeros(size(zArray,1),size(zArray,2),3);
     for j = 1:size(zArray,1)
         for i = 1:size(zArray,2)
             z = zArray(j,i);
-            x = ((  ((i-1)*factor) - cx_d) * z) / (-fx_d);
-            y = ((  ((j-1)*factor) - cy_d) * z) / fy_d;            
+            %x = ((  ((i-1)*factor) - cx_d) * z) / (-fx_d);
+            %y = ((  ((j-1)*factor) - cy_d) * z) / fy_d;   
+            
+		 x = ( ((i-1)*factor) - 320) * (z + MinDistance) * -DepthScaleFactor ;
+		 y = ( ((j-1)*factor) - 240) * (z + MinDistance) * DepthScaleFactor ;
+            
             pointCloud(j,i,:) = [x y z];
         end
     end
