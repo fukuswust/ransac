@@ -1,5 +1,5 @@
 %% Initial Constants
-firstFile = '000005';
+firstFile = '000010';
 
 %for fileOn = 0:32
 %    firstFile = sprintf('%.6u',fileOn);
@@ -30,7 +30,7 @@ image(sColorData);
 
 %% Shrink Depth Data and Replace NaN
 % Shrink Matrix
-sDepthData = shrinkMatrix(inDepthData, 16);
+sDepthData = shrinkMatrix(inDepthData, 1);
 % Interchange 0's for NaN
 nanDepthData = replaceValue(sDepthData,2047,NaN);
 printImage(nanDepthData);
@@ -41,6 +41,10 @@ zData = depthToZ(nanDepthData);
 % Convert Z Array to Point Cloud
 pointCloud = zToPointCloud(zData);
 printImage(pointCloud(:,:,3));
+
+%% Add Color to Point Cloud
+cPointCloud = addGreyscaleToPointCloud(pointCloud, colorData);
+printImage(cPointCloud(:,:,4)); %All floor should be black
 
 %% Determine Quality of Gravity Vector
 gravityVectorQuality(inAccelData)
@@ -74,7 +78,7 @@ cwPointCloud = polarToCartesian(wPointCloud);
 tmp = printImage(cwPointCloud(:,:,3));
 
 %% Export Point Cloud to Meshlab Format
-exportMeshlab(gPointCloud, [dataPath '/pointClouds/' firstFile '_g.ply']);
+exportMeshlab(cPointCloud, [dataPath '/pointClouds/' firstFile '_pp.ply']);
 
 % 
 % %% Determine Normals for Point Cloud

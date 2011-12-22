@@ -24,7 +24,7 @@ function [ outPointCloud ] = addGreyscaleToPointCloud( inPointCloud, inColorData
     % Prealocate outPointCloud - copy contents from inPointCloud, and add a
     % layer
     outPointCloud = inPointCloud;
-    outPointCloud(:,:,4) = zeros(size(inPointCloud,1), size(inPointCloud,2), 1);
+    outPointCloud(:,:,4) = NaN(size(inPointCloud,1), size(inPointCloud,2), 1);
     
     % Declare the constants we will need. These values are from:
     % http://nicolas.burrus.name/index.php/Research/KinectCalibration
@@ -45,21 +45,36 @@ function [ outPointCloud ] = addGreyscaleToPointCloud( inPointCloud, inColorData
     % Determine x and y points on rgb matrices that correspond to each
     % point cloud point.
     %   Loop through inPointCloud
+    
+	ColorScaleFactor = .0023;
+	rgbxoffset = -1.8;
+	rgbyoffset = -2.4;
+    MinDistance = -10;
+    
     for i=1:size(inPointCloud,1)
         for j=1:size(inPointCloud,2)
             if (~isnan(inPointCloud(i,j,3)))
+              
+                fj = ((inPointCloud(i,j,1) + rgbxoffset) / (ColorScaleFactor))/ (-inPointCloud(i,j,3) + MinDistance);
+                fi = ((-inPointCloud(i,j,2) + rgbyoffset) / (ColorScaleFactor))/ (-inPointCloud(i,j,3) + MinDistance);
+
+                fj = fj+320;
+                fi = fi+240;
+                
+                
+                
                 % Create P3D
-                P3D = R*[inPointCloud(i,j,1); inPointCloud(i,j,2); inPointCloud(i,j,3)]+T;
-                nx = P3D(1);
-                ny = P3D(2);
-                nz = P3D(3);
+                %P3D = (R*[inPointCloud(i,j,1); inPointCloud(i,j,2); inPointCloud(i,j,3)])+T;
+                %nx = P3D(1);
+                %ny = -P3D(2);
+                %nz = -P3D(3);
 
                 % Determine i and j coordinates on color image for this point.
-                fj = (nx * fx_rgb / nz) + cx_rgb;
-                fi = (ny * fy_rgb / nz) + cy_rgb;
+                %fj = (nx * fx_rgb / nz) + cx_rgb;
+                %fi = (ny * fy_rgb / nz) + cy_rgb;
                 
                 % Make sure fj and fi are within correct range.
-                if ( (fi >= 0) && (fi <= size(inColorData,1)) && (fj >= 0) && (fj <= size(inColorData,2)) )
+                if ( (fi >= 1) && (fi < size(inColorData,1)+1) && (fj >= 1) && (fj < size(inColorData,2)+1) )
                     % Combine r, g, and b values for this point (add for now)
                     outPointCloud(i, j, 4) = (inColorData(floor(fi), floor(fj), 1) ...
                         + inColorData(floor(fi), floor(fj), 2) ...
