@@ -57,11 +57,16 @@ function [ outPointCloud ] = addGreyscaleToPointCloud( inPointCloud, inColorData
                 % Determine i and j coordinates on color image for this point.
                 fj = (nx * fx_rgb / nz) + cx_rgb;
                 fi = (ny * fy_rgb / nz) + cy_rgb;
-
-                % Combine r, g, and b values for this point (add for now)
-                outPointCloud(i, j, 4) = (inColorData(floor(fi), floor(fj), 1) ...
-                    + inColorData(floor(fi), floor(fj), 2) ...
-                    + inColorData(floor(fi), floor(fj), 3));
+                
+                % Make sure fj and fi are within correct range.
+                if ( (fi >= 0) && (fi <= size(inColorData,1)) && (fj >= 0) && (fj <= size(inColorData,2)) )
+                    % Combine r, g, and b values for this point (add for now)
+                    outPointCloud(i, j, 4) = (inColorData(floor(fi), floor(fj), 1) ...
+                        + inColorData(floor(fi), floor(fj), 2) ...
+                        + inColorData(floor(fi), floor(fj), 3));
+                else
+                    outPointCloud(i, j, 4) = NaN;
+                end
             end
         end
     end
