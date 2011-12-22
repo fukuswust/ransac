@@ -7,7 +7,7 @@ function [ zArray ] = depthToZ( depthArray )
 %   Description
 %       Converts values from raw depth to actual distances (z). The
 %       conversion is approximated by the following inverse equation: 
-%           100/(-0.00307 * depth + 3.33);
+%           -100/(-0.00307 * depth + 3.33);
 %       IDEA: Since we have a lot of repeated values, we could find an
 %       efficient way to store and retrieve values instead of recalculating
 %       them.
@@ -26,7 +26,7 @@ function [ zArray ] = depthToZ( depthArray )
         for j=1:size(depthArray,2)
             % http://openkinect.org/wiki/Imaging_Information. Used basic
             % approximation to reduce calculation time
-            zArray(i,j) = 100/(-0.00307 * depthArray(i,j) + 3.33);
+            zArray(i,j) = -100/(-0.00307 * depthArray(i,j) + 3.33);
         end
     end
     

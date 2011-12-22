@@ -49,9 +49,15 @@ for i = 1:size(pointCloud,1)
             fprintf(fid,'%f ',pointCloud(i,j,2));
             fprintf(fid,'%f ',pointCloud(i,j,3));
             if (size(pointCloud,3) == 4) %Greyscale
-                fprintf(fid,'%u ',pointCloud(i,j,4));
-                fprintf(fid,'%u ',pointCloud(i,j,4));
-                fprintf(fid,'%u ',pointCloud(i,j,4));
+                if (~isnan(pointCloud(i,j,4)))
+                    fprintf(fid,'%u ',uint8((pointCloud(i,j,4)/3)*255));
+                    fprintf(fid,'%u ',uint8((pointCloud(i,j,4)/3)*255));
+                    fprintf(fid,'%u ',uint8((pointCloud(i,j,4)/3)*255));
+                else
+                    fprintf(fid,'%u ', 0);
+                    fprintf(fid,'%u ', 0);
+                    fprintf(fid,'%u ', 0);
+                end
             end
             fprintf(fid,'\n');            
         end
