@@ -3,12 +3,18 @@
 //#define RECORD_DEPTH
 //#define RECORD_ACCEL
 #define RGB_USE_SMOOTHING
+#define COMPUTE
+#define DEPTH_SCALE_FACTOR 16
 
+#define PI 3.14159265
+
+#include <math.h>
 #include <stdio.h>
 #include <conio.h> // for _kbhit and _getch 
 #include <stdlib.h> //Needed for "exit" function
 #include "../Kinect-win32.h"
 #include <fstream>
+#include "hr_time.h"
 
 // The "Kinect" Project has been added to the project dependencies of this project. 
 
@@ -35,6 +41,21 @@ float zAccel = 0.0f;
 float xAccelAvg = 0.0f;
 float yAccelAvg = 0.0f;
 float zAccelAvg = 0.0f;
+float sensorHeight = 0.0f;
+float avgTime = 0.0f;
+float avgFrameTime = 0.0f;
+
+CStopWatch* myStopWatch;
+CStopWatch* fpsStopWatch;
+
+float heightSlices[(640/DEPTH_SCALE_FACTOR)*2];
+float dirRange = 0.0f;
+
+struct Vector {
+	float x;
+	float y;
+	float z;
+};
 
 // the listener callback object. Implement these methods to do your own processing
 class Listener: public Kinect::KinectListener
@@ -120,6 +141,7 @@ void handleKeypress(unsigned char key, //The key that was pressed
 			K->SetLedMode(Kinect::Led_Off);
 	
 			// when the KinectFinder instance is destroyed, it will tear down and free all kinects.
+			delete myStopWatch;
 			exit(0); //Exit the program
 		}
 	}
@@ -262,32 +284,28 @@ void drawScene() {
 	glPopMatrix();
 	*/
 
-	unsigned short centerDepth = (unsigned short)(100.0f/(-0.00307f * (float)(K->mDepthBuffer[153920]) + 3.33f));
-
-	//Accel Coordinates (3D)
-	if ((K->mDepthBuffer[153920]) != 2047) {
-		glPushMatrix();
-		glDisable(GL_DEPTH_TEST);
-		glTranslatef(0.0f, 0.0f, -((float)centerDepth)/25.0f);
-		glLineWidth(4.0);
-		glBegin(GL_LINES);
-		// Z Axis
-		glColor3f(1.0f, 0.0f, 0.0f);
-		glVertex3f(0.0f, zAccelAvg/3.0f, -yAccelAvg/3.0f);
-		glVertex3f(0, -zAccelAvg/3.0f, yAccelAvg/3.0f);
-		// Y Axis
-		glColor3f(0.0f, 1.0f, 0.0f);
-		glVertex3f(0.0f, 0.0f, 0.0f);
-		glVertex3f(-xAccelAvg/3.0f, yAccelAvg/3.0f, zAccelAvg/3.0f);
-		// X Axis
-		glColor3f(0.0f, 0.0f, 1.0f);
-		glVertex3f(yAccelAvg/3.0f, xAccelAvg/3.0f, 0);
-		glVertex3f(-yAccelAvg/3.0f, -xAccelAvg/3.0f, 0);
-		glEnd();
-		glLineWidth(1.0);
-		glEnable(GL_DEPTH_TEST);
-		glPopMatrix();
-	}
+	/*//Accel Coordinates (3D)
+	glPushMatrix();
+	glDisable(GL_DEPTH_TEST);
+	glTranslatef(0.0f, 0.0f, -((float)centerDepth)/25.0f);
+	glLineWidth(4.0);
+	glBegin(GL_LINES);
+	// Z Axis
+	glColor3f(1.0f, 0.0f, 0.0f);
+	glVertex3f(0.0f, zAccelAvg/3.0f, -yAccelAvg/3.0f);
+	glVertex3f(0, -zAccelAvg/3.0f, yAccelAvg/3.0f);
+	// Y Axis
+	glColor3f(0.0f, 1.0f, 0.0f);
+	glVertex3f(0.0f, 0.0f, 0.0f);
+	glVertex3f(-xAccelAvg/3.0f, yAccelAvg/3.0f, zAccelAvg/3.0f);
+	// X Axis
+	glColor3f(0.0f, 0.0f, 1.0f);
+	glVertex3f(yAccelAvg/3.0f, xAccelAvg/3.0f, 0);
+	glVertex3f(-yAccelAvg/3.0f, -xAccelAvg/3.0f, 0);
+	glEnd();
+	glLineWidth(1.0);
+	glEnable(GL_DEPTH_TEST);
+	glPopMatrix();*/
 
 	// Draw Crosshair (in 2D)
 	orthogonalStart();
@@ -298,35 +316,69 @@ void drawScene() {
 	glVertex2f((viewWidth/2), (viewHeight/2)-5);
 	glVertex2f((viewWidth/2), (viewHeight/2)+6);
 	glEnd();
-
-	if ((K->mDepthBuffer[153920]) == 2047) {
-		glColor3f(1.0f, 0.0f, 0.0f);
-		sprintf(printBuff, "Sensor Error");
-	} else {
-		glColor3f(1.0f, 1.0f, 1.0f);
-		sprintf(printBuff, "Distance: %u cm (%u in)", centerDepth, (unsigned int)((float)centerDepth/2.54f));
-	}
-	orthoPrint((viewWidth/2)+10, (viewHeight/2)+11, printBuff);
-
 	glColor3f(1.0f, 1.0f, 1.0f);
 
 	//Draw Frame Count (in 2D)
-	sprintf(printBuff, "Frame: %u", mDepthFrameOn);
+	fpsStopWatch->stopTimer();
+	avgFrameTime = (0.1*(float)(fpsStopWatch->getElapsedTime()))+(0.9f*avgFrameTime);
+	sprintf(printBuff, "FPS: %u", (unsigned int)(1.0f/avgFrameTime));
 	orthoPrint(10, 20, printBuff);
+	fpsStopWatch->startTimer(); 
 
-	//Draw Accel Data (in 2D)
-	sprintf(printBuff, "xAccel: %f", (xAccelAvg*512.0f)/819.0f);
+	//Draw Height
+	float heightValue = sensorHeight;
+	sprintf(printBuff, "Height: %d", (int)heightValue);
 	orthoPrint(120, 20, printBuff);
-	sprintf(printBuff, "yAccel: %f", (yAccelAvg*512.0f)/819.0f);
+
+	//Draw Roll
+	float rollValue = atan2(xAccelAvg, yAccelAvg);
+	sprintf(printBuff, "Roll: %d", (int)((rollValue*180.0f)/PI));
 	orthoPrint(300, 20, printBuff);
-	sprintf(printBuff, "zAccel: %f", (zAccelAvg*512.0f)/819.0f);
+
+	//Draw Pitch
+	float pitchValue = atan2(zAccelAvg, yAccelAvg);
+	sprintf(printBuff, "Pitch: %d", (int)((pitchValue*180.0f)/PI));
 	orthoPrint(480, 20, printBuff);
+
+	//Draw Local Top Down Map (in 2D, upper right)
+	float delX = 15.0f*cos(dirRange/2.0f);
+	float delY = 15.0f*sin(dirRange/2.0f);
+	//Draw Origin
+	glColor3f(1.0f, 0.0f, 0.0f);
+	glBegin(GL_LINES);
+	glVertex2f(viewWidth-150, 150);
+	glVertex2f(viewWidth-150+delX, 150-delY);
+	glVertex2f(viewWidth-150, 150);
+	glVertex2f(viewWidth-150-delX, 150-delY);
+	glEnd();
+	//Draw Slice
+	glPointSize(3.0f);
+	glBegin(GL_POINTS);
+	for (int i=0; i < (640/DEPTH_SCALE_FACTOR)*2; ) {
+		if (heightSlices[i] != 999999.0f) {
+			glVertex2f(viewWidth-150+heightSlices[i++]/5.0f, 150+heightSlices[i++]/5.0f);
+		} else {
+			i+=2;
+		}
+	}
+	glEnd();
+	glPointSize(1.0f);
+
+	//Return to Default
+	glColor3f(1.0f, 1.0f, 1.0f);
+
+
 
 	orthogonalEnd();
 
 	//Send the scene to the screen
 	glutSwapBuffers();
 }
+
+#define FX_D 5.9421434211923247e+02
+#define FY_D 5.9104053696870778e+02
+#define CX_D 3.3930780975300314e+02
+#define CY_D 2.4273913761751615e+02
 
 void update(int value) {
 	if (mDepthFrameOn != mPrevDepthFrameOn) {
@@ -404,6 +456,178 @@ void update(int value) {
 		}
 #endif
 		outFileOn++;
+
+#ifdef COMPUTE
+		myStopWatch->startTimer();
+
+		// GET GRAVITY ROTATION MATRIX
+		// Get Unit Vectors
+		//magA = sqrt(sum(A.*A));
+		//uA = A./magA;
+		float gravMag = sqrt((xAccelAvg*xAccelAvg)+(yAccelAvg*yAccelAvg)+(zAccelAvg*zAccelAvg)); //Quality = diff from 819/512
+		float uGravX = xAccelAvg/gravMag;
+		float uGravY = yAccelAvg/gravMag;
+		float uGravZ = zAccelAvg/gravMag;
+		//c = dot(uA,uB);
+		//c = uGravY
+		//s = sqrt(1-(c*c));
+		float s = sqrt(1-(uGravY*uGravY));
+		//t = 1 - c;
+		float t = 1-uGravY;
+		//RotAxis = cross(uA,uB);
+		float RotAxisX = -uGravZ;
+		//    RotAxisY = 0;
+		float RotAxisZ = uGravX;
+		float magRotAxis = sqrt((RotAxisX*RotAxisX)+(RotAxisZ*RotAxisZ));
+		//uRotAxis = RotAxis./magRotAxis;
+		float uX = RotAxisX/magRotAxis;
+		//    uY = 0;
+		float uZ = RotAxisZ/magRotAxis;
+		
+		float xz = uX*uZ;
+		float sx = s*uX;
+		float sz = s*uZ;
+		// Calculate Matrix Elements
+		float R11 = uGravY + (t*uX*uX);
+		float R12 = -sz;
+		float R13 = t*xz;
+		float R21 = sz;
+		float R22 = uGravY;
+		float R23 = -sx;
+		float R31 = t*xz;
+		float R32 = sx;
+		float R33 = uGravY + (t*uZ*uZ);
+
+		printf("\n");
+		printf("%f, %f, %f\n", R11, R12, R13);
+		printf("%f, %f, %f\n", R21, R22, R23);
+		printf("%f, %f, %f\n\n", R31, R32, R33);
+
+		// Move Depth Data into Local Array of Floats (40x30x3 on Stack)
+		float depthPointCloud[((640*480)/(DEPTH_SCALE_FACTOR*DEPTH_SCALE_FACTOR))*3]; // Stored in the order of [z,y,x]
+		int offset = 0;
+		float currentMinHeight = 999999.0f;
+		float currentMinDir = 999999.0f;
+		float currentMaxDir = -999999.0f;
+
+		for (int j = 0; j < 480; j+=DEPTH_SCALE_FACTOR) {
+			for (int i = 0; i < 640; i+=DEPTH_SCALE_FACTOR) {
+				//Acquire Raw Depth Value
+				float z;
+				z = (float)(K->mDepthBuffer[(j*640)+i]);
+				
+				//Check Sensor Data for Error
+				if (z == 2047.0f) {
+					depthPointCloud[offset] = 999999.0f;
+					offset += 3;
+				} else {
+					// Depth to Z
+					depthPointCloud[offset++] = z = -100.0f/((-0.00307f * z) + 3.33f); //z -> y
+					// Z to Point Cloud
+					//depthPointCloud[offset++] = (((j*16) - CY_D) * z) / FY_D;  //y-> x
+					//depthPointCloud[offset] = (((i*16) - CX_D) * z) / -FX_D; //x
+					depthPointCloud[offset++] = (float)(j - 240) * (z - 10.0f) * 0.0021f ; //y -> x
+					depthPointCloud[offset] = (float)(i - 320) * (z - 10.0f) * -0.0021f ;  //x
+					 
+					// Reorient Y-Axis to Gravity
+					float tmpX = depthPointCloud[offset--]; // x -> y
+					float tmpY = depthPointCloud[offset--]; // y -> z
+					float tmpZ = depthPointCloud[offset];   // z
+					depthPointCloud[offset++] = (tmpX*R13)+(tmpY*R23)+(tmpZ*R33);  // z -> y
+					depthPointCloud[offset++] = (tmpX*R12)+(tmpY*R22)+(tmpZ*R32);  // y -> x					
+					depthPointCloud[offset--] = tmpX = (tmpX*R11)+(tmpY*R21)+(tmpZ*R31); // x -> y
+					tmpY = depthPointCloud[offset--]; // y -> z
+					tmpZ = depthPointCloud[offset]; // z
+
+					// Convert to polar coordinates
+					depthPointCloud[offset++] = tmpY; // height -> dir
+					depthPointCloud[offset++] = atan2(tmpZ,tmpX); // dir -> dis
+					depthPointCloud[offset--] = sqrt((tmpZ*tmpZ)+(tmpX*tmpX)); // dis -> dir
+
+					// Check for min and max
+					// Dir
+					if (depthPointCloud[offset] < currentMinDir) { // dir
+						currentMinDir = depthPointCloud[offset]; // dir
+						tmpX++;
+					} else {
+						if (depthPointCloud[offset] > currentMaxDir) { // dir
+							currentMaxDir = depthPointCloud[offset]; // dir
+							tmpX++;
+						}
+					}
+					// Height
+					if (depthPointCloud[--offset] < currentMinHeight) { // height 
+						currentMinHeight = depthPointCloud[offset]; // height
+					}
+					offset += 3; // height -> next
+				}
+			}
+		}
+
+		// Determine Direction Range and Midpoint
+		dirRange = currentMaxDir - currentMinDir;
+		float dirMid = currentMinDir + (dirRange);
+		
+		// Determine height slice (polar coordinates)
+		float heightDiffList[640/DEPTH_SCALE_FACTOR];
+		for (int i = 0; i < 640/DEPTH_SCALE_FACTOR; i++) {
+			heightSlices[i*2] = 999999.0f;
+			heightDiffList[i] = 999999.0f;
+		}
+		currentMinHeight += 150.0;
+		offset = 0;
+		float factor = (640.0f/DEPTH_SCALE_FACTOR)/(currentMaxDir - currentMinDir + 0.000001f);
+		for (int i = 0; i < (640/DEPTH_SCALE_FACTOR)*(480/DEPTH_SCALE_FACTOR); i++) {
+			if (depthPointCloud[offset++] == 999999.0f) { //height
+				offset += 2;
+			} else {
+				if (abs(depthPointCloud[offset])>50) {
+					factor++;
+				}
+
+				int dirIndex = (int)floor((depthPointCloud[offset--]-currentMinDir)*factor); //dir
+				float heightDiff = abs(depthPointCloud[offset++]-currentMinHeight); //height
+				if ((heightDiff < 10) && (heightDiff < heightDiffList[dirIndex])) {
+					if (abs(dirIndex) > 40) {
+						dirIndex++;
+					}
+					heightDiffList[dirIndex] = heightDiff;
+					heightSlices[dirIndex*2] = depthPointCloud[offset++]; //dir
+					heightSlices[(dirIndex*2)+1] = depthPointCloud[offset++]; //dis
+				} else {
+					offset += 2;
+				}
+			}
+		}
+
+		// Reorient to 90 degrees
+		float dirChange = (PI/2)-dirMid;
+		for (int i = 0; i < (640/DEPTH_SCALE_FACTOR)*2; i+=2) {
+			if (heightSlices[i] != 999999.0f) {
+				heightSlices[i] = heightSlices[i] - (3.0f*PI/2.0f);
+			}
+		}
+		
+		// Convert Slices to Cartesian
+		for (int i=0; i < (640/DEPTH_SCALE_FACTOR)*2; ) {
+			if (heightSlices[i] != 999999.0f) {
+				float tmpDir = heightSlices[i++]; //Dir
+				float tmpDis = heightSlices[i--]; //Dis
+				heightSlices[i++] = -tmpDis*cos(tmpDir); //x
+				heightSlices[i++] = tmpDis*sin(tmpDir); //y
+			} else {
+				i+=2;
+			}
+		}
+
+		currentMinHeight -= 150;
+		sensorHeight = -currentMinHeight;
+
+		myStopWatch->stopTimer();
+		avgTime = (0.1*(float)(myStopWatch->getElapsedTime()))+(0.9f*avgTime);
+
+#endif
+
 	}
 	if (mColorFrameOn != mPrevColorFrameOn) { 
 		mPrevColorFrameOn = mColorFrameOn;
@@ -422,7 +646,7 @@ void update(int value) {
 	if (_angle > 360) {_angle -= 360;}
 
 	glutPostRedisplay();
-	glutTimerFunc(25, update, 0);
+	glutTimerFunc(10, update, 0);
 }
 
 int main(int argc, char **argv)
@@ -479,8 +703,12 @@ int main(int argc, char **argv)
 	glutDisplayFunc(drawScene);
 	glutKeyboardFunc(handleKeypress);
 	glutReshapeFunc(handleResize);
-	glutTimerFunc(25, update, 0);
+	glutTimerFunc(10, update, 0);
 
+	//Start Timer
+	myStopWatch = new CStopWatch();
+	fpsStopWatch = new CStopWatch();
+	fpsStopWatch->startTimer(); 
 	glutMainLoop(); //Start the main loop.  glutMainLoop doesn't return.
 
 	return 0;
