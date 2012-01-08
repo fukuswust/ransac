@@ -17,8 +17,8 @@ function [ outImage ] = printImage( inMatrix )
     outImage = zeros(size(inMatrix,1),size(inMatrix,2), 3);
     imMin = min(min(inMatrix));
     imMax = max(max(inMatrix));
-    display(sprintf('Normalize Min: %d', imMin))
-    display(sprintf('Normalize Max: %d', imMax))
+    %display(sprintf('Normalize Min: %d', imMin))
+    %display(sprintf('Normalize Max: %d', imMax))
     multFactor = 1/(imMax-imMin);
     for i = 1:size(inMatrix,1)
         for j = 1:size(inMatrix,2)

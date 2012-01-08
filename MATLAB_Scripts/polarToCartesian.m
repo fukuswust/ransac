@@ -17,8 +17,9 @@ function [ outCartesianPC ] = polarToCartesian( inPC )
 %   Change Log
 %       12/19/2011 - Tom Dickman - Created Script
 %       12/19/2011 - John Gideon - Edited description
+%       01/05/2012 - John Gideon - Added support for color
 
-    outCartesianPC = zeros(size(inPC,1), size(inPC,2), 3);
+    outCartesianPC = zeros(size(inPC,1), size(inPC,2), size(inPC,3));
     for i = 1:size(inPC,1)
         for j = 1:size(inPC,2)
             height = inPC(i,j,1);
@@ -31,6 +32,10 @@ function [ outCartesianPC ] = polarToCartesian( inPC )
             outCartesianPC(i,j,2) = height;
             % Z - out / in
             outCartesianPC(i,j,3) = r*sin(theta);
+            
+            if size(inPC,3) == 4 
+                outCartesianPC(i,j,4) = inPC(i,j,4);
+            end
         end
     end
 end

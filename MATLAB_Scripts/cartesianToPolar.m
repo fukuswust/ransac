@@ -20,8 +20,9 @@ function [ outPolarPC ] = cartesianToPolar( inPC )
 %       12/17/2011 - John Gideon - Created Script
 %       12/19/2011 - Tom Dickman - Changed name to cartesianToPolar
 %       12/19/2011 - John Gideon - Added description
+%       01/05/2012 - John Gideon - Added support for color
 
-    outPolarPC = zeros(size(inPC,1), size(inPC,2), 3);
+    outPolarPC = zeros(size(inPC,1), size(inPC,2), size(inPC,3));
     for i = 1:size(inPC,1)
         for j = 1:size(inPC,2)
             x = inPC(i,j,1);
@@ -31,6 +32,9 @@ function [ outPolarPC ] = cartesianToPolar( inPC )
             outPolarPC(i,j,1) = y;
             outPolarPC(i,j,2) = atan2(z,x);
             outPolarPC(i,j,3) = sqrt(x.*x + z.*z);
+            if size(inPC,3) == 4 
+                outPolarPC(i,j,4) = inPC(i,j,4);
+            end
         end
     end
 

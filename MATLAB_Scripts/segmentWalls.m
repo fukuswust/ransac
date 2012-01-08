@@ -9,6 +9,7 @@ function [ outPolarPC ] = segmentWalls( inPolarPC )
 %
 %   Change Log
 %       12/17/2011 - John Gideon - Created Function
+%       01/05/2012 - John Gideon - Added support for color
 
     minDir = min(min(inPolarPC(:,:,2)));
     maxDir = max(max(inPolarPC(:,:,2)));
@@ -26,7 +27,7 @@ function [ outPolarPC ] = segmentWalls( inPolarPC )
         end
     end
             
-    outPolarPC = NaN(size(inPolarPC,1), size(inPolarPC,2), 3);
+    outPolarPC = NaN(size(inPolarPC,1), size(inPolarPC,2), size(inPolarPC,3));
     for i = 1:size(inPolarPC,1)
         for j = 1:size(inPolarPC,2)
             if (~isnan(inPolarPC(i,j,2)))
