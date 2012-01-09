@@ -361,59 +361,58 @@ void drawScene() {
 	*/
 
 	//// Draw Height Measurement Bar - this code is painfull to read...
-#define HEIGHT_MEAUSUREMENT_BAR_TOPX 0
-#define HEIGHT_MEAUSUREMENT_BAR_TOPY 0
-	// Draw Background behind all
+#define HUD_HEIGHT_BAR_X 5
+#define HUD_HEIGHT_BAR_Y 5
+	// Draw Big White Background
 	glColor3f(1.0f, 1.0f, 1.0f); // White
-	glRectf(HEIGHT_MEAUSUREMENT_BAR_TOPX, HEIGHT_MEAUSUREMENT_BAR_TOPY, 45.0f, 195.0f);
-	// Black border
+	glRectf(HUD_HEIGHT_BAR_X, HUD_HEIGHT_BAR_Y, HUD_HEIGHT_BAR_X+45.0f, HUD_HEIGHT_BAR_Y+195.0f);
+	// Draw Big White Background Border
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
-	glRectBorder(HEIGHT_MEAUSUREMENT_BAR_TOPX, HEIGHT_MEAUSUREMENT_BAR_TOPY, 45.0f, 195.0f);
-	// Draw Background - white to red gradiant
-	glColor3f(1.0f, 1.0f, 1.0f); // White
-	//glRectf(5, 5, 20, 185);
+	glRectBorder(HUD_HEIGHT_BAR_X, HUD_HEIGHT_BAR_Y, HUD_HEIGHT_BAR_X+45.0f, HUD_HEIGHT_BAR_Y+195.0f);
+	// Draw Sensor Background - white to red gradiant
 	glBegin(GL_POLYGON);
-	glVertex2f(5, 5);
-	glVertex2f(20, 5);
+	glColor3f(1.0f, 1.0f, 1.0f); // White
+	glVertex2f(HUD_HEIGHT_BAR_X+5, HUD_HEIGHT_BAR_Y+5);
+	glVertex2f(HUD_HEIGHT_BAR_X+20, HUD_HEIGHT_BAR_Y+5);
 	glColor3f(1.0f, 0.0f, 0.0f); // Red
-	glVertex2f(20, 185);
-	glVertex2f(5, 185);
+	glVertex2f(HUD_HEIGHT_BAR_X+20, HUD_HEIGHT_BAR_Y+185);
+	glVertex2f(HUD_HEIGHT_BAR_X+5, HUD_HEIGHT_BAR_Y+185);
 	glEnd();
-	// Draw Border - black
+	// Draw Sensor Background Border - black
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
-	glRectBorder(5, 5, 20, 185);
+	glRectBorder(HUD_HEIGHT_BAR_X+5, HUD_HEIGHT_BAR_Y+5, HUD_HEIGHT_BAR_X+20, HUD_HEIGHT_BAR_Y+185);
 	// Calculate and place height bar correctly
 	float heightValue = sensorHeight;
 	float barLocation;
 	barLocation = ((300-heightValue)/300)*185;
 	glColor3f(0.0f, 0.0f, 0.0f);
 	glBegin(GL_LINES);
-	glVertex2f(8, (int)barLocation);
-	glVertex2f(17, (int)barLocation);
+	glVertex2f(HUD_HEIGHT_BAR_X+8, (int)barLocation+HUD_HEIGHT_BAR_Y);
+	glVertex2f(HUD_HEIGHT_BAR_X+17, (int)barLocation+HUD_HEIGHT_BAR_Y);
 	glEnd();
 	// Draw values next to bar
-	orthoPrint(25, 5+9, "3m");
-	orthoPrint(25, 65+6, "2m");
-	orthoPrint(25, 125+3, "1m");
-	orthoPrint(25, 185, "0m");
+	orthoPrint(HUD_HEIGHT_BAR_X+25, HUD_HEIGHT_BAR_Y+5+9, "3m");
+	orthoPrint(HUD_HEIGHT_BAR_X+25, HUD_HEIGHT_BAR_Y+65+6, "2m");
+	orthoPrint(HUD_HEIGHT_BAR_X+25, HUD_HEIGHT_BAR_Y+125+3, "1m");
+	orthoPrint(HUD_HEIGHT_BAR_X+25, HUD_HEIGHT_BAR_Y+185, "0m");
 
 	// Enable antialiasing.  Do we want to do this?
 	glEnable(GL_LINE_SMOOTH);
 
 	// Draw Roll
+#define HUD_ROLL_RADIUS 30
 	float xRollLbl = (viewWidth/3);
-	float yRollLbl = 30;
-	float radius = 20;
+	float yRollLbl = 35;
 	float rollValue = atan2(xAccelAvg, yAccelAvg);
 	glColor3f(1.0f, 1.0f, 1.0f); // White
-	DrawCircleSolid(xRollLbl, yRollLbl, radius, 16);
+	DrawCircleSolid(xRollLbl, yRollLbl, HUD_ROLL_RADIUS, 16);
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
-	DrawCircle(xRollLbl, yRollLbl, radius, 16);
+	DrawCircle(xRollLbl, yRollLbl, HUD_ROLL_RADIUS, 16);
 	glColor3f(1.0f, 0.0f, 0.0f); // Red
-	drawCenteredTiltedLine(xRollLbl, yRollLbl, 14, rollValue);
+	drawCenteredTiltedLine(xRollLbl, yRollLbl, HUD_ROLL_RADIUS-6, rollValue);
 	// Draw hash marks
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
-	DrawCircleHash(xRollLbl, yRollLbl, radius, 2, 8);
+	DrawCircleHash(xRollLbl, yRollLbl, HUD_ROLL_RADIUS, 2, 8);
 
 	/*//Draw Roll
 	float rollValue = atan2(xAccelAvg, yAccelAvg);
@@ -421,14 +420,18 @@ void drawScene() {
 	orthoPrint(300, 20, printBuff);*/
 
 	// Draw Pitch
+#define HUD_PITCH_RADIUS 30
 	float xPitchLbl = (2*viewWidth/3);
-	float yPitchLbl = 30;
+	float yPitchLbl = 35;
 	float pitchValue = atan2(zAccelAvg, yAccelAvg);
 	glColor3f(1.0f, 1.0f, 1.0f); // White
-	DrawCircleSolid(xPitchLbl, yPitchLbl, 20, 16);
+	DrawCircleSolid(xPitchLbl, yPitchLbl, HUD_PITCH_RADIUS, 16);
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
-	DrawCircle(xPitchLbl, yPitchLbl, 20, 16);
-	drawCenteredTiltedLine(xPitchLbl, yPitchLbl, 15, pitchValue);
+	DrawCircle(xPitchLbl, yPitchLbl, HUD_PITCH_RADIUS, 16);
+	drawCenteredTiltedLine(xPitchLbl, yPitchLbl, HUD_PITCH_RADIUS-6, pitchValue);
+	// Draw hash marks
+	glColor3f(0.0f, 0.0f, 0.0f); // Black
+	DrawCircleHash(xPitchLbl, yPitchLbl, HUD_PITCH_RADIUS, 2, 8);
 
 	/*//Draw Pitch
 	float pitchValue = atan2(zAccelAvg, yAccelAvg);
