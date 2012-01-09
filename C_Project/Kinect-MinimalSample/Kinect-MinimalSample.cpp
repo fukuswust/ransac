@@ -1,9 +1,6 @@
-#define DISPLAY_CAPTURE_COMMANDS
-//#define RECORD_COLORS
-//#define RECORD_DEPTH
-//#define RECORD_ACCEL
+//#define RECORD_RAW
+//#define RECORD_SLICES
 #define RGB_USE_SMOOTHING
-#define COMPUTE
 #define DEPTH_SCALE_FACTOR 16
 
 #define PI 3.14159265
@@ -15,6 +12,7 @@
 #include "../Kinect-win32.h"
 #include <fstream>
 #include "hr_time.h"
+#include "record.h"
 #include "gui.h"
 
 // The "Kinect" Project has been added to the project dependencies of this project. 
@@ -43,21 +41,13 @@ float xAccelAvg = 0.0f;
 float yAccelAvg = 0.0f;
 float zAccelAvg = 0.0f;
 float sensorHeight = 0.0f;
-float avgTime = 0.0f;
 float avgFrameTime = 0.0f;
 
-CStopWatch* myStopWatch;
 CStopWatch* fpsStopWatch;
 
 float heightSlices[(640/DEPTH_SCALE_FACTOR)*2];
 float heightSliceColors[(640/DEPTH_SCALE_FACTOR)];
 float dirRange = 0.0f;
-
-struct Vector {
-	float x;
-	float y;
-	float z;
-};
 
 // the listener callback object. Implement these methods to do your own processing
 class Listener: public Kinect::KinectListener
@@ -96,39 +86,6 @@ public:
 Kinect::Kinect *K;
 Listener *L;
 
-void orthogonalStart (void) {
-	glPushMatrix();
-	glMatrixMode(GL_PROJECTION);
-	glPushMatrix();
-	glLoadIdentity();
-	gluOrtho2D(0, viewWidth, 0, viewHeight);
-	glDisable(GL_DEPTH_TEST);
-	glScalef(1, -1, 1);
-	glTranslatef(0, -viewHeight, 0);
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-}
-
-void orthogonalEnd (void) {
-	glMatrixMode(GL_PROJECTION);
-	glPopMatrix();
-	glEnable(GL_DEPTH_TEST);
-	glMatrixMode(GL_MODELVIEW);
-	glPopMatrix();
-}
-
-//http://pyopengl.sourceforge.net/documentation/manual/glutBitmapCharacter.3GLUT.html
-void orthoPrint(int x, int y, char *string)
-{
-  int len, i;
-  glRasterPos2f(x, y);
-  len = (int) strlen(string);
-  for (i = 0; i < len; i++)
-  {
-    glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, string[i]);
-  }
-}
-
 //Called when a key is pressed
 void handleKeypress(unsigned char key, //The key that was pressed
 					int x, int y) {    //The current mouse coordinates
@@ -143,7 +100,6 @@ void handleKeypress(unsigned char key, //The key that was pressed
 			K->SetLedMode(Kinect::Led_Off);
 	
 			// when the KinectFinder instance is destroyed, it will tear down and free all kinects.
-			delete myStopWatch;
 			exit(0); //Exit the program
 		}
 	}
@@ -196,8 +152,6 @@ void handleResize(int w, int h) {
 				   200.0);                //The far z clipping coordinate
 }
 
-float _angle = 0.0f;
-
 //Draws the 3D scene
 
 void drawScene() {
@@ -206,7 +160,7 @@ void drawScene() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Draw RGB Camera (in 2D)
-	orthogonalStart();
+	orthogonalStart (viewWidth, viewHeight);
 	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, texID);
 
@@ -239,7 +193,7 @@ void drawScene() {
 	/*//Accel Coordinates (3D)
 	glPushMatrix();
 	glDisable(GL_DEPTH_TEST);
-	glTranslatef(0.0f, 0.0f, -((float)centerDepth)/25.0f);
+	glTranslatef(0.0f, 0.0f, -((float)100)/25.0f);
 	glLineWidth(4.0);
 	glBegin(GL_LINES);
 	// Z Axis
@@ -260,7 +214,7 @@ void drawScene() {
 	glPopMatrix();*/
 
 	// Draw Crosshair (in 2D)
-	orthogonalStart();
+	orthogonalStart (viewWidth, viewHeight);
 	glColor3f(1.0f, 0.0f, 0.0f);
 	glBegin(GL_LINES);
 	glVertex2f((viewWidth/2)-6, (viewHeight/2));
@@ -271,18 +225,13 @@ void drawScene() {
 	glColor3f(1.0f, 1.0f, 1.0f);
 
 	//Draw Frame Count (in 2D)
+#define HUD_FPS_X 5
+#define HUD_FPS_Y 10
 	fpsStopWatch->stopTimer();
 	avgFrameTime = (0.1*(float)(fpsStopWatch->getElapsedTime()))+(0.9f*avgFrameTime);
 	sprintf(printBuff, "FPS: %u", (unsigned int)(1.0f/avgFrameTime));
-	orthoPrint(10, 20, printBuff);
+	orthoPrint(HUD_FPS_X, viewHeight - HUD_FPS_Y, printBuff);
 	fpsStopWatch->startTimer(); 
-
-	/*
-	//Draw Height
-	float heightValue = sensorHeight;
-	sprintf(printBuff, "Height: %d", (int)heightValue);
-	orthoPrint(120, 20, printBuff);
-	*/
 
 	// Draw Height Measurement Bar
 #define HUD_HEIGHT_BAR_X 5
@@ -299,11 +248,6 @@ void drawScene() {
 	float rollValue = atan2(xAccelAvg, yAccelAvg);
 	drawRollHud(xRollLbl, yRollLbl, HUD_ROLL_RADIUS, rollValue);
 	
-	/*//Draw Roll
-	float rollValue = atan2(xAccelAvg, yAccelAvg);
-	sprintf(printBuff, "Roll: %d", (int)((rollValue*180.0f)/PI));
-	orthoPrint(300, 20, printBuff);*/
-
 	// Draw Pitch
 #define HUD_PITCH_RADIUS 30
 	float xPitchLbl = (2*viewWidth/3);
@@ -311,18 +255,14 @@ void drawScene() {
 	float pitchValue = atan2(zAccelAvg, yAccelAvg);
 	drawPitchHud(xPitchLbl, yPitchLbl, HUD_PITCH_RADIUS, pitchValue);
 
-	/*//Draw Pitch
-	float pitchValue = atan2(zAccelAvg, yAccelAvg);
-	sprintf(printBuff, "Pitch: %d", (int)((pitchValue*180.0f)/PI));
-	orthoPrint(480, 20, printBuff);*/
-
 	// Draw Local Top Down Map Background
-#define MAP_BACK_X 100
-#define MAP_BACK_Y 100
+#define HUD_MAP_CIRCLE_SIZE 80
+#define HUD_MAP_X (5 + HUD_MAP_CIRCLE_SIZE)
+#define HUD_MAP_Y (5 + HUD_MAP_CIRCLE_SIZE)
 	glColor3f(1.0f, 1.0f, 1.0f); // White
-	drawCircleSolid(MAP_BACK_X, MAP_BACK_Y, 100, 32);
+	drawCircleSolid(viewWidth - HUD_MAP_X, HUD_MAP_Y, HUD_MAP_CIRCLE_SIZE, 32);
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
-	drawCircle(MAP_BACK_X, MAP_BACK_Y, 100, 32);
+	drawCircle(viewWidth - HUD_MAP_X, HUD_MAP_Y, HUD_MAP_CIRCLE_SIZE, 32);
 
 	//Draw Local Top Down Map (in 2D, upper right)
 	float delX = 15.0f*cos(dirRange/2.0f);
@@ -330,23 +270,27 @@ void drawScene() {
 	//Draw Origin
 	glColor3f(1.0f, 0.0f, 0.0f);
 	glBegin(GL_LINES);
-	glVertex2f(viewWidth-150, 150);
-	glVertex2f(viewWidth-150+delX, 150-delY);
-	glVertex2f(viewWidth-150, 150);
-	glVertex2f(viewWidth-150-delX, 150-delY);
+	glVertex2f(viewWidth-HUD_MAP_X, HUD_MAP_Y);
+	glVertex2f(viewWidth-HUD_MAP_X+delX, HUD_MAP_Y-delY);
+	glVertex2f(viewWidth-HUD_MAP_X, HUD_MAP_Y);
+	glVertex2f(viewWidth-HUD_MAP_X-delX, HUD_MAP_Y-delY);
 	glEnd();
 	//Draw Slice
 	glPointSize(3.0f);
 	glBegin(GL_POINTS);
 	for (int i=0, iIm=0; i < (640/DEPTH_SCALE_FACTOR)*2; ) {
 		if (heightSlices[i] != 999999.0f) {
-			float tmpColor = heightSliceColors[iIm++];
-			if (tmpColor == 999999.0f) {
-				glColor3f(1.0f, 0.0f, 0.0f);
-			} else {
-				glColor3f(tmpColor, tmpColor, tmpColor);
+			float tmpX = heightSlices[i++]/6.0f;
+			float tmpY = heightSlices[i++]/6.0f;
+			if (sqrt((tmpX*tmpX)+(tmpY*tmpY)) < HUD_MAP_CIRCLE_SIZE) {
+				float tmpColor = heightSliceColors[iIm++];
+				if (tmpColor == 999999.0f) {
+					glColor3f(1.0f, 0.0f, 0.0f);
+				} else {
+					glColor3f(tmpColor, tmpColor, tmpColor);
+				}
+				glVertex2f(viewWidth-HUD_MAP_X+tmpX, HUD_MAP_Y+tmpY);
 			}
-			glVertex2f(viewWidth-150+heightSlices[i++]/5.0f, 150+heightSlices[i++]/5.0f);
 		} else {
 			i+=2;
 		}
@@ -356,9 +300,6 @@ void drawScene() {
 
 	//Return to Default
 	glColor3f(1.0f, 1.0f, 1.0f);
-
-
-
 	orthogonalEnd();
 
 	//Send the scene to the screen
@@ -366,85 +307,26 @@ void drawScene() {
 }
 
 void update(int value) {
-	if (mDepthFrameOn != mPrevDepthFrameOn) {
+	if (mDepthFrameOn != mPrevDepthFrameOn) { //New Depth Frame
 		mPrevDepthFrameOn = mDepthFrameOn;
-		K->ParseDepthBuffer();	
+		K->ParseDepthBuffer(); //Update Depth Buffer
 
+		//Get Accel Data
 		int avgAmount = 1;
 		K->GetAcceleroData(&xAccel, &yAccel, &zAccel);
 		xAccelAvg = ((xAccelAvg*(avgAmount-1))+xAccel)/(avgAmount);
 		yAccelAvg = ((yAccelAvg*(avgAmount-1))+yAccel)/(avgAmount);
 		zAccelAvg = ((zAccelAvg*(avgAmount-1))+zAccel)/(avgAmount);
 
-		char bufferFileName[128];
-#ifdef DISPLAY_CAPTURE_COMMANDS
-		printf("Center Distance: %f\n",100.0f/(-0.00307f * (float)(K->mDepthBuffer[153920]) + 3.33f));
-#endif
-#ifdef RECORD_COLORS
+		//Save data if recording and if at least one RGB camera frame has been captured
+#ifdef RECORD_RAW
 		if (mColorFrameOn > 0) {
-			sprintf(bufferFileName, "colorData/%.6u_R.csv", outFileOn);
-			FILE * redFile = fopen(bufferFileName,"w");
-			int i = 0;
-			while (i < 640*480) {
-				for (int x = 0; x < 640-1; x++) {
-					fprintf(redFile,"%u,",K->mColorBuffer[((i++)*3)+0]);
-				}
-				fprintf(redFile,"%u\n",K->mColorBuffer[((i++)*3)+0]);
-			}
-			fclose(redFile);
-			
-			sprintf(bufferFileName, "colorData/%.6u_G.csv", outFileOn);
-			FILE * greenFile = fopen(bufferFileName,"w");
-			i = 0;
-			while (i < 640*480) {
-				for (int x = 0; x < 640-1; x++) {
-					fprintf(greenFile,"%u,",K->mColorBuffer[((i++)*3)+1]);
-				}
-				fprintf(greenFile,"%u\n",K->mColorBuffer[((i++)*3)+1]);
-			}
-			fclose(greenFile);
-
-			sprintf(bufferFileName, "colorData/%.6u_B.csv", outFileOn);
-			FILE * blueFile = fopen(bufferFileName,"w");
-			i = 0;
-			while (i < 640*480) {
-				for (int x = 0; x < 640-1; x++) {
-					fprintf(blueFile,"%u,",K->mColorBuffer[((i++)*3)+1]);
-				}
-				fprintf(blueFile,"%u\n",K->mColorBuffer[((i++)*3)+1]);
-			}
-			fclose(blueFile);
+			recordColor(K->mColorBuffer, outFileOn);
+			recordDepth(K->mDepthBuffer, outFileOn);
+			recordAccel(xAccel, yAccel, zAccel, outFileOn);
 		}
 #endif
-#ifdef RECORD_DEPTH
-		if (mColorFrameOn > 0) {
-			sprintf(bufferFileName, "depthData/%.6u.csv", outFileOn);
-			FILE * depthFile = fopen(bufferFileName,"w");
-			int i = 0;
-			while (i < 640*480) {
-				for (int x = 0; x < 640-1; x++) {
-					fprintf(depthFile,"%u,",K->mDepthBuffer[i++]);
-				}
-				fprintf(depthFile,"%u\n",K->mDepthBuffer[i++]);
-			}
-			fclose(depthFile);
-		}
-#endif
-#ifdef RECORD_ACCEL
-		if (mColorFrameOn > 0) {
-			sprintf(bufferFileName, "accelData/%.6u.csv", outFileOn);
-			FILE * accelFile = fopen(bufferFileName,"w");
-			fprintf(accelFile,"%f,",xAccel);
-			fprintf(accelFile,"%f,",yAccel);
-			fprintf(accelFile,"%f",zAccel);
-			fclose(accelFile);
-		}
-#endif
-		outFileOn++;
-
-#ifdef COMPUTE
-		myStopWatch->startTimer();
-
+		
 		// GET GRAVITY ROTATION MATRIX
 		// Get Unit Vectors
 		//magA = sqrt(sum(A.*A));
@@ -482,11 +364,6 @@ void update(int value) {
 		float R31 = t*xz;
 		float R32 = sx;
 		float R33 = uGravY + (t*uZ*uZ);
-
-		printf("\n");
-		printf("%f, %f, %f\n", R11, R12, R13);
-		printf("%f, %f, %f\n", R21, R22, R23);
-		printf("%f, %f, %f\n\n", R31, R32, R33);
 
 		// Declare Point Cloud Data as Local Array of Floats (40x30x3 on Stack)
 		// Declare Color Data as Local Array of Floats (40*30 on Stack)
@@ -619,7 +496,7 @@ void update(int value) {
 		float dirChange = (PI/2)-dirMid;
 		for (int i = 0; i < (640/DEPTH_SCALE_FACTOR)*2; i+=2) {
 			if (heightSlices[i] != 999999.0f) {
-				heightSlices[i] = heightSlices[i] - (3.0f*PI/2.0f);
+				heightSlices[i] = heightSlices[i];// - (2.0f*PI/2.0f);
 			}
 		}
 		
@@ -628,21 +505,21 @@ void update(int value) {
 			if (heightSlices[i] != 999999.0f) {
 				float tmpDir = heightSlices[i++]; // Dir -> Dis
 				float tmpDis = heightSlices[i--]; // Dis -> Dir
-				heightSlices[i++] = -tmpDis*cos(tmpDir); // x -> y
+				heightSlices[i++] = tmpDis*cos(tmpDir); // x -> y
 				heightSlices[i++] = tmpDis*sin(tmpDir); // y -> next
 			} else {
 				i+=2; // -> next
 			}
 		}
 
-		currentMinHeight -= 150;
-		sensorHeight = -currentMinHeight;
-
-		myStopWatch->stopTimer();
-		avgTime = (0.1*(float)(myStopWatch->getElapsedTime()))+(0.9f*avgTime);
-
+#ifdef RECORD_SLICES
+		if (mColorFrameOn > 0) {
+			recordSlices(heightSlices, heightSliceColors, 640/DEPTH_SCALE_FACTOR, outFileOn);
+		}
 #endif
 
+		currentMinHeight -= 150;
+		sensorHeight = -currentMinHeight;
 	}
 	if (mColorFrameOn != mPrevColorFrameOn) { 
 		mPrevColorFrameOn = mColorFrameOn;
@@ -651,17 +528,11 @@ void update(int value) {
 		glBindTexture( GL_TEXTURE_2D, texID );
 		glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 640, 480,
 						  GL_RGB, GL_UNSIGNED_BYTE, K->mColorBuffer );
-
-#ifdef DISPLAY_CAPTURE_COMMANDS
-		printf(" Got Color  ");
-#endif
 	}
-
-	_angle += 5.0;
-	if (_angle > 360) {_angle -= 360;}
-
+	
 	glutPostRedisplay();
 	glutTimerFunc(10, update, 0);
+	outFileOn++;
 }
 
 int main(int argc, char **argv)
@@ -721,7 +592,6 @@ int main(int argc, char **argv)
 	glutTimerFunc(10, update, 0);
 
 	//Start Timer
-	myStopWatch = new CStopWatch();
 	fpsStopWatch = new CStopWatch();
 	fpsStopWatch->startTimer(); 
 	glutMainLoop(); //Start the main loop.  glutMainLoop doesn't return.
