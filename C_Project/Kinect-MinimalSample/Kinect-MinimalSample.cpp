@@ -49,6 +49,7 @@ CStopWatch* myStopWatch;
 CStopWatch* fpsStopWatch;
 
 float heightSlices[(640/DEPTH_SCALE_FACTOR)*2];
+float heightSliceColors[(640/DEPTH_SCALE_FACTOR)];
 float dirRange = 0.0f;
 
 struct Vector {
@@ -311,57 +312,6 @@ void drawScene() {
 	glMatrixMode(GL_MODELVIEW); //Switch to the drawing perspective
 	glLoadIdentity(); //Reset the drawing perspective
 
-	/*
-	glPushMatrix();
-
-	glTranslatef(0.0f, 0.0f, -5.0f);
-	glRotatef(_angle, 0.0f, 1.0f, 0.0f);
-
-	glBegin(GL_QUADS); //Begin quadrilateral coordinates
-
-	//Trapezoid
-	glColor3f(1.0f, 0.0f, 0.0f);
-	glVertex3f(-0.7f, -1.5f, 0.0f);
-	glColor3f(0.0f, 1.0f, 0.0f);
-	glVertex3f(0.7f, -1.5f, 0.0f);
-	glColor3f(0.0f, 0.0f, 1.0f);
-	glVertex3f(0.4f, -0.5f, 0.0f);
-	glColor3f(1.0f, 1.0f, 1.0f);
-	glVertex3f(-0.4f, -0.5f, 0.0f);
-
-	glEnd(); //End quadrilateral coordinates
-
-	glBegin(GL_TRIANGLES); //Begin triangle coordinates
-
-	//Pentagon
-	glColor3f(0.5f, 0.5f, 0.5f);
-	glVertex3f(0.5f, 0.5f, 0.0f);
-	glVertex3f(1.5f, 0.5f, 0.0f);
-	glVertex3f(0.5f, 1.0f, 0.0f);
-
-	glColor3f(0.0f, 0.0f, 0.0f);
-	glVertex3f(0.5f, 1.0f, 0.0f);
-	glVertex3f(1.5f, 0.5f, 0.0f);
-	glVertex3f(1.5f, 1.0f, 0.0f);
-
-	glColor3f(1.0f, 1.0f, 1.0f);
-	glVertex3f(0.5f, 1.0f, 0.0f);
-	glVertex3f(1.5f, 1.0f, 0.0f);
-	glVertex3f(1.0f, 1.5f, 0.0f);
-
-	//Triangle
-	glColor3f(1.0f, 1.0f, 0.0f);
-	glVertex3f(-0.5f, 0.5f, 0.0f);
-	glColor3f(0.0f, 1.0f, 1.0f);
-	glVertex3f(-1.0f, 1.5f, 0.0f);
-	glColor3f(1.0f, 0.0f, 1.0f);
-	glVertex3f(-1.5f, 0.5f, 0.0f);
-
-	glEnd(); //End triangle coordinates
-
-	glPopMatrix();
-	*/
-
 	/*//Accel Coordinates (3D)
 	glPushMatrix();
 	glDisable(GL_DEPTH_TEST);
@@ -507,8 +457,14 @@ void drawScene() {
 	//Draw Slice
 	glPointSize(3.0f);
 	glBegin(GL_POINTS);
-	for (int i=0; i < (640/DEPTH_SCALE_FACTOR)*2; ) {
+	for (int i=0, iIm=0; i < (640/DEPTH_SCALE_FACTOR)*2; ) {
 		if (heightSlices[i] != 999999.0f) {
+			float tmpColor = heightSliceColors[iIm++];
+			if (tmpColor == 999999.0f) {
+				glColor3f(1.0f, 0.0f, 0.0f);
+			} else {
+				glColor3f(tmpColor, tmpColor, tmpColor);
+			}
 			glVertex2f(viewWidth-150+heightSlices[i++]/5.0f, 150+heightSlices[i++]/5.0f);
 		} else {
 			i+=2;
@@ -527,11 +483,6 @@ void drawScene() {
 	//Send the scene to the screen
 	glutSwapBuffers();
 }
-
-#define FX_D 5.9421434211923247e+02
-#define FY_D 5.9104053696870778e+02
-#define CX_D 3.3930780975300314e+02
-#define CY_D 2.4273913761751615e+02
 
 void update(int value) {
 	if (mDepthFrameOn != mPrevDepthFrameOn) {
@@ -656,13 +607,19 @@ void update(int value) {
 		printf("%f, %f, %f\n", R21, R22, R23);
 		printf("%f, %f, %f\n\n", R31, R32, R33);
 
-		// Move Depth Data into Local Array of Floats (40x30x3 on Stack)
+		// Declare Point Cloud Data as Local Array of Floats (40x30x3 on Stack)
+		// Declare Color Data as Local Array of Floats (40*30 on Stack)
 		float depthPointCloud[((640*480)/(DEPTH_SCALE_FACTOR*DEPTH_SCALE_FACTOR))*3]; // Stored in the order of [z,y,x]
+		float colorPointCloud[((640*480)/(DEPTH_SCALE_FACTOR*DEPTH_SCALE_FACTOR))];
 		int offset = 0;
+		int imOffset = 0;
 		float currentMinHeight = 999999.0f;
 		float currentMinDir = 999999.0f;
 		float currentMaxDir = -999999.0f;
 
+		// Convert depth data to polar point cloud data aligned to initial vector
+		// Detect mins and maxes
+		// Assign color data to each point
 		for (int j = 0; j < 480; j+=DEPTH_SCALE_FACTOR) {
 			for (int i = 0; i < 640; i+=DEPTH_SCALE_FACTOR) {
 				//Acquire Raw Depth Value
@@ -672,20 +629,44 @@ void update(int value) {
 				//Check Sensor Data for Error
 				if (z == 2047.0f) {
 					depthPointCloud[offset] = 999999.0f;
-					offset += 3;
+					offset += 3; // -> next
+					imOffset++;
 				} else {
 					// Depth to Z
 					depthPointCloud[offset++] = z = -100.0f/((-0.00307f * z) + 3.33f); //z -> y
+					
 					// Z to Point Cloud
-					//depthPointCloud[offset++] = (((j*16) - CY_D) * z) / FY_D;  //y-> x
-					//depthPointCloud[offset] = (((i*16) - CX_D) * z) / -FX_D; //x
 					depthPointCloud[offset++] = (float)(j - 240) * (z - 10.0f) * 0.0021f ; //y -> x
 					depthPointCloud[offset] = (float)(i - 320) * (z - 10.0f) * -0.0021f ;  //x
 					 
-					// Reorient Y-Axis to Gravity
+					// Set up initial temporary variables
 					float tmpX = depthPointCloud[offset--]; // x -> y
 					float tmpY = depthPointCloud[offset--]; // y -> z
 					float tmpZ = depthPointCloud[offset];   // z
+
+					// Determine fi,fj for color data
+					float fi = ((( tmpX - 1.8f) / 0.0023f)/ (-tmpZ - 10)) + 320.0f - 1.0f;
+					float fj = (((-tmpY - 2.4f) / 0.0023f)/ (-tmpZ - 10)) + 240.0f - 1.0f;
+
+					// Set Color Value
+					int imI = floor(fi);
+					int imJ = floor(fj);
+					if ( (imI >= 0) && (imI < 640-2) && (imJ >= 0) && (imJ < 480-2) ) {
+						int imSum = 0;
+						int imOffset3 = (((imJ*640)+imI)*3);
+						for (int count3 = 0; count3 < 3; count3++) { 
+							for (int count33 = 0; count33 < 3; count33++) {
+								imSum += ((int)K->mColorBuffer[imOffset3++] + 
+									(int)K->mColorBuffer[imOffset3++] + (int)K->mColorBuffer[imOffset3++]);
+							}
+							imOffset3 += -9 + 640;
+						}
+						colorPointCloud[imOffset++] = imSum / (9.0 * 3.0 * 255.0);
+					} else {
+						colorPointCloud[imOffset++] = 999999.0f;
+					}
+
+					// Reorient Y-Axis to Gravity
 					depthPointCloud[offset++] = (tmpX*R13)+(tmpY*R23)+(tmpZ*R33);  // z -> y
 					depthPointCloud[offset++] = (tmpX*R12)+(tmpY*R22)+(tmpZ*R32);  // y -> x					
 					depthPointCloud[offset--] = tmpX = (tmpX*R11)+(tmpY*R21)+(tmpZ*R31); // x -> y
@@ -729,26 +710,26 @@ void update(int value) {
 		}
 		currentMinHeight += 150.0;
 		offset = 0;
+		imOffset = 0;
 		float factor = (640.0f/DEPTH_SCALE_FACTOR)/(currentMaxDir - currentMinDir + 0.000001f);
 		for (int i = 0; i < (640/DEPTH_SCALE_FACTOR)*(480/DEPTH_SCALE_FACTOR); i++) {
-			if (depthPointCloud[offset++] == 999999.0f) { //height
-				offset += 2;
+			if (depthPointCloud[offset++] == 999999.0f) { // height -> dir
+				offset += 2; // -> next
+				imOffset++;
 			} else {
-				if (abs(depthPointCloud[offset])>50) {
-					factor++;
-				}
-
-				int dirIndex = (int)floor((depthPointCloud[offset--]-currentMinDir)*factor); //dir
-				float heightDiff = abs(depthPointCloud[offset++]-currentMinHeight); //height
+				int dirIndex = (int)floor((depthPointCloud[offset--]-currentMinDir)*factor); // dir -> height
+				float heightDiff = abs(depthPointCloud[offset++]-currentMinHeight); // height -> dir
 				if ((heightDiff < 10) && (heightDiff < heightDiffList[dirIndex])) {
 					if (abs(dirIndex) > 40) {
 						dirIndex++;
 					}
 					heightDiffList[dirIndex] = heightDiff;
-					heightSlices[dirIndex*2] = depthPointCloud[offset++]; //dir
-					heightSlices[(dirIndex*2)+1] = depthPointCloud[offset++]; //dis
+					heightSlices[dirIndex*2] = depthPointCloud[offset++]; // dir -> dis
+					heightSlices[(dirIndex*2)+1] = depthPointCloud[offset++]; // dis -> next
+					heightSliceColors[dirIndex] = colorPointCloud[imOffset++]; // Set color value
 				} else {
-					offset += 2;
+					offset += 2; // -> next
+					imOffset++;
 				}
 			}
 		}
@@ -764,12 +745,12 @@ void update(int value) {
 		// Convert Slices to Cartesian
 		for (int i=0; i < (640/DEPTH_SCALE_FACTOR)*2; ) {
 			if (heightSlices[i] != 999999.0f) {
-				float tmpDir = heightSlices[i++]; //Dir
-				float tmpDis = heightSlices[i--]; //Dis
-				heightSlices[i++] = -tmpDis*cos(tmpDir); //x
-				heightSlices[i++] = tmpDis*sin(tmpDir); //y
+				float tmpDir = heightSlices[i++]; // Dir -> Dis
+				float tmpDis = heightSlices[i--]; // Dis -> Dir
+				heightSlices[i++] = -tmpDis*cos(tmpDir); // x -> y
+				heightSlices[i++] = tmpDis*sin(tmpDir); // y -> next
 			} else {
-				i+=2;
+				i+=2; // -> next
 			}
 		}
 
