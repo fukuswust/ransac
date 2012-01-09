@@ -15,6 +15,7 @@
 #include "../Kinect-win32.h"
 #include <fstream>
 #include "hr_time.h"
+#include "gui.h"
 
 // The "Kinect" Project has been added to the project dependencies of this project. 
 
@@ -199,83 +200,6 @@ float _angle = 0.0f;
 
 //Draws the 3D scene
 
-
-void glRectBorder(int x1, int y1, int x2, int y2){
-	// Draws the border for a rectangle with the four corners, similar to glRectd
-	glBegin(GL_LINE_LOOP);
-	glVertex2f(x1, y1);
-	glVertex2f(x2, y1);
-	glVertex2f(x2, y2);
-	glVertex2f(x1, y2);
-	glEnd();
-}
-
-// From http://slabode.exofire.net/circle_draw.shtml - In the public domain
-void DrawCircle(float cx, float cy, float r, int num_segments) 
-{ 
-	glBegin(GL_LINE_LOOP); 
-	for(int ii = 0; ii < num_segments; ii++) 
-	{ 
-		float theta = 2.0f * 3.1415926f * float(ii) / float(num_segments);//get the current angle 
-
-		float x = r * cosf(theta);//calculate the x component 
-		float y = r * sinf(theta);//calculate the y component 
-
-		glVertex2f(x + cx, y + cy);//output vertex 
-
-	} 
-	glEnd(); 
-}
-
-// From http://slabode.exofire.net/circle_draw.shtml - In the public domain - modified to fill circle with color
-void DrawCircleSolid(float cx, float cy, float r, int num_segments) 
-{ 
-	glBegin(GL_TRIANGLE_FAN);
-	for(int ii = 0; ii < num_segments; ii++) 
-	{ 
-		float theta = 2.0f * 3.1415926f * float(ii) / float(num_segments);//get the current angle 
-
-		float x = r * cosf(theta);//calculate the x component 
-		float y = r * sinf(theta);//calculate the y component 
-
-		glVertex2f(x + cx, y + cy);//output vertex 
-
-	} 
-	// Connect end
-	glEnd(); 
-}
-
-void drawCenteredTiltedLine(float cx, float cy, float r, float angle) {
-	// Draws a line centered at cx, cy, with radius r, and angle "angle" (in radians)
-	glBegin(GL_LINES);
-	float x = r * cosf(angle);
-	float y = r * sinf(angle);
-	glVertex2f(cx + x, cy + y);
-	glVertex2f(cx - x, cy - y);
-	glEnd();
-}
-
-void DrawCircleHash(float cx, float cy, float r, float l, int num_segments) 
-{
-	// Draws hashes on the circle at radius r, with length l
-	glBegin(GL_LINES);
-	for(int ii = 0; ii < num_segments; ii++) 
-	{ 
-		float theta = 2.0f * 3.1415926f * float(ii) / float(num_segments);//get the current angle 
-
-		float x = r * cosf(theta);//calculate the x component 
-		float y = r * sinf(theta);//calculate the y component 
-		glVertex2f(x + cx, y + cy);//output vertex
-
-		x = (r-l) * cosf(theta);//calculate the x component 
-		y = (r-l) * sinf(theta);//calculate the y component
-		glVertex2f(x + cx, y + cy);//output vertex
-	} 
-	glEnd(); 
-}
-
-
-
 void drawScene() {
 	char printBuff[256];
 	//Clear information from last draw
@@ -360,41 +284,10 @@ void drawScene() {
 	orthoPrint(120, 20, printBuff);
 	*/
 
-	//// Draw Height Measurement Bar - this code is painfull to read...
+	// Draw Height Measurement Bar
 #define HUD_HEIGHT_BAR_X 5
 #define HUD_HEIGHT_BAR_Y 5
-	// Draw Big White Background
-	glColor3f(1.0f, 1.0f, 1.0f); // White
-	glRectf(HUD_HEIGHT_BAR_X, HUD_HEIGHT_BAR_Y, HUD_HEIGHT_BAR_X+45.0f, HUD_HEIGHT_BAR_Y+195.0f);
-	// Draw Big White Background Border
-	glColor3f(0.0f, 0.0f, 0.0f); // Black
-	glRectBorder(HUD_HEIGHT_BAR_X, HUD_HEIGHT_BAR_Y, HUD_HEIGHT_BAR_X+45.0f, HUD_HEIGHT_BAR_Y+195.0f);
-	// Draw Sensor Background - white to red gradiant
-	glBegin(GL_POLYGON);
-	glColor3f(1.0f, 1.0f, 1.0f); // White
-	glVertex2f(HUD_HEIGHT_BAR_X+5, HUD_HEIGHT_BAR_Y+5);
-	glVertex2f(HUD_HEIGHT_BAR_X+20, HUD_HEIGHT_BAR_Y+5);
-	glColor3f(1.0f, 0.0f, 0.0f); // Red
-	glVertex2f(HUD_HEIGHT_BAR_X+20, HUD_HEIGHT_BAR_Y+185);
-	glVertex2f(HUD_HEIGHT_BAR_X+5, HUD_HEIGHT_BAR_Y+185);
-	glEnd();
-	// Draw Sensor Background Border - black
-	glColor3f(0.0f, 0.0f, 0.0f); // Black
-	glRectBorder(HUD_HEIGHT_BAR_X+5, HUD_HEIGHT_BAR_Y+5, HUD_HEIGHT_BAR_X+20, HUD_HEIGHT_BAR_Y+185);
-	// Calculate and place height bar correctly
-	float heightValue = sensorHeight;
-	float barLocation;
-	barLocation = ((300-heightValue)/300)*185;
-	glColor3f(0.0f, 0.0f, 0.0f);
-	glBegin(GL_LINES);
-	glVertex2f(HUD_HEIGHT_BAR_X+8, (int)barLocation+HUD_HEIGHT_BAR_Y);
-	glVertex2f(HUD_HEIGHT_BAR_X+17, (int)barLocation+HUD_HEIGHT_BAR_Y);
-	glEnd();
-	// Draw values next to bar
-	orthoPrint(HUD_HEIGHT_BAR_X+25, HUD_HEIGHT_BAR_Y+5+9, "3m");
-	orthoPrint(HUD_HEIGHT_BAR_X+25, HUD_HEIGHT_BAR_Y+65+6, "2m");
-	orthoPrint(HUD_HEIGHT_BAR_X+25, HUD_HEIGHT_BAR_Y+125+3, "1m");
-	orthoPrint(HUD_HEIGHT_BAR_X+25, HUD_HEIGHT_BAR_Y+185, "0m");
+	drawHeightHud(HUD_HEIGHT_BAR_X, HUD_HEIGHT_BAR_Y, sensorHeight);
 
 	// Enable antialiasing.  Do we want to do this?
 	glEnable(GL_LINE_SMOOTH);
@@ -404,16 +297,8 @@ void drawScene() {
 	float xRollLbl = (viewWidth/3);
 	float yRollLbl = 35;
 	float rollValue = atan2(xAccelAvg, yAccelAvg);
-	glColor3f(1.0f, 1.0f, 1.0f); // White
-	DrawCircleSolid(xRollLbl, yRollLbl, HUD_ROLL_RADIUS, 16);
-	glColor3f(0.0f, 0.0f, 0.0f); // Black
-	DrawCircle(xRollLbl, yRollLbl, HUD_ROLL_RADIUS, 16);
-	glColor3f(1.0f, 0.0f, 0.0f); // Red
-	drawCenteredTiltedLine(xRollLbl, yRollLbl, HUD_ROLL_RADIUS-6, rollValue);
-	// Draw hash marks
-	glColor3f(0.0f, 0.0f, 0.0f); // Black
-	DrawCircleHash(xRollLbl, yRollLbl, HUD_ROLL_RADIUS, 2, 8);
-
+	drawRollHud(xRollLbl, yRollLbl, HUD_ROLL_RADIUS, rollValue);
+	
 	/*//Draw Roll
 	float rollValue = atan2(xAccelAvg, yAccelAvg);
 	sprintf(printBuff, "Roll: %d", (int)((rollValue*180.0f)/PI));
@@ -424,14 +309,7 @@ void drawScene() {
 	float xPitchLbl = (2*viewWidth/3);
 	float yPitchLbl = 35;
 	float pitchValue = atan2(zAccelAvg, yAccelAvg);
-	glColor3f(1.0f, 1.0f, 1.0f); // White
-	DrawCircleSolid(xPitchLbl, yPitchLbl, HUD_PITCH_RADIUS, 16);
-	glColor3f(0.0f, 0.0f, 0.0f); // Black
-	DrawCircle(xPitchLbl, yPitchLbl, HUD_PITCH_RADIUS, 16);
-	drawCenteredTiltedLine(xPitchLbl, yPitchLbl, HUD_PITCH_RADIUS-6, pitchValue);
-	// Draw hash marks
-	glColor3f(0.0f, 0.0f, 0.0f); // Black
-	DrawCircleHash(xPitchLbl, yPitchLbl, HUD_PITCH_RADIUS, 2, 8);
+	drawPitchHud(xPitchLbl, yPitchLbl, HUD_PITCH_RADIUS, pitchValue);
 
 	/*//Draw Pitch
 	float pitchValue = atan2(zAccelAvg, yAccelAvg);
@@ -442,9 +320,9 @@ void drawScene() {
 #define MAP_BACK_X 100
 #define MAP_BACK_Y 100
 	glColor3f(1.0f, 1.0f, 1.0f); // White
-	DrawCircleSolid(MAP_BACK_X, MAP_BACK_Y, 100, 32);
+	drawCircleSolid(MAP_BACK_X, MAP_BACK_Y, 100, 32);
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
-	DrawCircle(MAP_BACK_X, MAP_BACK_Y, 100, 32);
+	drawCircle(MAP_BACK_X, MAP_BACK_Y, 100, 32);
 
 	//Draw Local Top Down Map (in 2D, upper right)
 	float delX = 15.0f*cos(dirRange/2.0f);
