@@ -1,6 +1,40 @@
 #include "gui.h"
+#include <string.h>
 
-void glRectBorder(int x1, int y1, int x2, int y2){
+void orthogonalStart (int viewWidth, int viewHeight) {
+	glPushMatrix();
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+	glLoadIdentity();
+	gluOrtho2D(0, viewWidth, 0, viewHeight);
+	glDisable(GL_DEPTH_TEST);
+	glScalef(1, -1, 1);
+	glTranslatef(0, -viewHeight, 0);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+}
+
+void orthogonalEnd (void) {
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
+	glEnable(GL_DEPTH_TEST);
+	glMatrixMode(GL_MODELVIEW);
+	glPopMatrix();
+}
+
+//http://pyopengl.sourceforge.net/documentation/manual/glutBitmapCharacter.3GLUT.html
+void orthoPrint(int x, int y, char *string)
+{
+  int len, i;
+  glRasterPos2f(x, y);
+  len = (int) strlen(string);
+  for (i = 0; i < len; i++)
+  {
+    glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, string[i]);
+  }
+}
+
+void drawRectBorder(int x1, int y1, int x2, int y2){
 	// Draws the border for a rectangle with the four corners, similar to glRectd
 	glBegin(GL_LINE_LOOP);
 	glVertex2f(x1, y1);
