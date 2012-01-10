@@ -45,8 +45,10 @@ void runAlgorithm() {
 	// DECLARE COLOR DATA as Local Array of Floats (40*30 on Stack)
 	float depthPointCloud[((640*480)/(DEPTH_SCALE_FACTOR*DEPTH_SCALE_FACTOR))*3]; // Stored in the order of [z,y,x]
 	float colorPointCloud[((640*480)/(DEPTH_SCALE_FACTOR*DEPTH_SCALE_FACTOR))];
+	int ijPointCloud[((640*480)/(DEPTH_SCALE_FACTOR*DEPTH_SCALE_FACTOR))*2]; // Stored in the order of [i,j]
 	int offset = 0;
 	int imOffset = 0;
+	int ijOffset = 0;
 	float currentMinHeight = 999999.0f;
 	float currentMinDir = 999999.0f;
 	float currentMaxDir = -999999.0f;
@@ -65,6 +67,7 @@ void runAlgorithm() {
 				depthPointCloud[offset] = 999999.0f;
 				offset += 3; // -> next
 				imOffset++;
+				ijOffset += 2;
 			} else {
 				// Depth to Z
 				depthPointCloud[offset++] = z = -100.0f/((-0.00307f * z) + 3.33f); //z -> y
@@ -85,6 +88,8 @@ void runAlgorithm() {
 				// Set Color Value
 				int imI = floor(fi);
 				int imJ = floor(fj);
+				ijPointCloud[ijOffset++] = imI;
+				ijPointCloud[ijOffset++] = imJ;
 				if ( (imI >= 0) && (imI < 640-2) && (imJ >= 0) && (imJ < 480-2) ) {
 					int imSum = 0;
 					int imOffset3 = (((imJ*640)+imI)*3);
@@ -141,11 +146,13 @@ void runAlgorithm() {
 	currentMinHeight += 150.0;
 	offset = 0;
 	imOffset = 0;
+	ijOffset = 0;
 	float factor = (640.0f/DEPTH_SCALE_FACTOR)/(currentMaxDir - currentMinDir + 0.000001f);
 	for (int i = 0; i < (640/DEPTH_SCALE_FACTOR)*(480/DEPTH_SCALE_FACTOR); i++) {
 		if (depthPointCloud[offset++] == 999999.0f) { // height -> dir
 			offset += 2; // -> next
 			imOffset++;
+			ijOffset += 2;
 		} else {
 			int dirIndex = (int)floor((depthPointCloud[offset--]-currentMinDir)*factor); // dir -> height
 			float heightDiff = abs(depthPointCloud[offset++]-currentMinHeight); // height -> dir
@@ -157,9 +164,12 @@ void runAlgorithm() {
 				heightSlices[dirIndex*2] = depthPointCloud[offset++]; // dir -> dis
 				heightSlices[(dirIndex*2)+1] = depthPointCloud[offset++]; // dis -> next
 				heightSliceColors[dirIndex] = colorPointCloud[imOffset++]; // Set color value
+				heightSliceIJ[dirIndex*2] = ijPointCloud[ijOffset++]; // i
+				heightSliceIJ[(dirIndex*2)+1] = ijPointCloud[ijOffset++]; // j
 			} else {
 				offset += 2; // -> next
 				imOffset++;
+				ijOffset += 2;
 			}
 		}
 	}

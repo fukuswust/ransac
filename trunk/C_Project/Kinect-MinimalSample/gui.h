@@ -39,4 +39,6 @@ void drawPitchHud(int cx, int cy, int r, float pitch);
 
 void drawTopDownMap(int cx, int cy, int r, float heightSlices[], float heightSliceColors[], int numSlices);
 
+void drawHeightLine(float heightSlices[], int heightSliceIJ[], int numSlices);
+
 #endif

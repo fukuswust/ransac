@@ -12,6 +12,8 @@ int viewWidth = 640;
 int viewHeight = 480;
 int viewXOffset = 0;
 int viewYOffset = 0;
+float xViewFactor = 0.0f;
+float yViewFactor = 0.0f;
 // Sensor Height
 float sensorHeight = 0.0f;
 // FPS calculation
@@ -23,6 +25,7 @@ float rollValue=0.0f, pitchValue=0.0f;
 // Height Slices
 float heightSlices[(640/DEPTH_SCALE_FACTOR)*2];
 float heightSliceColors[(640/DEPTH_SCALE_FACTOR)];
+int   heightSliceIJ[(640/DEPTH_SCALE_FACTOR)*2];
 
 Kinect::Kinect *K;
 Listener *L;
