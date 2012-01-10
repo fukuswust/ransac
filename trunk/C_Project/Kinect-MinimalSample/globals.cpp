@@ -23,3 +23,8 @@ float rollValue=0.0f, pitchValue=0.0f;
 // Height Slices
 float heightSlices[(640/DEPTH_SCALE_FACTOR)*2];
 float heightSliceColors[(640/DEPTH_SCALE_FACTOR)];
+
+Kinect::Kinect *K;
+Listener *L;
+
+GLuint texID;

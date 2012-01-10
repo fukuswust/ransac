@@ -2,6 +2,17 @@
 #define H_GLOBALS
 
 #include "hr_time.h"
+#include "listener.h"
+#include "../Kinect-win32.h"
+
+#include <stdlib.h>
+#ifdef __APPLE__
+#include <OpenGL/OpenGL.h>
+#include <GLUT/glut.h>
+#else
+#include <GL/glut.h>
+#endif
+#include <math.h>
 
 //#define RECORD_RAW
 //#define RECORD_SLICES
@@ -32,5 +43,10 @@ extern float rollValue, pitchValue;
 // Height Slices
 extern float heightSlices[(640/DEPTH_SCALE_FACTOR)*2];
 extern float heightSliceColors[(640/DEPTH_SCALE_FACTOR)];
+
+extern Kinect::Kinect *K;
+extern Listener *L;
+
+extern GLuint texID;
 
 #endif
