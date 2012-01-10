@@ -1,5 +1,6 @@
 #include "gui.h"
 #include <string.h>
+#include "globals.h"
 
 void orthogonalStart (int viewWidth, int viewHeight) {
 	glPushMatrix();
@@ -32,6 +33,44 @@ void orthoPrint(int x, int y, char *string)
   {
     glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, string[i]);
   }
+}
+
+#define RGB_USE_SMOOTHING
+void drawColorBackground(int viewWidth, int viewHeight, GLuint texID){
+	orthogonalStart (viewWidth, viewHeight);
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, texID);
+#ifdef RGB_USE_SMOOTHING
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+#else
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+#endif
+	glBegin(GL_QUADS);
+	glTexCoord2f(0.0f, 0.0f);
+	glVertex2f(0, 0);
+	glTexCoord2f(0.0f, 1.0f);
+	glVertex2f(0, viewHeight);
+	glTexCoord2f(1.0f, 1.0f);
+	glVertex2f(viewWidth, viewHeight);
+	glTexCoord2f(1.0f, 0.0f);
+	glVertex2f(viewWidth, 0);
+	glEnd();
+	glDisable(GL_TEXTURE_2D);
+	orthogonalEnd();
+}
+
+void drawCrosshair(int viewWidth, int viewHeight){
+	orthogonalStart(viewWidth, viewHeight);
+	glColor3f(1.0f, 0.0f, 0.0f);
+	glBegin(GL_LINES);
+	glVertex2f((viewWidth/2)-6, (viewHeight/2));
+	glVertex2f((viewWidth/2)+5, (viewHeight/2));
+	glVertex2f((viewWidth/2), (viewHeight/2)-5);
+	glVertex2f((viewWidth/2), (viewHeight/2)+6);
+	glEnd();
+	glColor3f(1.0f, 1.0f, 1.0f);
 }
 
 void drawRectBorder(int x1, int y1, int x2, int y2){
@@ -168,4 +207,45 @@ void drawPitchHud(int cx, int cy, int r, float pitch)
 	// Draw hash marks
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
 	drawCircleHash(cx, cy, r, 2, 8);
+}
+
+void drawTopDownMap(int cx, int cy, int r, float heightSlices[], float heightSliceColors[], int numSlices){
+	//Draw Local Top Down Map Background
+	glColor3f(1.0f, 1.0f, 1.0f); // White
+	drawCircleSolid(cx, cy, r, 32);
+	glColor3f(0.0f, 0.0f, 0.0f); // Black
+	drawCircle(cx, cy, r, 32);
+	//Draw Local Top Down Map 
+	float delX = 15.0f*cos((30.0f*PI)/180.0f);
+	float delY = 15.0f*sin((30.0f*PI)/180.0f);
+	//Draw Origin
+	glColor3f(1.0f, 0.0f, 0.0f);
+	glBegin(GL_LINES);
+	glVertex2f(cx, cy);
+	glVertex2f(cx+delX, cy-delY);
+	glVertex2f(cx, cy);
+	glVertex2f(cx-delX, cy-delY);
+	glEnd();
+	//Draw Slice
+	glPointSize(3.0f);
+	glBegin(GL_POINTS);
+	for (int i=0, iIm=0; i < numSlices*2; ) {
+		if (heightSlices[i] != 999999.0f) {
+			float tmpX = heightSlices[i++]/6.0f;
+			float tmpY = heightSlices[i++]/6.0f;
+			if (sqrt((tmpX*tmpX)+(tmpY*tmpY)) < r) {
+				float tmpColor = heightSliceColors[iIm++];
+				if (tmpColor == 999999.0f) {
+					glColor3f(1.0f, 0.0f, 0.0f);
+				} else {
+					glColor3f(tmpColor, tmpColor, tmpColor);
+				}
+				glVertex2f(cx+tmpX, cy+tmpY);
+			}
+		} else {
+			i+=2;
+		}
+	}
+	glEnd();
+	glPointSize(1.0f);
 }
