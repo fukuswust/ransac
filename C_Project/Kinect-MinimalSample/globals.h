@@ -17,6 +17,7 @@
 //#define RECORD_RAW
 //#define RECORD_SLICES
 #define DEPTH_SCALE_FACTOR 16
+#define DRAW_HEIGHT_SLICE
 
 #define PI 3.14159265
 
@@ -32,6 +33,8 @@ extern int viewWidth;
 extern int viewHeight;
 extern int viewXOffset;
 extern int viewYOffset;
+extern float xViewFactor;
+extern float yViewFactor;
 // Sensor Height
 extern float sensorHeight;
 // FPS calculation
@@ -43,6 +46,7 @@ extern float rollValue, pitchValue;
 // Height Slices
 extern float heightSlices[(640/DEPTH_SCALE_FACTOR)*2];
 extern float heightSliceColors[(640/DEPTH_SCALE_FACTOR)];
+extern int   heightSliceIJ[(640/DEPTH_SCALE_FACTOR)*2];
 
 extern Kinect::Kinect *K;
 extern Listener *L;

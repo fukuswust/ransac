@@ -37,7 +37,6 @@ void orthoPrint(int x, int y, char *string)
 
 #define RGB_USE_SMOOTHING
 void drawColorBackground(int viewWidth, int viewHeight, GLuint texID){
-	orthogonalStart (viewWidth, viewHeight);
 	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, texID);
 #ifdef RGB_USE_SMOOTHING
@@ -58,11 +57,9 @@ void drawColorBackground(int viewWidth, int viewHeight, GLuint texID){
 	glVertex2f(viewWidth, 0);
 	glEnd();
 	glDisable(GL_TEXTURE_2D);
-	orthogonalEnd();
 }
 
 void drawCrosshair(int viewWidth, int viewHeight){
-	orthogonalStart(viewWidth, viewHeight);
 	glColor3f(1.0f, 0.0f, 0.0f);
 	glBegin(GL_LINES);
 	glVertex2f((viewWidth/2)-6, (viewHeight/2));
@@ -186,15 +183,21 @@ void drawHeightHud(int topx, int topy, float height)
 
 void drawRollHud(int cx, int cy, int r, float roll)
 {
+	// Draw Background
 	glColor4f(1.0f, 1.0f, 1.0f, 0.6f); // White
 	drawCircleSolid(cx, cy, r, 16);
+	// Draw Label
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
+	orthoPrint(cx-11, cy+15, "Roll");
+	// Draw Outline
 	drawCircle(cx, cy, r, 16);
+	// Draw hash marks
+	drawCircleHash(cx, cy, r, 2, 8);
+	// Draw Needle
+	glLineWidth(2.0f);
 	glColor3f(1.0f, 0.0f, 0.0f); // Red
 	drawCenteredTiltedLine(cx, cy, r-6, roll);
-	// Draw hash marks
-	glColor3f(0.0f, 0.0f, 0.0f); // Black
-	drawCircleHash(cx, cy, r, 2, 8);
+	glLineWidth(1.0f);
 	// Draw center point
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
 	drawCircleSolid(cx, cy, 3.5, 8);
@@ -202,15 +205,21 @@ void drawRollHud(int cx, int cy, int r, float roll)
 
 void drawPitchHud(int cx, int cy, int r, float pitch)
 {
+	// Draw Background
 	glColor4f(1.0f, 1.0f, 1.0f, 0.6f); // White
 	drawCircleSolid(cx, cy, r, 16);
+	// Draw Label
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
+	orthoPrint(cx-11, cy+15, "Pitch");
+	// Draw Outline
 	drawCircle(cx, cy, r, 16);
+	// Draw hash marks
+	drawCircleHash(cx, cy, r, 2, 8);
+	// Draw Needle
+	glLineWidth(2.0f);
 	glColor3f(1.0f, 0.0f, 0.0f); // Red
 	drawCenteredTiltedLine(cx, cy, r-6, pitch);
-	// Draw hash marks
-	glColor3f(0.0f, 0.0f, 0.0f); // Black
-	drawCircleHash(cx, cy, r, 2, 8);
+	glLineWidth(1.0f);
 	// Draw center point
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
 	drawCircleSolid(cx, cy, 3.5, 8);
@@ -248,11 +257,53 @@ void drawTopDownMap(int cx, int cy, int r, float heightSlices[], float heightSli
 					glColor3f(tmpColor, tmpColor, tmpColor);
 				}
 				glVertex2f(cx+tmpX, cy+tmpY);
+			} else {
+				iIm++;
+			}
+		} else {
+			i+=2;
+			iIm++;
+		}
+	}
+	glEnd();
+	glPointSize(1.0f);
+}
+
+void drawHeightLine(float heightSlices[], int heightSliceIJ[], int numSlices) {
+	float minDis = 999999.0;
+	float maxDis = -999999.0;
+	for (int i=0; i < numSlices*2; ) {
+		if (heightSlices[i] != 999999.0f) {
+			float tmpX = heightSlices[i++];
+			float tmpY = heightSlices[i++];
+			float dis = sqrt((tmpX*tmpX)+(tmpY*tmpY));
+			if (dis < minDis) {
+				minDis = dis;
+			} else if (dis > maxDis) {
+				maxDis = dis;
 			}
 		} else {
 			i+=2;
 		}
 	}
+	float factor = 1.0f/(maxDis-minDis);
+
+	glLineWidth(4.0f);
+	glBegin(GL_LINE_STRIP);
+	for (int i=0, ij=0; i < numSlices*2; ) {
+		if (heightSlices[i] != 999999.0f) {
+			float tmpX = heightSlices[i++];
+			float tmpY = heightSlices[i++];
+			float col = (sqrt((tmpX*tmpX)+(tmpY*tmpY))-minDis)*factor;
+			glColor3f(col, col, col);
+			int tmpI = heightSliceIJ[ij++]*xViewFactor;
+			int tmpJ = heightSliceIJ[ij++]*yViewFactor;
+			glVertex2f(tmpI, tmpJ);
+		} else {
+			i+=2;
+			ij+=2;
+		}
+	}
 	glEnd();
-	glPointSize(1.0f);
+	glLineWidth(1.0f);
 }

@@ -74,6 +74,8 @@ void handleResize(int w, int h) {
 		viewXOffset = 0;
 		viewYOffset = 0;
 	}
+	xViewFactor = viewWidth/640.0f;
+	yViewFactor = viewHeight/480.0f;
 
 	//Tell OpenGL how to convert from coordinates to pixel values
 	glViewport(viewXOffset, viewYOffset, viewWidth, viewHeight);
@@ -88,19 +90,31 @@ void handleResize(int w, int h) {
 				   200.0);                //The far z clipping coordinate
 }
 
-//Draws the 3D scene
-
+//Draws the Scene
 void drawScene() {
 	char printBuff[256];
 	//Clear information from last draw
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	//Draw 2D Scene in Background
+	orthogonalStart (viewWidth, viewHeight);
+
 	// Draw RGB Camera in background (in 2D)
 	drawColorBackground(viewWidth, viewHeight, texID);
+
+	// Draw Height Slice
+#ifdef DRAW_HEIGHT_SLICE
+	drawHeightLine(heightSlices, heightSliceIJ, 640/DEPTH_SCALE_FACTOR);
+#endif
+
+	orthogonalEnd();
 
 	//Draw 3D Scene
 	glMatrixMode(GL_MODELVIEW); //Switch to the drawing perspective
 	glLoadIdentity(); //Reset the drawing perspective
+
+	//Draw 2D Overlay
+	orthogonalStart(viewWidth, viewHeight);
 
 	// Draw Crosshair (in 2D)
 	drawCrosshair(viewWidth, viewHeight);
@@ -119,30 +133,17 @@ void drawScene() {
 #define HUD_HEIGHT_BAR_Y 5
 	drawHeightHud(HUD_HEIGHT_BAR_X, HUD_HEIGHT_BAR_Y, sensorHeight);
 
-	/*// Attempt Alpha Blurring
-	glColor4f(1.0f, 1.0f, 1.0f, 0.2f);
-	glBegin(GL_POLYGON);
-	glVertex2f(100, 100);
-	glVertex2f(200, 100);
-	glVertex2f(200, 200);
-	glVertex2f(100, 200);
-	glEnd();*/
-
 	// Draw Roll
 #define HUD_ROLL_RADIUS 30
 	float xRollLbl = 95;
 	float yRollLbl = 48;
 	drawRollHud(xRollLbl, yRollLbl, HUD_ROLL_RADIUS, rollValue);
-	glColor3f(0.0f, 0.0f, 0.0f); // Black
-	orthoPrint(xRollLbl-11, yRollLbl+15, "Roll"); // Print Label
 	
 	// Draw Pitch
 #define HUD_PITCH_RADIUS 30
 	float xPitchLbl = 95;
 	float yPitchLbl = 130;
 	drawPitchHud(xPitchLbl, yPitchLbl, HUD_PITCH_RADIUS, pitchValue);
-	glColor3f(0.0f, 0.0f, 0.0f); // Black
-	orthoPrint(xPitchLbl-13, yPitchLbl+15, "Pitch"); // Print Label
 
 	// Draw Local Top Down Map (in 2D, upper right)
 #define HUD_MAP_CIRCLE_SIZE 80
