@@ -152,7 +152,7 @@ void drawCircleHash(float cx, float cy, float r, float l, int num_segments)
 void drawHeightHud(int topx, int topy, float height)
 {
 	// Draw Big White Background
-	glColor3f(1.0f, 1.0f, 1.0f); // White
+	glColor4f(1.0f, 1.0f, 1.0f, 0.7f); // White
 	glRectf(topx, topy, topx+45.0f, topy+195.0f);
 	// Draw Big White Background Border
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
@@ -186,7 +186,7 @@ void drawHeightHud(int topx, int topy, float height)
 
 void drawRollHud(int cx, int cy, int r, float roll)
 {
-	glColor3f(1.0f, 1.0f, 1.0f); // White
+	glColor4f(1.0f, 1.0f, 1.0f, 0.6f); // White
 	drawCircleSolid(cx, cy, r, 16);
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
 	drawCircle(cx, cy, r, 16);
@@ -195,23 +195,30 @@ void drawRollHud(int cx, int cy, int r, float roll)
 	// Draw hash marks
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
 	drawCircleHash(cx, cy, r, 2, 8);
+	// Draw center point
+	glColor3f(0.0f, 0.0f, 0.0f); // Black
+	drawCircleSolid(cx, cy, 3.5, 8);
 }
 
 void drawPitchHud(int cx, int cy, int r, float pitch)
 {
-	glColor3f(1.0f, 1.0f, 1.0f); // White
+	glColor4f(1.0f, 1.0f, 1.0f, 0.6f); // White
 	drawCircleSolid(cx, cy, r, 16);
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
 	drawCircle(cx, cy, r, 16);
+	glColor3f(1.0f, 0.0f, 0.0f); // Red
 	drawCenteredTiltedLine(cx, cy, r-6, pitch);
 	// Draw hash marks
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
 	drawCircleHash(cx, cy, r, 2, 8);
+	// Draw center point
+	glColor3f(0.0f, 0.0f, 0.0f); // Black
+	drawCircleSolid(cx, cy, 3.5, 8);
 }
 
 void drawTopDownMap(int cx, int cy, int r, float heightSlices[], float heightSliceColors[], int numSlices){
 	//Draw Local Top Down Map Background
-	glColor3f(1.0f, 1.0f, 1.0f); // White
+	glColor4f(1.0f, 1.0f, 1.0f, 0.5f); // White
 	drawCircleSolid(cx, cy, r, 32);
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
 	drawCircle(cx, cy, r, 32);
@@ -231,8 +238,8 @@ void drawTopDownMap(int cx, int cy, int r, float heightSlices[], float heightSli
 	glBegin(GL_POINTS);
 	for (int i=0, iIm=0; i < numSlices*2; ) {
 		if (heightSlices[i] != 999999.0f) {
-			float tmpX = heightSlices[i++]/6.0f;
-			float tmpY = heightSlices[i++]/6.0f;
+			float tmpX = heightSlices[i++]/8.0f;
+			float tmpY = heightSlices[i++]/8.0f;
 			if (sqrt((tmpX*tmpX)+(tmpY*tmpY)) < r) {
 				float tmpColor = heightSliceColors[iIm++];
 				if (tmpColor == 999999.0f) {

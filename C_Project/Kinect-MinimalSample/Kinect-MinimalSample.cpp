@@ -48,6 +48,11 @@ void initRendering() {
 
 	//Makes 3D drawing work when something is in front of something else
 	glEnable(GL_DEPTH_TEST);
+	//Enable alpha blending
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); //Set the blend function
+	// Enable antialiasing.  Do we want to do this?
+	glEnable(GL_LINE_SMOOTH);
 }
 
 //Called when the window is resized
@@ -107,27 +112,37 @@ void drawScene() {
 	avgFrameTime = (0.1*(float)(fpsStopWatch->getElapsedTime()))+(0.9f*avgFrameTime);
 	sprintf(printBuff, "FPS: %u", (unsigned int)(1.0f/avgFrameTime));
 	orthoPrint(HUD_FPS_X, viewHeight - HUD_FPS_Y, printBuff);
-	fpsStopWatch->startTimer(); 
+	fpsStopWatch->startTimer();
 
 	// Draw Height Measurement Bar
 #define HUD_HEIGHT_BAR_X 5
 #define HUD_HEIGHT_BAR_Y 5
 	drawHeightHud(HUD_HEIGHT_BAR_X, HUD_HEIGHT_BAR_Y, sensorHeight);
 
-	// Enable antialiasing.  Do we want to do this?
-	glEnable(GL_LINE_SMOOTH);
+	/*// Attempt Alpha Blurring
+	glColor4f(1.0f, 1.0f, 1.0f, 0.2f);
+	glBegin(GL_POLYGON);
+	glVertex2f(100, 100);
+	glVertex2f(200, 100);
+	glVertex2f(200, 200);
+	glVertex2f(100, 200);
+	glEnd();*/
 
 	// Draw Roll
 #define HUD_ROLL_RADIUS 30
-	float xRollLbl = (viewWidth/3);
-	float yRollLbl = 35;
+	float xRollLbl = 95;
+	float yRollLbl = 48;
 	drawRollHud(xRollLbl, yRollLbl, HUD_ROLL_RADIUS, rollValue);
+	glColor3f(0.0f, 0.0f, 0.0f); // Black
+	orthoPrint(xRollLbl-11, yRollLbl+15, "Roll"); // Print Label
 	
 	// Draw Pitch
 #define HUD_PITCH_RADIUS 30
-	float xPitchLbl = (2*viewWidth/3);
-	float yPitchLbl = 35;
+	float xPitchLbl = 95;
+	float yPitchLbl = 130;
 	drawPitchHud(xPitchLbl, yPitchLbl, HUD_PITCH_RADIUS, pitchValue);
+	glColor3f(0.0f, 0.0f, 0.0f); // Black
+	orthoPrint(xPitchLbl-13, yPitchLbl+15, "Pitch"); // Print Label
 
 	// Draw Local Top Down Map (in 2D, upper right)
 #define HUD_MAP_CIRCLE_SIZE 80
