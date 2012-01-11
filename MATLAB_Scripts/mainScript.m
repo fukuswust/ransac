@@ -1,5 +1,5 @@
 %% Initial Constants
-firstFile = '000005';
+firstFile = '000007';
 
 %% Loop
 for fileOn = 0:33
@@ -67,6 +67,10 @@ fPointCloud = segmentFloor(gPointCloud);
 tmp = printImage(fPointCloud(:,:,2)); %All floor should be black
 axis equal
 imwrite(tmp,[dataPath '/MATLAB_output/2_' firstFile '.bmp']);
+
+%% RANSAC
+sfPointCloud(1:30,1:40,1:3) = fPointCloud(:,:,1:3);
+[ planeParameters ] = ransacSegmentation(sfPointCloud);
 
 %% Convert to Polar
 pPointCloud = cartesianToPolar(gPointCloud);
