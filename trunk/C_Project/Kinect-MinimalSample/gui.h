@@ -41,4 +41,10 @@ void drawTopDownMap(int cx, int cy, int r, float heightSlices[], float heightSli
 
 void drawHeightLine(float heightSlices[], int heightSliceIJ[], int numSlices);
 
+void drawFloorPoints(int floorIJ[], int numPoints);
+
+void drawWallPoints(int wallIJ[], int numPoints);
+
+void drawAugmentedPoint(float x, float y, float z);
+
 #endif

@@ -270,40 +270,70 @@ void drawTopDownMap(int cx, int cy, int r, float heightSlices[], float heightSli
 }
 
 void drawHeightLine(float heightSlices[], int heightSliceIJ[], int numSlices) {
-	float minDis = 999999.0;
-	float maxDis = -999999.0;
-	for (int i=0; i < numSlices*2; ) {
+	glColor3f(1.0f, 0.0f, 0.0f);
+	glPointSize(4.0f);
+	glBegin(GL_POINTS);
+	for (int i=0, ij=0; i < numSlices*2; i+=2) {
 		if (heightSlices[i] != 999999.0f) {
-			float tmpX = heightSlices[i++];
-			float tmpY = heightSlices[i++];
-			float dis = sqrt((tmpX*tmpX)+(tmpY*tmpY));
-			if (dis < minDis) {
-				minDis = dis;
-			} else if (dis > maxDis) {
-				maxDis = dis;
-			}
-		} else {
-			i+=2;
-		}
-	}
-	float factor = 1.0f/(maxDis-minDis);
-
-	glLineWidth(4.0f);
-	glBegin(GL_LINE_STRIP);
-	for (int i=0, ij=0; i < numSlices*2; ) {
-		if (heightSlices[i] != 999999.0f) {
-			float tmpX = heightSlices[i++];
-			float tmpY = heightSlices[i++];
-			float col = (sqrt((tmpX*tmpX)+(tmpY*tmpY))-minDis)*factor;
-			glColor3f(col, col, col);
 			int tmpI = heightSliceIJ[ij++]*xViewFactor;
 			int tmpJ = heightSliceIJ[ij++]*yViewFactor;
 			glVertex2f(tmpI, tmpJ);
 		} else {
-			i+=2;
 			ij+=2;
 		}
 	}
 	glEnd();
 	glLineWidth(1.0f);
+}
+
+void drawFloorPoints(int floorIJ[], int numPoints) {
+	glColor3f(0.0f, 1.0f, 0.0f);
+	glPointSize(4.0f);
+	glBegin(GL_POINTS);
+	for (int ij=0; ij < numPoints*2; ) {
+		int tmpI = floorIJ[ij++]*xViewFactor;
+		int tmpJ = floorIJ[ij++]*yViewFactor;
+		glVertex2f(tmpI, tmpJ);
+	}
+	glEnd();
+	glLineWidth(1.0f);
+}
+
+void drawWallPoints(int wallIJ[], int numPoints) {
+	glColor3f(0.0f, 0.0f, 1.0f);
+	glPointSize(4.0f);
+	glBegin(GL_POINTS);
+	for (int ij=0; ij < numPoints*2; ) {
+		int tmpI = wallIJ[ij++]*xViewFactor;
+		int tmpJ = wallIJ[ij++]*yViewFactor;
+		glVertex2f(tmpI, tmpJ);
+	}
+	glEnd();
+	glLineWidth(1.0f);
+}
+
+void drawAugmentedPoint(float x, float y, float z) {
+	// Get X,Y,Z Coordinates
+	float tmpY = -y + heightValue;
+	float tmpX = -x - (-xValue);
+	float tmpZ = -z - (-zValue);
+
+	// Apply Yaw Rotation
+	float yawTmpX = (yawMatrix[0]*tmpX) + (yawMatrix[1]*tmpY) + (yawMatrix[2]*tmpZ);
+	float yawTmpY = (yawMatrix[3]*tmpX) + (yawMatrix[4]*tmpY) + (yawMatrix[5]*tmpZ);
+	float yawTmpZ = (yawMatrix[6]*tmpX) + (yawMatrix[7]*tmpY) + (yawMatrix[8]*tmpZ);
+
+	// Apply Pitch and Roll
+	float prTmpX = (pitchRollMatrix[0]*yawTmpX) + (pitchRollMatrix[1]*yawTmpY) + (pitchRollMatrix[2]*yawTmpZ);
+	float prTmpY = (pitchRollMatrix[3]*yawTmpX) + (pitchRollMatrix[4]*yawTmpY) + (pitchRollMatrix[5]*yawTmpZ);
+	float prTmpZ = (pitchRollMatrix[6]*yawTmpX) + (pitchRollMatrix[7]*yawTmpY) + (pitchRollMatrix[8]*yawTmpZ);
+
+	float fx = prTmpX;
+	float fy = prTmpY;
+	float fz = prTmpZ;
+
+	float fi = ((( fx - 1.8f) / 0.0023f)/ (-fz - 10)) + 320.0f - 1.0f;
+	float fj = (((-fy - 2.4f) / 0.0023f)/ (-fz - 10)) + 240.0f - 1.0f;
+
+	glVertex2f(fi*xViewFactor, fj*yViewFactor);
 }

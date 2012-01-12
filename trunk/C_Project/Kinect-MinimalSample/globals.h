@@ -16,8 +16,11 @@
 
 //#define RECORD_RAW
 //#define RECORD_SLICES
-#define DEPTH_SCALE_FACTOR 16
 #define DRAW_HEIGHT_SLICE
+
+#define DEPTH_SCALE_FACTOR 16
+#define MAX_FLOOR_POINTS ((640*480)/(DEPTH_SCALE_FACTOR*DEPTH_SCALE_FACTOR))
+#define MAX_WALL_POINTS ((640*480)/(DEPTH_SCALE_FACTOR*DEPTH_SCALE_FACTOR))
 
 #define PI 3.14159265
 
@@ -36,7 +39,7 @@ extern int viewYOffset;
 extern float xViewFactor;
 extern float yViewFactor;
 // Sensor Height
-extern float sensorHeight;
+extern float heightValue;
 // FPS calculation
 extern CStopWatch* fpsStopWatch;
 extern float avgFrameTime;
@@ -47,6 +50,29 @@ extern float rollValue, pitchValue;
 extern float heightSlices[(640/DEPTH_SCALE_FACTOR)*2];
 extern float heightSliceColors[(640/DEPTH_SCALE_FACTOR)];
 extern int   heightSliceIJ[(640/DEPTH_SCALE_FACTOR)*2];
+// Floor Points
+extern float floorPoints[MAX_FLOOR_POINTS*3];
+extern int   floorIJ[MAX_FLOOR_POINTS*2];
+extern int   numFloorPoints;
+// Wall Points
+extern float wallPoints[MAX_WALL_POINTS*3];
+extern int   wallIJ[MAX_WALL_POINTS*2];
+extern int   numWallPoints;
+// Top Down Absolute Position
+extern float yawValueAbs;
+extern float xValueAbs;
+extern float zValueAbs;
+// Top Down Position
+extern float yawValue;
+extern float xValue;
+extern float zValue;
+// Camera Orientation
+extern float yawMatrix[9];
+extern float pitchRollMatrix[9];
+extern float translationMatrix[3];
+
+extern int maxZi;
+extern int maxZj;
 
 extern Kinect::Kinect *K;
 extern Listener *L;
