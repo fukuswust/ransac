@@ -51,26 +51,26 @@ end
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Plane function creation
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-syms x y z;
-planefunction = results.Theta(1)*x + results.Theta(2)*y + results.Theta(3)*z + results.Theta(4)
-zplane = solve(planefunction, z);
+% syms x y z;
+% planefunction = results.Theta(1)*x + results.Theta(2)*y + results.Theta(3)*z + results.Theta(4)
+% zplane = solve(planefunction, z);
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Results Visualization
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-figure;
-hold on
-ind = results.CS;
-plot3(ransacPointCloud(1, ind), ransacPointCloud(2, ind), ransacPointCloud(3, ind), 'g+')
-plot3(ransacPointCloud(1, ~ind), ransacPointCloud(2, ~ind), ransacPointCloud(3, ~ind), 'r+')
-ezmesh(zplane, [-200, 100, -105, 125])
-xlabel('x')
-ylabel('y')
-zlabel('z')
-title('RANSAC results for 3D plane estimation')
-%legend('Estimated Iniliers', 'Estimated Outliers')
-axis equal tight
-view(3)
+% figure;
+% hold on
+% ind = results.CS;
+% plot3(ransacPointCloud(1, ind), ransacPointCloud(2, ind), ransacPointCloud(3, ind), 'g+')
+% plot3(ransacPointCloud(1, ~ind), ransacPointCloud(2, ~ind), ransacPointCloud(3, ~ind), 'r+')
+% ezmesh(zplane, [-200, 100, -105, 125])
+% xlabel('x')
+% ylabel('y')
+% zlabel('z')
+% title('RANSAC results for 3D plane estimation')
+% %legend('Estimated Iniliers', 'Estimated Outliers')
+% axis equal tight
+% view(3)
 
 planeParameters = results.Theta;
 

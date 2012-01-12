@@ -62,15 +62,13 @@ tmp = printImage(gPointCloud(:,:,2)); %All floor should be black
 axis equal
 imwrite(tmp,[dataPath '/MATLAB_output/1_' firstFile '.bmp']);
 
-%% Segment Floor (Implement RANSAC)
+%% Segment Floor
 fPointCloud = segmentFloor(gPointCloud);
 tmp = printImage(fPointCloud(:,:,2)); %All floor should be black
 axis equal
-imwrite(tmp,[dataPath '/MATLAB_output/2_' firstFile '.bmp']);
-
-%% RANSAC
-sfPointCloud(1:30,1:40,1:3) = fPointCloud(:,:,1:3);
-[ planeParameters ] = ransacSegmentation(sfPointCloud);
+imwrite(tmp,[dataPath '/MATLAB_output/2_' firstFile '.bmppol']);
+floorHeight = min(min(gPointCloud(:,:,1)));
+fprintf('Height: %f cm\n', floorHeight);
 
 %% Convert to Polar
 pPointCloud = cartesianToPolar(gPointCloud);
@@ -78,8 +76,8 @@ tmp = printImage(pPointCloud(:,:,3));
 axis equal
 imwrite(tmp,[dataPath '/MATLAB_output/3_' firstFile '.bmp']);
 
-floorHeight = min(min(pPointCloud(:,:,1)));
-fprintf('Height: %f cm\n', floorHeight);
+%% Get Max Distances for Each Direction Slice
+maxDisListPolar = getMaxDisPerDir(pPointCloud);
 minDir = min(min(pPointCloud(:,:,2)));
 fprintf('Min Dir: %f rad\n', minDir);
 maxDir = max(max(pPointCloud(:,:,2)));
@@ -87,8 +85,24 @@ fprintf('Max Dir: %f rad\n', maxDir);
 dirSpan = maxDir - minDir;
 fprintf('Dir Span: %f rad (%f deg)\n', dirSpan, (dirSpan/pi())*180);
 
+%% Change MaxDisPerDir List to Cartesian
+maxDisList = polarToCartesian2D(maxDisListPolar);
+maxDisList(:,2) = -maxDisList(:,2);
+scatter(maxDisList(:,1), maxDisList(:,2), 30, 'filled')
+axis equal
+saveas(gcf,[dataPath '/MATLAB_output/32_' firstFile '.bmp']) 
+
+%% Fit Line to Walls
+yaw = determineSeperateWalls(maxDisList);
+scatter(maxDisList(:,1), maxDisList(:,2), 30, 'filled')
+line([-200 200], [((yaw(1)*-200)+yaw(2)) ((yaw(1)*200)+yaw(2))])
+axis equal
+saveas(gcf,[dataPath '/MATLAB_output/33_' firstFile '.bmp']) 
+
+end
+
 %% Segment Walls
-wPointCloud = segmentWalls(pPointCloud);
+wPointCloud = segmentWalls(pPointCloud, maxDisListPolar);
 tmp = printImage(wPointCloud(:,:,3));
 axis equal
 imwrite(tmp,[dataPath '/MATLAB_output/4_' firstFile '.bmp']);
@@ -123,9 +137,9 @@ tmp = printImage(cwPointCloud(:,:,3));
 axis equal
 
 %% Export Point Cloud to Meshlab Format
-exportMeshlab(cPointCloud, [dataPath '/pointClouds/' firstFile '_pp.ply']);
+exportMeshlab(faPointCloud, [dataPath '/pointClouds/' firstFile '_fa.ply']);
 
-end
+
 % 
 % %% Determine Normals for Point Cloud
 % normals = determineNormals(pointCloud);
