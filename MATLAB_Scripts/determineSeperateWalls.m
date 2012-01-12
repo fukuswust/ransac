@@ -42,6 +42,6 @@ function [ yaw ] = determineSeperateWalls( maxDisList )
     end
     
     yaw(1) = ((n * sumXZ) - (sumX * sumZ)) / ((n * sumX2) - (sumX * sumX));
-    yaw(2) = (sumZ - (res(1) * sumX)) / n;
+    yaw(2) = (sumZ - (yaw(1) * sumX)) / n;
 end
 

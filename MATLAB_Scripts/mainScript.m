@@ -66,7 +66,7 @@ imwrite(tmp,[dataPath '/MATLAB_output/1_' firstFile '.bmp']);
 fPointCloud = segmentFloor(gPointCloud);
 tmp = printImage(fPointCloud(:,:,2)); %All floor should be black
 axis equal
-imwrite(tmp,[dataPath '/MATLAB_output/2_' firstFile '.bmppol']);
+imwrite(tmp,[dataPath '/MATLAB_output/2_' firstFile '.bmp']);
 floorHeight = min(min(gPointCloud(:,:,1)));
 fprintf('Height: %f cm\n', floorHeight);
 
@@ -137,23 +137,4 @@ tmp = printImage(cwPointCloud(:,:,3));
 axis equal
 
 %% Export Point Cloud to Meshlab Format
-exportMeshlab(faPointCloud, [dataPath '/pointClouds/' firstFile '_fa.ply']);
-
-
-% 
-% %% Determine Normals for Point Cloud
-% normals = determineNormals(pointCloud);
-% 
-% %% Print Image
-% printImage(log(abs(normals(:,:,3))+0.5));
-% 
-% %% Segment Point Cloud
-% segments = segmentPointCloud(pointCloud, normals);
-% 
-% %% Extract Planes
-% planes = extractPlanes(segments);
-%   
-% %% Compare to Global Model
-% transform = comparePlanes(planes, globalPlanes, prevTransform);
-% 
-% %% Combine with Global Model for Given Specs
+exportMeshlab(fPointCloud, [dataPath '/pointClouds/' firstFile '_fa.ply']);
