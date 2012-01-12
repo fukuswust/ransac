@@ -15,7 +15,7 @@ int viewYOffset = 0;
 float xViewFactor = 0.0f;
 float yViewFactor = 0.0f;
 // Sensor Height
-float sensorHeight = 0.0f;
+float heightValue = 0.0f;
 // FPS calculation
 CStopWatch* fpsStopWatch;
 float avgFrameTime = 0.0f;
@@ -26,6 +26,29 @@ float rollValue=0.0f, pitchValue=0.0f;
 float heightSlices[(640/DEPTH_SCALE_FACTOR)*2];
 float heightSliceColors[(640/DEPTH_SCALE_FACTOR)];
 int   heightSliceIJ[(640/DEPTH_SCALE_FACTOR)*2];
+// Floor Points
+float floorPoints[MAX_FLOOR_POINTS*3];
+int   floorIJ[MAX_FLOOR_POINTS*2];
+int   numFloorPoints = 0;
+// Wall Points
+float wallPoints[MAX_WALL_POINTS*3];
+int   wallIJ[MAX_WALL_POINTS*2];
+int   numWallPoints;
+// Top Down Absolute Position
+float yawValueAbs = 999999.0f;
+float xValueAbs = 0.0f;
+float zValueAbs = 0.0f;
+// Top Down Position
+float yawValue = 0.0f;
+float xValue = 0.0f;
+float zValue = 0.0f;
+// Camera Orientation
+float yawMatrix[9];
+float pitchRollMatrix[9];
+float translationMatrix[3];
+
+int maxZi = 0;
+int maxZj = 0;
 
 Kinect::Kinect *K;
 Listener *L;

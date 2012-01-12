@@ -102,10 +102,18 @@ void drawScene() {
 	// Draw RGB Camera in background (in 2D)
 	drawColorBackground(viewWidth, viewHeight, texID);
 
+	/*
+	// Draw Floor Points
+	drawFloorPoints(floorIJ, numFloorPoints);
+
+	// Draw Wall Points
+	drawWallPoints(wallIJ, numWallPoints);
+
 	// Draw Height Slice
 #ifdef DRAW_HEIGHT_SLICE
 	drawHeightLine(heightSlices, heightSliceIJ, 640/DEPTH_SCALE_FACTOR);
 #endif
+	*/
 
 	orthogonalEnd();
 
@@ -119,6 +127,47 @@ void drawScene() {
 	// Draw Crosshair (in 2D)
 	drawCrosshair(viewWidth, viewHeight);
 
+	// Draw Augmentation
+    #define CUBE_SIZE 50.0f
+	glLineWidth(4.0f);
+	glBegin(GL_LINES);
+	glColor3f(0.0f, 0.0f, 1.0f);
+	drawAugmentedPoint(0.0f, 0.0f, 0.0f);
+	drawAugmentedPoint(CUBE_SIZE, 0.0f, 0.0f);
+	glColor3f(0.0f, 1.0f, 0.0f);
+	drawAugmentedPoint(0.0f, 0.0f, 0.0f);
+	drawAugmentedPoint(0.0f, CUBE_SIZE, 0.0f);
+	glColor3f(1.0f, 0.0f, 0.0f);
+	drawAugmentedPoint(0.0f, 0.0f, 0.0f);
+	drawAugmentedPoint(0.0f, 0.0f, CUBE_SIZE);
+
+	glColor3f(0.0f, 0.0f, 0.0f);
+	drawAugmentedPoint(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
+	drawAugmentedPoint(0.0f, CUBE_SIZE, CUBE_SIZE);
+	drawAugmentedPoint(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
+	drawAugmentedPoint(CUBE_SIZE, 0.0f, CUBE_SIZE);
+	drawAugmentedPoint(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
+	drawAugmentedPoint(CUBE_SIZE, CUBE_SIZE, 0.0f);
+
+	drawAugmentedPoint(CUBE_SIZE, 0.0f, 0.0f);
+	drawAugmentedPoint(CUBE_SIZE, CUBE_SIZE, 0.0f);
+	drawAugmentedPoint(CUBE_SIZE, 0.0f, 0.0f);
+	drawAugmentedPoint(CUBE_SIZE, 0.0f, CUBE_SIZE);
+
+	drawAugmentedPoint(0.0f, CUBE_SIZE, 0.0f);
+	drawAugmentedPoint(CUBE_SIZE, CUBE_SIZE, 0.0f);
+	drawAugmentedPoint(0.0f, CUBE_SIZE, 0.0f);
+	drawAugmentedPoint(0.0f, CUBE_SIZE, CUBE_SIZE);
+
+	drawAugmentedPoint(0.0f, 0.0f, CUBE_SIZE);
+	drawAugmentedPoint(CUBE_SIZE, 0.0f, CUBE_SIZE);
+	drawAugmentedPoint(0.0f, 0.0f, CUBE_SIZE);
+	drawAugmentedPoint(0.0f, CUBE_SIZE, CUBE_SIZE);
+	glEnd();
+
+	glColor3f(1.0f, 1.0f, 1.0f);
+	glLineWidth(1.0f);
+
 	//Draw Frame Count (in 2D)
 #define HUD_FPS_X 5
 #define HUD_FPS_Y 7
@@ -128,10 +177,22 @@ void drawScene() {
 	orthoPrint(HUD_FPS_X, viewHeight - HUD_FPS_Y, printBuff);
 	fpsStopWatch->startTimer();
 
+	//Yaw
+	sprintf(printBuff, "Yaw: %f", (yawValue/PI)*180.0f);
+	orthoPrint(150, viewHeight - HUD_FPS_Y, printBuff);
+
+	//X
+	sprintf(printBuff, "X: %f", xValue);
+	orthoPrint(300, viewHeight - HUD_FPS_Y, printBuff);
+
+	//Z
+	sprintf(printBuff, "Z: %f", zValue);
+	orthoPrint(450, viewHeight - HUD_FPS_Y, printBuff);
+
 	// Draw Height Measurement Bar
 #define HUD_HEIGHT_BAR_X 5
 #define HUD_HEIGHT_BAR_Y 5
-	drawHeightHud(HUD_HEIGHT_BAR_X, HUD_HEIGHT_BAR_Y, sensorHeight);
+	drawHeightHud(HUD_HEIGHT_BAR_X, HUD_HEIGHT_BAR_Y, heightValue);
 
 	// Draw Roll
 #define HUD_ROLL_RADIUS 30
