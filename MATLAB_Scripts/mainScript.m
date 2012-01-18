@@ -92,7 +92,7 @@ maxDisList = polarToCartesian2D(maxDisListPolar);
 maxDisList(:,2) = -maxDisList(:,2);
 scatter(maxDisList(:,1), maxDisList(:,2), 30, 'filled')
 axis equal
-saveas(gcf,[dataPath '/MATLAB_output/32_' frameName '.bmp']) 
+%saveas(gcf,[dataPath '/MATLAB_output/32_' frameName '.bmp']) 
 tdView{fileOn+1} = maxDisList;
 
 end
@@ -159,6 +159,18 @@ hold on
 scatter(tdView{frame1+1}(:,1), tdView{frame1+1}(:,2), 30, 'filled', 'red')
 hold off
 axis equal
+
+%% Show Nearest Neighbors
+matches = nearestNeighbor(tdView{frame1}, tdView{frame1+1});
+scatter(tdView{frame1}(:,1), tdView{frame1}(:,2), 30, 'filled', 'blue')
+hold on
+scatter(tdView{frame1+1}(:,1), tdView{frame1+1}(:,2), 30, 'filled', 'red')
+hold off
+axis equal
+for i = 1:40
+    line([tdView{frame1}(i,1) tdView{frame1+1}(matches(i),1)], ...
+        [tdView{frame1}(i,2) tdView{frame1+1}(matches(i),2)])
+end
 
 %% Show Transform
 [rot trans] = icpTwoFrames(tdView{frame1},tdView{frame1+1})
