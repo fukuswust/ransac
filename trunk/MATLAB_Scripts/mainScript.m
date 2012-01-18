@@ -2,9 +2,9 @@
 frameName = '000012';
 
 %% Loop
-lastFile = 33;
+lastFile = 32;
 tdView = cell(lastFile+1,1);
-for fileOn = 0:lastFile
+for fileOn = 0:33
     frameName = sprintf('%.6u',fileOn);
 
 prevTransform = [1 2 3 4 5 6];
@@ -152,25 +152,62 @@ axis equal
 %% Export Point Cloud to Meshlab Format
 exportMeshlab(fPointCloud, [dataPath '/pointClouds/' frameName '_fa.ply']);
 
-%% ICP Two frames
+%% ICP Initial Conditions
 frame1 = 19;
-scatter(tdView{frame1}(:,1), tdView{frame1}(:,2), 30, 'filled', 'blue')
-hold on
-scatter(tdView{frame1+1}(:,1), tdView{frame1+1}(:,2), 30, 'filled', 'red')
-hold off
-axis equal
+
+%% ICP Loop
+for frame1 = 1:lastFile
 
 %% Show Nearest Neighbors
+frameName = sprintf('%.6u',frame1);
 matches = nearestNeighbor(tdView{frame1}, tdView{frame1+1});
 scatter(tdView{frame1}(:,1), tdView{frame1}(:,2), 30, 'filled', 'blue')
 hold on
 scatter(tdView{frame1+1}(:,1), tdView{frame1+1}(:,2), 30, 'filled', 'red')
-hold off
-axis equal
 for i = 1:40
-    line([tdView{frame1}(i,1) tdView{frame1+1}(matches(i),1)], ...
-        [tdView{frame1}(i,2) tdView{frame1+1}(matches(i),2)])
+    if ~isnan(matches(i))
+        line([tdView{frame1}(i,1) tdView{frame1+1}(matches(i),1)], ...
+            [tdView{frame1}(i,2) tdView{frame1+1}(matches(i),2)])
+    end
+end
+axis equal
+hold off
+saveas(gcf,[dataPath '/MATLAB_output/7_' frameName '.bmp'])
+
+%% Setup Matricies for ICP
+clear T, M;
+M1 = tdView{frame1+1}';
+j = 1;
+for i=1:size(M1,2)
+    if ~isnan(M1(1,i))
+        M(1,j) = M1(1,i);
+        M(2,j) = M1(2,i);
+        j = j+1;
+    end
+end
+T1 = tdView{frame1}';
+j = 1;
+for i=1:size(T1,2)
+    if ~isnan(T1(1,i))
+        T(1,j) = T1(1,i);
+        T(2,j) = T1(2,i);
+        j = j+1;
+    end
 end
 
-%% Show Transform
-[rot trans] = icpTwoFrames(tdView{frame1},tdView{frame1+1})
+%% Perform ICP
+Tr_fit = icpMex(M,T,eye(3),-1,'point_to_plane');
+T_fit  = Tr_fit(1:2,1:2)*T + Tr_fit(1:2,3)*ones(1,size(T,2));
+
+ms=8; lw=2; fs=16;
+plot(M(1,:),M(2,:),'or','MarkerSize',ms,'LineWidth',lw);
+hold on;
+plot(T(1,:),T(2,:),'sg','MarkerSize',ms,'LineWidth',lw);
+plot(T_fit(1,:),T_fit(2,:),'xb','MarkerSize',ms,'LineWidth',lw);
+legend('End Points','Start Points','Fitted','Location','South');
+set(gca,'FontSize',fs);
+axis equal
+hold off;
+saveas(gcf,[dataPath '/MATLAB_output/8_' frameName '.bmp'])
+
+end
