@@ -1,7 +1,8 @@
-function [ maxDistList ] = getMaxDisPerDir( inPolarPC )
+function [ maxDistList ] = getMaxDisPerDir( inPolarPC, numOut )
 %GETMAXDISPERDIR Determines the maximum distance for each direction
 %   Input
 %       inPolarPC - Input 2D array of 3D points (polar)
+%       numOut - Desired number of output points 
 %   Output
 %       maxDistList - Output list of max distances for each direction
 %   Description
@@ -13,8 +14,8 @@ function [ maxDistList ] = getMaxDisPerDir( inPolarPC )
     minDir = min(min(inPolarPC(:,:,2)));
     maxDir = max(max(inPolarPC(:,:,2)));
     minHeight = min(min(inPolarPC(:,:,1)));
-    factor = 40/(maxDir - minDir + 0.00001);
-    maxDistList = NaN(40,2); %Make more general
+    factor = numOut/(maxDir - minDir + 0.00001);
+    maxDistList = NaN(numOut,2); %Make more general
     
     for i = 1:size(inPolarPC,1)
         for j = 1:size(inPolarPC,2)

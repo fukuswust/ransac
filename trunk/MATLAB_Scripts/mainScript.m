@@ -1,18 +1,20 @@
 %% Initial Constants
-firstFile = '000007';
+frameName = '000012';
 
 %% Loop
-for fileOn = 0:33
-    firstFile = sprintf('%.6u',fileOn);
+lastFile = 33;
+tdView = cell(lastFile+1,1);
+for fileOn = 0:lastFile
+    frameName = sprintf('%.6u',fileOn);
 
 prevTransform = [1 2 3 4 5 6];
 
 %% Import Data
-inDepthData = csvread([dataPath '/depthData/' firstFile '.csv']);
-inRColorData = csvread([dataPath '/colorData/' firstFile '_R.csv']);
-inGColorData = csvread([dataPath '/colorData/' firstFile '_G.csv']);
-inBColorData = csvread([dataPath '/colorData/' firstFile '_B.csv']);
-inAccelData = transpose(csvread([dataPath '/accelData/' firstFile '.csv']));
+inDepthData = csvread([dataPath '/depthData/' frameName '.csv']);
+inRColorData = csvread([dataPath '/colorData/' frameName '_R.csv']);
+inGColorData = csvread([dataPath '/colorData/' frameName '_G.csv']);
+inBColorData = csvread([dataPath '/colorData/' frameName '_B.csv']);
+inAccelData = transpose(csvread([dataPath '/accelData/' frameName '.csv']));
 
 %% Combine Color Values
 colorData(:,:,1) = inRColorData(:,:)./256;
@@ -20,7 +22,7 @@ colorData(:,:,2) = inGColorData(:,:)./256;
 colorData(:,:,3) = inBColorData(:,:)./256;
 image(colorData);
 axis equal
-%imwrite(colorData,[dataPath '/colorImages/' firstFile '.bmp']);
+%imwrite(colorData,[dataPath '/colorImages/' frameName '.bmp']);
 
 %% Shrink Color Data
 sColorData = shrinkPointCloud(colorData,4);
@@ -52,7 +54,7 @@ axis equal
 gravityVectorQuality(inAccelData)
 tmp = printImage(pointCloud(:,:,2));
 axis equal
-imwrite(tmp,[dataPath '/MATLAB_output/0_' firstFile '.bmp']);
+imwrite(tmp,[dataPath '/MATLAB_output/0_' frameName '.bmp']);
 
 %% Align to Gravity
 upVect = [0 1 0];
@@ -60,13 +62,13 @@ gravityRotate = getRotationMatrix(inAccelData, upVect);
 gPointCloud = transform3dMatrix(cPointCloud, gravityRotate);
 tmp = printImage(gPointCloud(:,:,2)); %All floor should be black
 axis equal
-imwrite(tmp,[dataPath '/MATLAB_output/1_' firstFile '.bmp']);
+imwrite(tmp,[dataPath '/MATLAB_output/1_' frameName '.bmp']);
 
 %% Segment Floor
 fPointCloud = segmentFloor(gPointCloud);
 tmp = printImage(fPointCloud(:,:,2)); %All floor should be black
 axis equal
-imwrite(tmp,[dataPath '/MATLAB_output/2_' firstFile '.bmp']);
+imwrite(tmp,[dataPath '/MATLAB_output/2_' frameName '.bmp']);
 floorHeight = min(min(gPointCloud(:,:,1)));
 fprintf('Height: %f cm\n', floorHeight);
 
@@ -74,10 +76,10 @@ fprintf('Height: %f cm\n', floorHeight);
 pPointCloud = cartesianToPolar(gPointCloud);
 tmp = printImage(pPointCloud(:,:,3));
 axis equal
-imwrite(tmp,[dataPath '/MATLAB_output/3_' firstFile '.bmp']);
+imwrite(tmp,[dataPath '/MATLAB_output/3_' frameName '.bmp']);
 
 %% Get Max Distances for Each Direction Slice
-maxDisListPolar = getMaxDisPerDir(pPointCloud);
+maxDisListPolar = getMaxDisPerDir(pPointCloud,40);
 minDir = min(min(pPointCloud(:,:,2)));
 fprintf('Min Dir: %f rad\n', minDir);
 maxDir = max(max(pPointCloud(:,:,2)));
@@ -90,28 +92,39 @@ maxDisList = polarToCartesian2D(maxDisListPolar);
 maxDisList(:,2) = -maxDisList(:,2);
 scatter(maxDisList(:,1), maxDisList(:,2), 30, 'filled')
 axis equal
-saveas(gcf,[dataPath '/MATLAB_output/32_' firstFile '.bmp']) 
-
-%% Fit Line to Walls
-yaw = determineSeperateWalls(maxDisList);
-scatter(maxDisList(:,1), maxDisList(:,2), 30, 'filled')
-line([-200 200], [((yaw(1)*-200)+yaw(2)) ((yaw(1)*200)+yaw(2))])
-axis equal
-saveas(gcf,[dataPath '/MATLAB_output/33_' firstFile '.bmp']) 
+saveas(gcf,[dataPath '/MATLAB_output/32_' frameName '.bmp']) 
+tdView{fileOn+1} = maxDisList;
 
 end
+
+
+%% Fit Line to the Right Wall
+% yaw = determineRightWall(maxDisList);
+% scatter(maxDisList(:,1), maxDisList(:,2), 30, 'filled')
+% line([-200 200], [((yaw(1)*-200)+yaw(2)) ((yaw(1)*200)+yaw(2))])
+% axis equal
+% saveas(gcf,[dataPath '/MATLAB_output/33_' frameName '.bmp']) 
+
+%% Fit Lines to Walls
+lines = fitWallsToLines(maxDisList);
+scatter(maxDisList(:,1), maxDisList(:,2), 30, 'filled')
+t = 2;
+line([-20 20], [((lines(t,1)*-20)+lines(t,2)) ...
+    ((lines(t,1)*20)+lines(t,2))])
+axis equal
+saveas(gcf,[dataPath '/MATLAB_output/34_' frameName '.bmp'])
 
 %% Segment Walls
 wPointCloud = segmentWalls(pPointCloud, maxDisListPolar);
 tmp = printImage(wPointCloud(:,:,3));
 axis equal
-imwrite(tmp,[dataPath '/MATLAB_output/4_' firstFile '.bmp']);
+imwrite(tmp,[dataPath '/MATLAB_output/4_' frameName '.bmp']);
 
 %% Extract Height Slices
 [slices source] = extractHeightSlice(pPointCloud, 125, 80, 10);
 tmp = printImage(source(:,:,3));
 axis equal
-imwrite(tmp,[dataPath '/MATLAB_output/5_' firstFile '.bmp']);
+imwrite(tmp,[dataPath '/MATLAB_output/5_' frameName '.bmp']);
 
 %% Print XZ Plot
 pointColor = zeros(size(slices,1),3);
@@ -129,7 +142,7 @@ end
 
 scatter(slices(:,1), slices(:,2), 30, pointColor , 'filled')
 axis equal
-saveas(gcf,[dataPath '/MATLAB_output/6_' firstFile '.bmp']) 
+saveas(gcf,[dataPath '/MATLAB_output/6_' frameName '.bmp']) 
 
 %% Convert to Cartesian
 cwPointCloud = polarToCartesian(wPointCloud);
@@ -137,4 +150,15 @@ tmp = printImage(cwPointCloud(:,:,3));
 axis equal
 
 %% Export Point Cloud to Meshlab Format
-exportMeshlab(fPointCloud, [dataPath '/pointClouds/' firstFile '_fa.ply']);
+exportMeshlab(fPointCloud, [dataPath '/pointClouds/' frameName '_fa.ply']);
+
+%% ICP Two frames
+frame1 = 19;
+scatter(tdView{frame1}(:,1), tdView{frame1}(:,2), 30, 'filled', 'blue')
+hold on
+scatter(tdView{frame1+1}(:,1), tdView{frame1+1}(:,2), 30, 'filled', 'red')
+hold off
+axis equal
+
+%% Show Transform
+[rot trans] = icpTwoFrames(tdView{frame1},tdView{frame1+1})
