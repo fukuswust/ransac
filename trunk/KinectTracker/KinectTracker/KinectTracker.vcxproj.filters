@@ -61,9 +61,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Library Include="lib\icp.lib">
-      <Filter>Resource Files</Filter>
-    </Library>
     <Library Include="lib\Kinect.lib">
       <Filter>Resource Files</Filter>
     </Library>

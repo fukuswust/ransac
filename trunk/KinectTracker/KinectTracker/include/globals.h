@@ -4,6 +4,7 @@
 #include "hr_time.h"
 #include "listener.h"
 #include "Kinect-win32.h"
+#include "icp/icpPointToPlane.h"
 
 #include <stdlib.h>
 #ifdef __APPLE__
@@ -79,5 +80,6 @@ extern Kinect::Kinect *K;
 extern Listener *L;
 
 extern GLuint texID;
+
 
 #endif

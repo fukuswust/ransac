@@ -33,8 +33,8 @@ void handleKeypress(unsigned char key, //The key that was pressed
 			K->SetLedMode(Kinect::Led_Off);
 
 			//Deallocate Wall Arrays
-			delete[] curWallSlice;
-			delete[] prevWallSlice;
+			free(curWallSlice);
+			free(prevWallSlice);
 	
 			// when the KinectFinder instance is destroyed, it will tear down and free all kinects.
 			exit(0); //Exit the program
@@ -277,8 +277,8 @@ int main(int argc, char **argv)
 	glutTimerFunc(10, update, 0);
 
 	//Allocate Wall Arrays
-	curWallSlice = new double[(640/DEPTH_SCALE_FACTOR)*2];
-	prevWallSlice = new double[(640/DEPTH_SCALE_FACTOR)*2];
+	curWallSlice = (double*)calloc((640/DEPTH_SCALE_FACTOR)*2,sizeof(double));
+	prevWallSlice = (double*)calloc((640/DEPTH_SCALE_FACTOR)*2,sizeof(double));
 
 	//Start Timer
 	fpsStopWatch = new CStopWatch();
