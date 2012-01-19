@@ -2,9 +2,9 @@
 frameName = '000012';
 
 %% Loop
-lastFile = 32;
+lastFile = 33;
 tdView = cell(lastFile+1,1);
-for fileOn = 0:33
+for fileOn = 0:lastFile
     frameName = sprintf('%.6u',fileOn);
 
 prevTransform = [1 2 3 4 5 6];
@@ -97,14 +97,6 @@ tdView{fileOn+1} = maxDisList;
 
 end
 
-
-%% Fit Line to the Right Wall
-% yaw = determineRightWall(maxDisList);
-% scatter(maxDisList(:,1), maxDisList(:,2), 30, 'filled')
-% line([-200 200], [((yaw(1)*-200)+yaw(2)) ((yaw(1)*200)+yaw(2))])
-% axis equal
-% saveas(gcf,[dataPath '/MATLAB_output/33_' frameName '.bmp']) 
-
 %% Fit Lines to Walls
 lines = fitWallsToLines(maxDisList);
 scatter(maxDisList(:,1), maxDisList(:,2), 30, 'filled')
@@ -152,11 +144,94 @@ axis equal
 %% Export Point Cloud to Meshlab Format
 exportMeshlab(fPointCloud, [dataPath '/pointClouds/' frameName '_fa.ply']);
 
-%% ICP Initial Conditions
+%% Top Down Alignment Initial Conditions
 frame1 = 19;
 
-%% ICP Loop
+%% Top Down Alignment Loop
 for frame1 = 1:lastFile
+
+%% Convert to Polar
+pTdView1 = cartesianToPolar2D(tdView{frame1});
+pTdView2 = cartesianToPolar2D(tdView{frame1+1});
+scatter(pTdView1(:,1), pTdView1(:,2), 30, 'filled', 'blue')
+hold on
+scatter(pTdView2(:,1), pTdView2(:,2), 30, 'filled', 'red')
+hold off
+axis([0.5 2.5 0 600])
+saveas(gcf,[dataPath '/MATLAB_output/9_' frameName '.bmp'])
+
+%% Translate Cartesian
+curMaxDis1 = 0;
+curMaxDis2 = 0;
+for i=1:40
+    if ~isnan(pTdView1(i,1))
+        if pTdView1(i,2) > curMaxDis1
+            curMaxDis1 = pTdView1(i,2);
+            curMaxDir1 = pTdView1(i,1);
+        end
+    end
+    if ~isnan(pTdView2(i,1))
+        if pTdView2(i,2) > curMaxDis2
+            curMaxDis2 = pTdView2(i,2);
+            curMaxDir2 = pTdView2(i,1);
+        end
+    end
+end
+corner1X = curMaxDis1*cos(curMaxDir1);
+corner1Z = curMaxDis1*sin(curMaxDir1);
+corner2X = curMaxDis2*cos(curMaxDir2);
+corner2Z = curMaxDis2*sin(curMaxDir2);
+delX = corner2X - corner1X;
+delZ = corner2Z - corner1Z;
+alignedTd1(1:40,1) = tdView{frame1}(:,1) + delX - corner2X;
+alignedTd1(1:40,2) = tdView{frame1}(:,2) + delZ - corner2Z;
+alignedTd2(1:40,1) = tdView{frame1+1}(:,1) - corner2X;
+alignedTd2(1:40,2) = tdView{frame1+1}(:,2) - corner2Z;
+scatter(alignedTd1(:,1), alignedTd1(:,2), 30, 'filled', 'blue')
+hold on
+scatter(alignedTd2(:,1), alignedTd2(:,2), 30, 'filled', 'red')
+hold off
+axis([-300 300 -300 300])
+saveas(gcf,[dataPath '/MATLAB_output/10_' frameName '.bmp'])
+
+%% Find Rotation in Polar
+pAlignedTd1 = cartesianToPolar2D(alignedTd1);
+pAlignedTd2 = cartesianToPolar2D(alignedTd2);
+scatter(pAlignedTd1(:,1), pAlignedTd1(:,2), 30, 'filled', 'blue')
+hold on
+scatter(pAlignedTd2(:,1), pAlignedTd2(:,2), 30, 'filled', 'red')
+hold off
+axis([-pi() pi() 0 600])
+saveas(gcf,[dataPath '/MATLAB_output/11_' frameName '.bmp'])
+
+%% Rotate
+curMaxDis1 = 0;
+curMaxDis2 = 0;
+for i=1:40
+    if ~isnan(pAlignedTd1(i,1))
+        if pAlignedTd1(i,2) > curMaxDis1
+            curMaxDis1 = pAlignedTd1(i,2);
+            curMaxDir1 = pAlignedTd1(i,1);
+        end
+    end
+    if ~isnan(pAlignedTd2(i,1))
+        if pAlignedTd2(i,2) > curMaxDis2
+            curMaxDis2 = pAlignedTd2(i,2);
+            curMaxDir2 = pAlignedTd2(i,1);
+        end
+    end
+end
+delDir = curMaxDir2 - curMaxDir1;
+finalRot = apply2dTransform(alignedTd1, delDir, 0, 0);
+final = apply2dTransform(finalRot, 0, corner2X, corner2Z);
+scatter(final(:,1), final(:,2), 30, 'filled', 'blue')
+hold on
+scatter(tdView{frame1+1}(:,1), tdView{frame1+1}(:,2), 30, 'filled', 'red')
+axis([-300 300 0 600])
+hold off
+saveas(gcf,[dataPath '/MATLAB_output/12_' frameName '.bmp'])
+
+end
 
 %% Show Nearest Neighbors
 frameName = sprintf('%.6u',frame1);
@@ -170,44 +245,6 @@ for i = 1:40
             [tdView{frame1}(i,2) tdView{frame1+1}(matches(i),2)])
     end
 end
-axis equal
+axis([-300 300 0 600])
 hold off
 saveas(gcf,[dataPath '/MATLAB_output/7_' frameName '.bmp'])
-
-%% Setup Matricies for ICP
-clear T, M;
-M1 = tdView{frame1+1}';
-j = 1;
-for i=1:size(M1,2)
-    if ~isnan(M1(1,i))
-        M(1,j) = M1(1,i);
-        M(2,j) = M1(2,i);
-        j = j+1;
-    end
-end
-T1 = tdView{frame1}';
-j = 1;
-for i=1:size(T1,2)
-    if ~isnan(T1(1,i))
-        T(1,j) = T1(1,i);
-        T(2,j) = T1(2,i);
-        j = j+1;
-    end
-end
-
-%% Perform ICP
-Tr_fit = icpMex(M,T,eye(3),-1,'point_to_plane');
-T_fit  = Tr_fit(1:2,1:2)*T + Tr_fit(1:2,3)*ones(1,size(T,2));
-
-ms=8; lw=2; fs=16;
-plot(M(1,:),M(2,:),'or','MarkerSize',ms,'LineWidth',lw);
-hold on;
-plot(T(1,:),T(2,:),'sg','MarkerSize',ms,'LineWidth',lw);
-plot(T_fit(1,:),T_fit(2,:),'xb','MarkerSize',ms,'LineWidth',lw);
-legend('End Points','Start Points','Fitted','Location','South');
-set(gca,'FontSize',fs);
-axis equal
-hold off;
-saveas(gcf,[dataPath '/MATLAB_output/8_' frameName '.bmp'])
-
-end
