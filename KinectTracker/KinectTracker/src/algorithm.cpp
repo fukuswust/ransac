@@ -1,8 +1,10 @@
 #include "algorithm.h"
 #include "globals.h"
 #include <math.h>
-//#include "icp/icpPointToPlane.h"
-//#include "icp/matrix.h"
+
+#include <iostream>
+
+using namespace std;
 
 void runAlgorithm() {
 	// DECLARE POINT CLOUD DATA as Local Array of Floats (40x30x3 on Stack)
@@ -182,6 +184,7 @@ void runAlgorithm() {
 		double *tmpWallSlice = curWallSlice;
 		curWallSlice = prevWallSlice;
 		prevWallSlice = tmpWallSlice;
+		numPrevWallSlices = numCurWallSlices;
 
 		// Set final values
 		yawValue = 0;
@@ -205,18 +208,11 @@ void runAlgorithm() {
 		yawMatrix[7] = 0;
 		yawMatrix[8] = cos(-yawValue);
 	} else {
-		//Perform ICP
-		//if (numPrevWallSlices >= 5) {
-		//	Matrix R = Matrix::eye(3);
-		//	Matrix t(3,1);
-		//	IcpPointToPlane icp(curWallSlice, numCurWallSlices, 2);
-		//	icp.fit(prevWallSlice, numPrevWallSlices, R, t, -1);
-		//}
-	
-		// Set final values
-		yawValue = 0;
-		xValue = 0;
-		zValue = 0;
+		//Toggle wall slice arrays
+		double *tmpWallSlice = curWallSlice;
+		curWallSlice = prevWallSlice;
+		prevWallSlice = tmpWallSlice;
+		numPrevWallSlices = numCurWallSlices;
 
 		// Camera Orientation
 		// Translation

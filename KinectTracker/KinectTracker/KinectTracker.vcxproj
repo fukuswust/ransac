@@ -29,7 +29,6 @@
     <ClCompile Include="src\record.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <Library Include="lib\icp.lib" />
     <Library Include="lib\Kinect.lib" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -59,15 +58,17 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>$(ProjectDir)include;C:\Program Files\boost\boost_1_48_0;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)include;C:\Program Files\boost\boost_1_48_0;$(ProjectDir)include\icp;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalOptions>/FORCE:MULTIPLE %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
