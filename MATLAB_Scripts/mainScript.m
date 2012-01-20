@@ -144,105 +144,91 @@ axis equal
 %% Export Point Cloud to Meshlab Format
 exportMeshlab(fPointCloud, [dataPath '/pointClouds/' frameName '_fa.ply']);
 
-%% Top Down Alignment Initial Conditions
-frame1 = 19;
 
-%% Top Down Alignment Loop
-for frame1 = 1:lastFile
 
-%% Convert to Polar
-pTdView1 = cartesianToPolar2D(tdView{frame1});
-pTdView2 = cartesianToPolar2D(tdView{frame1+1});
-scatter(pTdView1(:,1), pTdView1(:,2), 30, 'filled', 'blue')
-hold on
-scatter(pTdView2(:,1), pTdView2(:,2), 30, 'filled', 'red')
-hold off
-axis([0.5 2.5 0 600])
-saveas(gcf,[dataPath '/MATLAB_output/9_' frameName '.bmp'])
-
-%% Translate Cartesian
-curMaxDis1 = 0;
-curMaxDis2 = 0;
-for i=1:40
-    if ~isnan(pTdView1(i,1))
-        if pTdView1(i,2) > curMaxDis1
-            curMaxDis1 = pTdView1(i,2);
-            curMaxDir1 = pTdView1(i,1);
+%% Load Slice Data
+firstSliceFile = 0;
+lastSliceFile = 2500;
+indexOn = 1;
+for fileOn=firstSliceFile:3:lastSliceFile
+    frameName = sprintf('%.6u',fileOn);
+    fileName = [dataPath '/../sliceData/' frameName '.csv'];
+    if exist(fileName, 'file')
+        inWallSlice{indexOn} = csvread(fileName);
+        for i=1:40
+            if inWallSlice{indexOn}(i,1) == -999999.0
+                wallSlice{indexOn}(i,1) = NaN;
+                wallSlice{indexOn}(i,2) = NaN;
+            end
         end
+        indexOn = indexOn + 1;
     end
-    if ~isnan(pTdView2(i,1))
-        if pTdView2(i,2) > curMaxDis2
-            curMaxDis2 = pTdView2(i,2);
-            curMaxDir2 = pTdView2(i,1);
+end
+numData = indexOn - 1;
+
+%% Convert to Cartesian
+for frame = 1:numData
+pTdView{frame} = wallSlice{frame};
+pTdView{frame}(:,1) = -pTdView{frame}(:,1);
+cTdView{frame} = polarToCartesian2D(pTdView{frame});
+scatter(cTdView{frame}(:,1), cTdView{frame}(:,2), 30, 'filled', 'blue')
+axis([-300 300 0 600])
+drawnow
+pause(.001)
+%saveas(gcf,[dataPath '/MATLAB_output/9_' frameName '.bmp'])
+end
+
+%% Show Polar Graph
+for frame = 1:numData
+scatter(pTdView{frame}(:,1), pTdView{frame}(:,2), 30, 'filled', 'blue')
+axis([0.5 2.5 0 600])
+drawnow
+pause(.001)
+%saveas(gcf,[dataPath '/MATLAB_output/10_' frameName '.bmp'])
+end
+
+%% Find Corner
+for frame = 1:numData
+curMaxDis = 0;
+for i=1:40
+    if ~isnan(pTdView{frame}(i,1))
+        if pTdView{frame}(i,2) > curMaxDis
+            curMaxDis = pTdView{frame}(i,2);
+            curMaxDir = pTdView{frame}(i,1);
         end
     end
 end
-corner1X = curMaxDis1*cos(curMaxDir1);
-corner1Z = curMaxDis1*sin(curMaxDir1);
-corner2X = curMaxDis2*cos(curMaxDir2);
-corner2Z = curMaxDis2*sin(curMaxDir2);
-delX = corner2X - corner1X;
-delZ = corner2Z - corner1Z;
-alignedTd1(1:40,1) = tdView{frame1}(:,1) + delX - corner2X;
-alignedTd1(1:40,2) = tdView{frame1}(:,2) + delZ - corner2Z;
-alignedTd2(1:40,1) = tdView{frame1+1}(:,1) - corner2X;
-alignedTd2(1:40,2) = tdView{frame1+1}(:,2) - corner2Z;
-scatter(alignedTd1(:,1), alignedTd1(:,2), 30, 'filled', 'blue')
-hold on
-scatter(alignedTd2(:,1), alignedTd2(:,2), 30, 'filled', 'red')
-hold off
+cornerX = curMaxDis*cos(curMaxDir);
+cornerZ = curMaxDis*sin(curMaxDir);
+alignedTd{frame}(1:40,1) = cTdView{frame}(:,1) - cornerX;
+alignedTd{frame}(1:40,2) = cTdView{frame}(:,2) - cornerZ;
+scatter(alignedTd{frame}(:,1), alignedTd{frame}(:,2), 30, 'filled', 'blue')
 axis([-300 300 -300 300])
-saveas(gcf,[dataPath '/MATLAB_output/10_' frameName '.bmp'])
+drawnow
+pause(.001)
+%saveas(gcf,[dataPath '/MATLAB_output/10_' frameName '.bmp'])
+end
 
 %% Find Rotation in Polar
-pAlignedTd1 = cartesianToPolar2D(alignedTd1);
-pAlignedTd2 = cartesianToPolar2D(alignedTd2);
-scatter(pAlignedTd1(:,1), pAlignedTd1(:,2), 30, 'filled', 'blue')
-hold on
-scatter(pAlignedTd2(:,1), pAlignedTd2(:,2), 30, 'filled', 'red')
-hold off
+for frame = 1:numData
+pAlignedTd{frame} = cartesianToPolar2D(alignedTd{frame});
+scatter(pAlignedTd{frame}(:,1), pAlignedTd{frame}(:,2), 30, 'filled', 'blue')
 axis([-pi() pi() 0 600])
-saveas(gcf,[dataPath '/MATLAB_output/11_' frameName '.bmp'])
-
-%% Rotate
-curMaxDis1 = 0;
-curMaxDis2 = 0;
-for i=1:40
-    if ~isnan(pAlignedTd1(i,1))
-        if pAlignedTd1(i,2) > curMaxDis1
-            curMaxDis1 = pAlignedTd1(i,2);
-            curMaxDir1 = pAlignedTd1(i,1);
-        end
-    end
-    if ~isnan(pAlignedTd2(i,1))
-        if pAlignedTd2(i,2) > curMaxDis2
-            curMaxDis2 = pAlignedTd2(i,2);
-            curMaxDir2 = pAlignedTd2(i,1);
-        end
-    end
-end
-delDir = curMaxDir2 - curMaxDir1;
-finalRot = apply2dTransform(alignedTd1, delDir, 0, 0);
-final = apply2dTransform(finalRot, 0, corner2X, corner2Z);
-scatter(final(:,1), final(:,2), 30, 'filled', 'blue')
-hold on
-scatter(tdView{frame1+1}(:,1), tdView{frame1+1}(:,2), 30, 'filled', 'red')
-axis([-300 300 0 600])
-hold off
-saveas(gcf,[dataPath '/MATLAB_output/12_' frameName '.bmp'])
-
+drawnow
+pause(.001)
+%saveas(gcf,[dataPath '/MATLAB_output/11_' frameName '.bmp'])
 end
 
 %% Show Nearest Neighbors
 frameName = sprintf('%.6u',frame1);
-matches = nearestNeighbor(tdView{frame1}, tdView{frame1+1});
-scatter(tdView{frame1}(:,1), tdView{frame1}(:,2), 30, 'filled', 'blue')
+matches = nearestNeighbor(cTdView1, cTdView2);
+scatter(cTdView1(:,1), cTdView1(:,2), 30, 'filled', 'blue')
 hold on
-scatter(tdView{frame1+1}(:,1), tdView{frame1+1}(:,2), 30, 'filled', 'red')
+scatter(cTdView2(:,1), cTdView2(:,2), 30, 'filled', 'red')
 for i = 1:40
     if ~isnan(matches(i))
-        line([tdView{frame1}(i,1) tdView{frame1+1}(matches(i),1)], ...
-            [tdView{frame1}(i,2) tdView{frame1+1}(matches(i),2)])
+        line([cTdView1(i,1) cTdView2(matches(i),1)], ...
+            [cTdView1(i,2) cTdView2(matches(i),2)])
     end
 end
 axis([-300 300 0 600])
