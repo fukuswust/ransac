@@ -34,22 +34,22 @@ int   numFloorPoints = 0;
 float wallPoints[MAX_WALL_POINTS*3];
 int   wallIJ[MAX_WALL_POINTS*2];
 int   numWallPoints;
-// Wall Slices
-double *curWallSlice = NULL;
-int   numCurWallSlices = -1;
-double *prevWallSlice = NULL;
-int   numPrevWallSlices = -1;
 // Top Down Position
 float yawValue = 999999.0f;
 float xValue = 999999.0f;
 float zValue = 999999.0f;
+float cWallSlice[NUM_SLICES*2];
+int numWallSlicePts = 0;
+int wallStatus[NUM_SLICES];
 // Camera Orientation
 float yawMatrix[9];
 float pitchRollMatrix[9];
 float translationMatrix[3];
-
 int maxZi = 0;
 int maxZj = 0;
+// Running Average
+float origZ[CLOUD_SIZE] = {0.0f};
+float stdErrorList[39] = {0.0f};
 
 Kinect::Kinect *K;
 Listener *L;

@@ -1,4 +1,4 @@
-void recordSlices(float heightSlices[], float heightSliceColors[], int numSlices, int fileOn);
+void recordSlices(float slices[], int numSlices, int fileOn);
 
 void recordAccel(float xAccel, float yAccel, float zAccel, int fileOn);
 

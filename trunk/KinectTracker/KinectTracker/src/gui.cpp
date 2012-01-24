@@ -225,12 +225,13 @@ void drawPitchHud(int cx, int cy, int r, float pitch)
 	drawCircleSolid(cx, cy, 3.5, 8);
 }
 
-void drawTopDownMap(int cx, int cy, int r, float heightSlices[], float heightSliceColors[], int numSlices){
+void drawTopDownMap(int cx, int cy, int r, float heightSlices[], int numSlices){
 	//Draw Local Top Down Map Background
 	glColor4f(1.0f, 1.0f, 1.0f, 0.5f); // White
 	drawCircleSolid(cx, cy, r, 32);
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
 	drawCircle(cx, cy, r, 32);
+	drawCircle(cx, cy, r-25, 32);
 	//Draw Local Top Down Map 
 	float delX = 15.0f*cos((30.0f*PI)/180.0f);
 	float delY = 15.0f*sin((30.0f*PI)/180.0f);
@@ -245,24 +246,35 @@ void drawTopDownMap(int cx, int cy, int r, float heightSlices[], float heightSli
 	//Draw Slice
 	glPointSize(3.0f);
 	glBegin(GL_POINTS);
-	for (int i=0, iIm=0; i < numSlices*2; ) {
-		if (heightSlices[i] != 999999.0f) {
-			float tmpX = heightSlices[i++]/8.0f;
-			float tmpY = heightSlices[i++]/8.0f;
-			if (sqrt((tmpX*tmpX)+(tmpY*tmpY)) < r) {
-				float tmpColor = heightSliceColors[iIm++];
-				if (tmpColor == 999999.0f) {
-					glColor3f(1.0f, 0.0f, 0.0f);
-				} else {
-					glColor3f(tmpColor, tmpColor, tmpColor);
-				}
-				glVertex2f(cx+tmpX, cy+tmpY);
-			} else {
-				iIm++;
+	float lastDis = 999999.0;
+	float lastAccel = 999999.0;
+	float prevError = 999999.0f;
+	float prevDelDis = 999999.0;
+	for (int i=0, iStat=0; i < numSlices*2; iStat++) {
+		char printBuff[128];
+		float tmpX = heightSlices[i++]/(400.0f/r);
+		float tmpZ = heightSlices[i++]/(400.0f/r);
+		float dis = sqrt((tmpX*tmpX)+(tmpZ*tmpZ));
+		float dir = atan2(tmpZ,tmpX);
+		if (wallStatus[iStat] == 1) { //False Corner
+			glColor3f(1.0f, 0.0f, 0.0f);
+		} else if (wallStatus[iStat] == 2) { //True Corner
+			glColor3f(0.0f, 1.0f, 0.0f);
+		} else if (wallStatus[iStat] == 3) { 
+			glColor3f(1.0f, 1.0f, 0.0f);
+		} else if (wallStatus[iStat] == 4) {
+			glColor3f(0.0f, 0.0f, 1.0f);
+		} else { //Wall
+			glColor3f(0.0f, 0.0f, 0.0f);
+		}
+		glVertex2f(cx+tmpX, cy+tmpZ);
+		if (iStat < 40) {
+			//glVertex2f(cx-40.0f+(iStat*3.0f), cy-50.0f+(stdErrorList[iStat-1]*3.0f));
+			if (prevError != 999999.0f) {
+				float curAccel = stdErrorList[iStat-1] - prevError;
+				//glVertex2f(cx-40.0f+(iStat*3.0f), cy+120.0f+(curAccel*3.0f));
 			}
-		} else {
-			i+=2;
-			iIm++;
+			prevError = stdErrorList[iStat-1];
 		}
 	}
 	glEnd();
@@ -327,6 +339,23 @@ void drawAugmentedPoint(float x, float y, float z) {
 	float fx = (pitchRollMatrix[0]*yawTmpX) + (pitchRollMatrix[1]*yawTmpY) + (pitchRollMatrix[2]*yawTmpZ);
 	float fy = (pitchRollMatrix[3]*yawTmpX) + (pitchRollMatrix[4]*yawTmpY) + (pitchRollMatrix[5]*yawTmpZ);
 	float fz = (pitchRollMatrix[6]*yawTmpX) + (pitchRollMatrix[7]*yawTmpY) + (pitchRollMatrix[8]*yawTmpZ);
+
+	float fi = ((( fx - 1.8f) / 0.0023f)/ (-fz - 10)) + 320.0f - 1.0f;
+	float fj = (((-fy - 2.4f) / 0.0023f)/ (-fz - 10)) + 240.0f - 1.0f;
+
+	glVertex2f(fi*xViewFactor, fj*yViewFactor);
+}
+
+void drawTopDownViewPoint(float x, float y, float z) {
+	// Get X,Y,Z Coordinates
+	float transX = -x;
+	float transY = translationMatrix[1] - y;
+	float transZ = -z;
+
+	// Apply Pitch and Roll
+	float fx = (pitchRollMatrix[0]*transX) + (pitchRollMatrix[1]*transY) + (pitchRollMatrix[2]*transZ);
+	float fy = (pitchRollMatrix[3]*transX) + (pitchRollMatrix[4]*transY) + (pitchRollMatrix[5]*transZ);
+	float fz = (pitchRollMatrix[6]*transX) + (pitchRollMatrix[7]*transY) + (pitchRollMatrix[8]*transZ);
 
 	float fi = ((( fx - 1.8f) / 0.0023f)/ (-fz - 10)) + 320.0f - 1.0f;
 	float fj = (((-fy - 2.4f) / 0.0023f)/ (-fz - 10)) + 240.0f - 1.0f;
