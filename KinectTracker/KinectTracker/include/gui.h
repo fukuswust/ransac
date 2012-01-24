@@ -37,7 +37,7 @@ void drawRollHud(int cx, int cy, int r, float roll);
 
 void drawPitchHud(int cx, int cy, int r, float pitch);
 
-void drawTopDownMap(int cx, int cy, int r, float heightSlices[], float heightSliceColors[], int numSlices);
+void drawTopDownMap(int cx, int cy, int r, float heightSlices[], int numSlices);
 
 void drawHeightLine(float heightSlices[], int heightSliceIJ[], int numSlices);
 
@@ -46,6 +46,8 @@ void drawFloorPoints(int floorIJ[], int numPoints);
 void drawWallPoints(int wallIJ[], int numPoints);
 
 void drawAugmentedPoint(float x, float y, float z);
+
+void drawTopDownViewPoint(float x,float y, float z);
 
 void drawAugmentedCube(float x, float y, float z, float s);
 
