@@ -221,68 +221,33 @@ void runAlgorithm() {
 		float origZ = cWallSlice[(i*2)+1];
 		float prevDisToPoint = -1.0f;
 
-		float sumX = origX;
-		float sumZ = origZ;
-		float sumXsquared = origX * origX;
-		float sumZsquared = origZ * origZ;
-		float sumXZ = origX * origZ;
-		int   nPoints = 1;
-		float prevError = 999999.0;
-		int   cornersInARow = 1;
-
 		int   nextPoint = i+1;
-		for (int j = 0; j < 39; j++) {
-			stdErrorList[j] = 999999.0f;
-		}
 		for (int j = i+1; j < numWallSlicePts; j++) {
 			float ptX = cWallSlice[(j*2)+0];
 			float ptZ = cWallSlice[(j*2)+1];
 			float delX = ptX - origX;
 			float delZ = ptZ - origZ;
 			float disToPoint = sqrt((delX*delX)+(delZ*delZ));
-			nPoints++;
-			sumX += ptX;
-			sumZ += ptZ;
-			sumXsquared += ptX * ptX;
-			sumZsquared += ptZ * ptZ;
-			sumXZ += ptX * ptZ;
 
-			float stdError;
-			if (nPoints > 2 && fabs( float(nPoints) * sumXsquared - sumX * sumX) > FLT_EPSILON) {
-				float b = ( float(nPoints) * sumXZ - sumZ * sumX) /
-					( float(nPoints) * sumXsquared - sumX * sumX);
-				float a = (sumZ - b * sumX) / float(nPoints);
-
-				float sx  = b * ( sumXZ - sumX * sumZ / float(nPoints) );
-				float sz2 = sumZsquared - sumZ * sumZ / float(nPoints);
-				float sz  = sz2 - sx;
-
-				//float coefD = sx / sz2;
-				//float coefC = sqrt(coefD);
-				stdError = sqrt(sz / float(nPoints - 2));
-			} else {
-				stdError = 0.0f;
+			float m = delZ/delX;
+			float b = ptZ - m*ptX;
+			float error = 0.0;
+			for (int k = i+1; k < j; k++) { //Loop through points in between
+				float predictZ = m*cWallSlice[(k*2)+0] + b;
+				float actualZ = cWallSlice[(k*2)+1];
+				float predDiff = predictZ - actualZ;
+				error += abs(predDiff);
 			}
-			stdErrorList[j-1] = stdError;
+			stdErrorList[j-1] = error;
+			stdErrorListDis[j-1] = disToPoint;
 
-			if (prevError != 999999.0f) {
-				float errorDiff = abs(stdError - prevError);
-				if (errorDiff > 4.0f) {
-					wallStatus[j-1] = 2;
-					nextPoint = j-1;
-					break;
-					/*if (cornersInARow < 2) {
-						cornersInARow++;
-						wallStatus[j-1] = 2;
-					} else {
-						nextPoint = j-1;
-						break;
-					}*/
-				} else {
-					cornersInARow = 0;
-				}
+			float errorDir = atan2(error,disToPoint/2.0f);
+			if (errorDir > PI/4) {
+				wallStatus[j-1] = 2;
+				wallStatus[j] = 2;
+				nextPoint = j;
+				break;
 			}
-			prevError = stdError;
 			
 			/*if (prevDisToPoint != -1) {
 				if (abs(disToPoint - prevDisToPoint) < 10.0f) {

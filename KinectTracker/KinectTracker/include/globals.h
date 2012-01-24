@@ -76,6 +76,7 @@ extern float translationMatrix[3];
 // Running Average
 extern float origZ[CLOUD_SIZE];
 extern float stdErrorList[39];
+extern float stdErrorListDis[39];
 
 extern int maxZi;
 extern int maxZj;

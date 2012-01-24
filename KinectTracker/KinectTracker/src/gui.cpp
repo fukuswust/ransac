@@ -231,7 +231,6 @@ void drawTopDownMap(int cx, int cy, int r, float heightSlices[], int numSlices){
 	drawCircleSolid(cx, cy, r, 32);
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
 	drawCircle(cx, cy, r, 32);
-	drawCircle(cx, cy, r-25, 32);
 	//Draw Local Top Down Map 
 	float delX = 15.0f*cos((30.0f*PI)/180.0f);
 	float delY = 15.0f*sin((30.0f*PI)/180.0f);
@@ -269,7 +268,7 @@ void drawTopDownMap(int cx, int cy, int r, float heightSlices[], int numSlices){
 		}
 		glVertex2f(cx+tmpX, cy+tmpZ);
 		if (iStat < 40) {
-			//glVertex2f(cx-40.0f+(iStat*3.0f), cy-50.0f+(stdErrorList[iStat-1]*3.0f));
+			//glVertex2f(cx-40.0f+(stdErrorListDis[iStat-1]/2.0f), cy-50.0f+(stdErrorList[iStat-1]*1.0f));
 			if (prevError != 999999.0f) {
 				float curAccel = stdErrorList[iStat-1] - prevError;
 				//glVertex2f(cx-40.0f+(iStat*3.0f), cy+120.0f+(curAccel*3.0f));
