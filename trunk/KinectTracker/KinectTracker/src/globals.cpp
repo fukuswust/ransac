@@ -50,6 +50,7 @@ int maxZj = 0;
 // Running Average
 float origZ[CLOUD_SIZE] = {0.0f};
 float stdErrorList[39] = {0.0f};
+float stdErrorListDis[39] = {0.0f};
 
 Kinect::Kinect *K;
 Listener *L;

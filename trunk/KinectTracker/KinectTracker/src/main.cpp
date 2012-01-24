@@ -209,7 +209,7 @@ void drawScene() {
 	drawPitchHud(xPitchLbl, yPitchLbl, HUD_PITCH_RADIUS, pitchValue);
 
 	// Draw Local Top Down Map (in 2D, upper right)
-#define HUD_MAP_CIRCLE_SIZE 200
+#define HUD_MAP_CIRCLE_SIZE 80
 #define HUD_MAP_X (5 + HUD_MAP_CIRCLE_SIZE)
 #define HUD_MAP_Y (5 + HUD_MAP_CIRCLE_SIZE)
 	drawTopDownMap(viewWidth - HUD_MAP_X, HUD_MAP_Y, HUD_MAP_CIRCLE_SIZE, 
