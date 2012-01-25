@@ -16,7 +16,6 @@
 
 //#define RECORD_RAW
 //#define RECORD_SLICES
-#define DRAW_HEIGHT_SLICE
 
 #define DEPTH_SCALE_FACTOR 16
 #define MAX_FLOOR_POINTS ((640*480)/(DEPTH_SCALE_FACTOR*DEPTH_SCALE_FACTOR))
@@ -29,6 +28,15 @@
 #define PI 3.14159265
 
 struct MapCorner {
+	float x;
+	float z;
+	bool truth;
+	bool leftConn;
+	float leftWeight;
+	float rightWeight;
+};
+
+struct LocalMapCorner {
 	float x;
 	float z;
 	bool truth;
@@ -75,17 +83,12 @@ extern int   numWallPoints;
 extern float yawValue;
 extern float xValue;
 extern float zValue;
-extern float cWallSlice[NUM_SLICES*2];
-extern int numWallSlicePts;
-extern int wallStatus[NUM_SLICES];
 // Camera Orientation
 extern float yawMatrix[9];
 extern float pitchRollMatrix[9];
 extern float translationMatrix[3];
 // Running Average
 extern float origZ[CLOUD_SIZE];
-extern float stdErrorList[39];
-extern float stdErrorListDis[39];
 // Corners
 extern float wallCorners[40*6]; // x, z, t(2)/f(1), Lconn, Lweight, Rweight
 extern int   numCorners;
@@ -98,6 +101,7 @@ extern int maxZj;
 
 extern Kinect::Kinect *K;
 extern Listener *L;
+extern Kinect::KinectFinder KF;
 
 extern GLuint texID;
 

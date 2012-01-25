@@ -9,10 +9,12 @@ using namespace std;
 
 void runAlgorithm() {
 	// DECLARE POINT CLOUD DATA as Local Array of Floats (40x30x3 on Stack)
-	// DECLARE COLOR DATA as Local Array of Floats (40*30 on Stack)
 	float depthPointCloud[CLOUD_SIZE*3]; // Stored in the order of [x,y,z]
-	float colorPointCloud[CLOUD_SIZE];
+	// DECLARE COLOR DATA as Local Array of Floats (40x30 on Stack)
+	float colorPointCloud[CLOUD_SIZE]; // Stored value for greyscale
+	// DECLARE IJ DATA as Local Array of Floats (40x30x2 on Stack)
 	int ijPointCloud[CLOUD_SIZE*2]; // Stored in the order of [i,j]
+	// Common iterators used in phases
 	int offset = 0;
 	int imOffset = 0;
 	int ijOffset = 0;
@@ -23,7 +25,8 @@ void runAlgorithm() {
 	float zAccelAvg = zAccel;
 	rollValue = atan2(xAccelAvg, yAccelAvg);
 	pitchValue = atan2(zAccelAvg, yAccelAvg);
-	
+
+	#pragma region FIRST PASS
 	// GET GRAVITY ROTATION MATRIX (Simlified from MATLAB code for UP vector = [0 1 0])
 	findRotationToUp(xAccelAvg, yAccelAvg, zAccelAvg);
 	float R11 = pitchRollMatrix[0];
@@ -41,7 +44,6 @@ void runAlgorithm() {
 	float currentMinDir = 999999.0f;
 	float currentMaxDir = -999999.0f;
 
-	// FIRST PASS
 	// Convert depth data to cartesian point cloud data aligned to initial vector
 	// Detect min height, min direction, and max direction
 	// Assign color data to each point
@@ -118,8 +120,9 @@ void runAlgorithm() {
 	float dirFactor = (640.0f/DEPTH_SCALE_FACTOR)/(currentMaxDir - currentMinDir + 0.000001f);
 	float dirSection = 1/dirFactor;
 	heightValue = -currentMinHeight;
+	#pragma endregion Convert depth to polar, determine color, and mins/maxes
 
-	// SECOND PASS
+	#pragma region SECOND PASS
 	// Determine Floor Points
 	// Find max distances for each direction
 	float pWallSliceNan[NUM_SLICES*2];
@@ -168,12 +171,118 @@ void runAlgorithm() {
 		}
 	}
 	currentMinHeight -= 25.0f;
+	#pragma endregion Determine floor points and max distances for each direction
 
 	//Remove NaNs and distances outside of max
+	float pWallSlice[NUM_SLICES*2];
+	float cWallSlice[NUM_SLICES*2];
+	int wallStatus[NUM_SLICES];
+	int numWallSlicePts = 0;
+	numWallSlicePts = sliceRemoveOutsideRange(pWallSliceNan, cWallSlice, pWallSlice, wallStatus);
+
+#ifdef RECORD_SLICES
+	//Record slice data
+	recordSlices(pWallSlice, numWallSlicePts, outFileOn);
+#endif
+
+	// Detect corner points
+	sliceDetectCorners(cWallSlice, pWallSlice, wallStatus, numWallSlicePts);
+
+	// Loop through determined corner values and compare to the global model
+	// Update model points, translation, and orientation
+	//updateGlobalMap();
+
+	setPositionAndOrientation();
+		
+	// Determine height slice (in polar coordinates)
+	// Determine wall points
+	/*
+	numWallPoints = 0;
+	float heightDiffList[640/DEPTH_SCALE_FACTOR];
+	for (int i = 0; i < 640/DEPTH_SCALE_FACTOR; i++) {
+		heightSlices[i*2] = 999999.0f;
+		heightDiffList[i] = 999999.0f;
+	}
+	currentMinHeight += 150.0;
+	offset = 0;
+	imOffset = 0;
+	ijOffset = 0;
+	int wijOffset = 0;
+	for (int i = 0; i < CLOUD_SIZE; i++) {
+		float tmpHeight = depthPointCloud[offset++];
+		if (tmpHeight == 999999.0f) { // height -> dir
+			offset += 2; // -> next
+			imOffset++;
+			ijOffset += 2;
+		} else {
+			// Set temporary variables
+			float tmpDir = depthPointCloud[offset++]; // dir -> height
+			float tmpDis = depthPointCloud[offset++];   // height -> next
+
+			// Find Height Slice
+			int dirIndex = (int)floor((tmpDir-currentMinDir)*dirFactor); 
+			float heightDiff = abs(tmpHeight - currentMinHeight);
+			if ((heightDiff < 10) && (heightDiff < heightDiffList[dirIndex])) {
+				heightDiffList[dirIndex] = heightDiff;
+				heightSlices[dirIndex*2] = tmpDir;
+				heightSlices[(dirIndex*2)+1] = tmpDis;
+				heightSliceColors[dirIndex] = colorPointCloud[imOffset++]; // Set color value
+				heightSliceIJ[dirIndex*2] = ijPointCloud[ijOffset++]; // i -> j
+				heightSliceIJ[(dirIndex*2)+1] = ijPointCloud[ijOffset--]; // j -> i
+			} else {
+				imOffset++;
+			}
+
+			// Find Wall Points
+			if (tmpDis > pWallSliceNan[(dirIndex*2)+1] - 20) {
+				numWallPoints++;
+				wallIJ[wijOffset++] = ijPointCloud[ijOffset++]; // i -> j
+				wallIJ[wijOffset++] = ijPointCloud[ijOffset++]; // j -> next
+			} else {
+				ijOffset += 2;
+			}
+		}
+	}
+	currentMinHeight -= 150;
+	*/
+}
+
+void findRotationToUp(float xVect, float yVect, float zVect) {
+	//Get unit vector and magnitude of gravity
+	float gravMag = sqrt((xVect*xVect)+(yVect*yVect)+(zVect*zVect)); //Quality = diff from 819/512
+	float uGravX = xVect/gravMag;
+	float uGravY = yVect/gravMag;
+	float uGravZ = zVect/gravMag;
+	//Set temporary variables to reduce calculations
+	float s = sqrt(1-(uGravY*uGravY));
+	float t = 1-uGravY;
+	//Perform the cross product of the UP vector and gravity to produce the following rotational axis
+	float RotAxisX = -uGravZ;
+	float RotAxisZ = uGravX;
+	//Determine the unit rotational axis
+	float magRotAxis = sqrt((RotAxisX*RotAxisX)+(RotAxisZ*RotAxisZ));
+	float uX = RotAxisX/magRotAxis;
+	float uZ = RotAxisZ/magRotAxis;
+	//Solve multiplications in advance that occur more than once
+	float xz = uX*uZ;
+	float sx = s*uX;
+	float sz = s*uZ;
+	//Calculate Individual Matrix Elements
+	pitchRollMatrix[0] = uGravY + (t*uX*uX);
+	pitchRollMatrix[1] = -sz;
+	pitchRollMatrix[2] = t*xz;
+	pitchRollMatrix[3] = sz;
+	pitchRollMatrix[4] = uGravY;
+	pitchRollMatrix[5] = -sx;
+	pitchRollMatrix[6] = t*xz;
+	pitchRollMatrix[7] = sx;
+	pitchRollMatrix[8] = uGravY + (t*uZ*uZ);
+}
+
+int sliceRemoveOutsideRange(float pWallSliceNan[], float cWallSlice[], float pWallSlice[], int wallStatus[]) {
 	for (int iStat=0; iStat < NUM_SLICES; iStat++) {
 		wallStatus[iStat] = 0;
 	}
-	float pWallSlice[NUM_SLICES*2];
 	int newIndex = 0;
 	int statOn = 0;
 	bool fromOut = false;
@@ -186,7 +295,6 @@ void runAlgorithm() {
 		float diffRightDis = abs(tmpNxtDis - tmpDis);
 		bool  isNoise = (min(diffLeftDis,diffRightDis) > 35.0f);
 		if (startIndex != -999999.0f && tmpDis < MAX_ALLOWED_DIS && !isNoise) {
-			//float tmpDir = -(currentMinDir + (i*dirSection) + (dirSection/2.0f));
 			float tmpDir = pWallSliceNan[(i*2)+0];
 			cWallSlice[newIndex++] = tmpDis*cos(tmpDir);
 			cWallSlice[newIndex--] = -tmpDis*sin(tmpDir);
@@ -213,19 +321,17 @@ void runAlgorithm() {
 			fromOut = true;
 		}
 	}
-	numWallSlicePts = newIndex/2;
+	int numWallSlicePts = newIndex/2;
 	if (wallStatus[0] == 0) {
 		wallStatus[0] = 1;
 	}
 	if (wallStatus[numWallSlicePts-1] == 0) {
 		wallStatus[numWallSlicePts-1] = 1;
 	}
+	return numWallSlicePts;
+}
 
-#ifdef RECORD_SLICES
-	recordSlices(pWallSlice, numWallSlicePts, outFileOn);
-#endif
-
-	// Detect corner points
+void sliceDetectCorners(float cWallSlice[], float pWallSlice[], int wallStatus[], int numWallSlicePts) {
 	float prevLineM = 999999.0;
 	float prevLineB = 999999.0;
 	numCorners = 0;
@@ -281,8 +387,6 @@ void runAlgorithm() {
 				float predDiff = predictZ - actualZ;
 				error += abs(predDiff);
 			}
-			stdErrorList[j-1] = error;
-			stdErrorListDis[j-1] = disToPoint;
 
 			// Check for error exceeding allowable amount (point not on line)
 			float errorDir = atan2(error,disToPoint/2.0f);
@@ -413,8 +517,9 @@ void runAlgorithm() {
 		// Next start on j
 		i = nextPoint;
 	}
+}
 
-	// Loop through determined corner values and compare to the global model
+void updateGlobalMap() {
 	for (int i=0; i < numCorners; i++) {
 		float localX = wallCorners[(i*6)+0];
 		float localZ = wallCorners[(i*6)+1];
@@ -447,141 +552,28 @@ void runAlgorithm() {
 			}
 		}
 	}
-
-	if (yawValue == 999999.0) { //First Frame
-		// Set final values
-		yawValue = 0;
-		xValue = 0;
-		zValue = 0;
-
-		// Camera Orientation
-		// Translation
-		translationMatrix[0] = xValue; // x translation
-		translationMatrix[1] = heightValue; // height translation
-		translationMatrix[2] = zValue; // z translation
-
-		// Yaw Rotation
-		yawMatrix[0] = cos(-yawValue);
-		yawMatrix[1] = 0;
-		yawMatrix[2] = -sin(-yawValue);
-		yawMatrix[3] = 0;
-		yawMatrix[4] = 1;
-		yawMatrix[5] = 0;
-		yawMatrix[6] = sin(-yawValue);
-		yawMatrix[7] = 0;
-		yawMatrix[8] = cos(-yawValue);
-	} else {
-		// Camera Orientation
-		// Translation
-		translationMatrix[0] = xValue; // x translation
-		translationMatrix[1] = heightValue; // height translation
-		translationMatrix[2] = zValue; // z translation
-
-		// Yaw Rotation
-		yawMatrix[0] = cos(-yawValue);
-		yawMatrix[1] = 0;
-		yawMatrix[2] = -sin(-yawValue);
-		yawMatrix[3] = 0;
-		yawMatrix[4] = 1;
-		yawMatrix[5] = 0;
-		yawMatrix[6] = sin(-yawValue);
-		yawMatrix[7] = 0;
-		yawMatrix[8] = cos(-yawValue);
-	}
-		
-	// Determine height slice (in polar coordinates)
-	// Determine wall points
-	numWallPoints = 0;
-	float heightDiffList[640/DEPTH_SCALE_FACTOR];
-	for (int i = 0; i < 640/DEPTH_SCALE_FACTOR; i++) {
-		heightSlices[i*2] = 999999.0f;
-		heightDiffList[i] = 999999.0f;
-	}
-	currentMinHeight += 150.0;
-	offset = 0;
-	imOffset = 0;
-	ijOffset = 0;
-	int wijOffset = 0;
-	for (int i = 0; i < CLOUD_SIZE; i++) {
-		float tmpHeight = depthPointCloud[offset++];
-		if (tmpHeight == 999999.0f) { // height -> dir
-			offset += 2; // -> next
-			imOffset++;
-			ijOffset += 2;
-		} else {
-			// Set temporary variables
-			float tmpDir = depthPointCloud[offset++]; // dir -> height
-			float tmpDis = depthPointCloud[offset++];   // height -> next
-
-			// Find Height Slice
-			int dirIndex = (int)floor((tmpDir-currentMinDir)*dirFactor); 
-			float heightDiff = abs(tmpHeight - currentMinHeight);
-			if ((heightDiff < 10) && (heightDiff < heightDiffList[dirIndex])) {
-				heightDiffList[dirIndex] = heightDiff;
-				heightSlices[dirIndex*2] = tmpDir;
-				heightSlices[(dirIndex*2)+1] = tmpDis;
-				heightSliceColors[dirIndex] = colorPointCloud[imOffset++]; // Set color value
-				heightSliceIJ[dirIndex*2] = ijPointCloud[ijOffset++]; // i -> j
-				heightSliceIJ[(dirIndex*2)+1] = ijPointCloud[ijOffset--]; // j -> i
-			} else {
-				imOffset++;
-			}
-
-			// Find Wall Points
-			if (tmpDis > pWallSliceNan[(dirIndex*2)+1] - 20) {
-				numWallPoints++;
-				wallIJ[wijOffset++] = ijPointCloud[ijOffset++]; // i -> j
-				wallIJ[wijOffset++] = ijPointCloud[ijOffset++]; // j -> next
-			} else {
-				ijOffset += 2;
-			}
-		}
-	}
-
-	currentMinHeight -= 150;
 }
 
-void cartesianToPolar2D(float inArray[], int inSize) {
-	for (int i=0; i < inSize*2; ) {
-		if (inArray[i] != 999999.0f) {
-			float tmpDir = inArray[i++]; // Dir -> Dis
-			float tmpDis = inArray[i--]; // Dis -> Dir
-			inArray[i++] = tmpDis*cos(tmpDir); // x -> y
-			inArray[i++] = tmpDis*sin(tmpDir); // y -> next
-		} else {
-			i+=2; // -> next
-		}
-	}
-}
+void setPositionAndOrientation() {
+	// Set final top-down values
+	yawValue = 0;
+	xValue = 0;
+	zValue = 0;
 
-void findRotationToUp(float xVect, float yVect, float zVect) {
-	//Get unit vector and magnitude of gravity
-	float gravMag = sqrt((xVect*xVect)+(yVect*yVect)+(zVect*zVect)); //Quality = diff from 819/512
-	float uGravX = xVect/gravMag;
-	float uGravY = yVect/gravMag;
-	float uGravZ = zVect/gravMag;
-	//Set temporary variables to reduce calculations
-	float s = sqrt(1-(uGravY*uGravY));
-	float t = 1-uGravY;
-	//Perform the cross product of the UP vector and gravity to produce the following rotational axis
-	float RotAxisX = -uGravZ;
-	float RotAxisZ = uGravX;
-	//Determine the unit rotational axis
-	float magRotAxis = sqrt((RotAxisX*RotAxisX)+(RotAxisZ*RotAxisZ));
-	float uX = RotAxisX/magRotAxis;
-	float uZ = RotAxisZ/magRotAxis;
-	//Solve multiplications in advance that occur more than once
-	float xz = uX*uZ;
-	float sx = s*uX;
-	float sz = s*uZ;
-	//Calculate Individual Matrix Elements
-	pitchRollMatrix[0] = uGravY + (t*uX*uX);
-	pitchRollMatrix[1] = -sz;
-	pitchRollMatrix[2] = t*xz;
-	pitchRollMatrix[3] = sz;
-	pitchRollMatrix[4] = uGravY;
-	pitchRollMatrix[5] = -sx;
-	pitchRollMatrix[6] = t*xz;
-	pitchRollMatrix[7] = sx;
-	pitchRollMatrix[8] = uGravY + (t*uZ*uZ);
+	// Camera Orientation
+	// Translation
+	translationMatrix[0] = xValue; // x translation
+	translationMatrix[1] = heightValue; // height translation
+	translationMatrix[2] = zValue; // z translation
+
+	// Yaw Rotation
+	yawMatrix[0] = cos(-yawValue);
+	yawMatrix[1] = 0;
+	yawMatrix[2] = -sin(-yawValue);
+	yawMatrix[3] = 0;
+	yawMatrix[4] = 1;
+	yawMatrix[5] = 0;
+	yawMatrix[6] = sin(-yawValue);
+	yawMatrix[7] = 0;
+	yawMatrix[8] = cos(-yawValue);
 }

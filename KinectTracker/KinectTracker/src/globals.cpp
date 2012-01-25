@@ -38,9 +38,6 @@ int   numWallPoints;
 float yawValue = 999999.0f;
 float xValue = 999999.0f;
 float zValue = 999999.0f;
-float cWallSlice[NUM_SLICES*2];
-int numWallSlicePts = 0;
-int wallStatus[NUM_SLICES];
 // Camera Orientation
 float yawMatrix[9];
 float pitchRollMatrix[9];
@@ -49,8 +46,6 @@ int maxZi = 0;
 int maxZj = 0;
 // Running Average
 float origZ[CLOUD_SIZE] = {0.0f};
-float stdErrorList[39] = {0.0f};
-float stdErrorListDis[39] = {0.0f};
 // Corners
 float wallCorners[40*6]; // x, z, t(2)/f(1), Lconn, Lweight, Rweight
 int   numCorners = 0;
@@ -60,5 +55,6 @@ int numGlobalCorners = 0;
 
 Kinect::Kinect *K;
 Listener *L;
+Kinect::KinectFinder KF;
 
 GLuint texID;
