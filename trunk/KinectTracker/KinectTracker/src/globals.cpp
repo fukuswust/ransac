@@ -58,3 +58,11 @@ Listener *L;
 Kinect::KinectFinder KF;
 
 GLuint texID;
+
+// Set inital values for gui keyboard shortcut states.
+bool isFullscreen = false;
+bool showOnScreenDisplay = true;
+bool showHeightSlice = false;
+bool showFloorPoints = false;
+bool showWallPoints = false;
+bool showLocalMap = true;

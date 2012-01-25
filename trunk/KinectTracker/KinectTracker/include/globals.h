@@ -105,5 +105,12 @@ extern Kinect::KinectFinder KF;
 
 extern GLuint texID;
 
+// Setup booleans for keyboard toggles
+extern bool isFullscreen;
+extern bool showOnScreenDisplay;
+extern bool showHeightSlice;
+extern bool showFloorPoints;
+extern bool showWallPoints;
+extern bool showLocalMap;
 
 #endif
