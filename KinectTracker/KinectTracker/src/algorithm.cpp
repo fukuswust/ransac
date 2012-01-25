@@ -160,7 +160,9 @@ void runAlgorithm() {
 				floorPoints[fpOffset++] = tmpZ;
 				floorIJ[fpIjOffset++] = ijPointCloud[ijOffset++];
 				floorIJ[fpIjOffset++] = ijPointCloud[ijOffset++];
-			} 
+			} else {
+				ijOffset+=2;
+			}
 
 			// Determine max Distances for each Direction
 			int dirIndex = (int)floor((tmpDir-currentMinDir)*dirFactor)*2;
@@ -194,9 +196,9 @@ void runAlgorithm() {
 
 	setPositionAndOrientation();
 		
+	#pragma region THIRD PASS
 	// Determine height slice (in polar coordinates)
 	// Determine wall points
-	/*
 	numWallPoints = 0;
 	float heightDiffList[640/DEPTH_SCALE_FACTOR];
 	for (int i = 0; i < 640/DEPTH_SCALE_FACTOR; i++) {
@@ -244,7 +246,7 @@ void runAlgorithm() {
 		}
 	}
 	currentMinHeight -= 150;
-	*/
+	#pragma endregion
 }
 
 void findRotationToUp(float xVect, float yVect, float zVect) {

@@ -12,10 +12,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\algorithm.h" />
+    <ClInclude Include="include\augment.h" />
     <ClInclude Include="include\basicShapes.h" />
     <ClInclude Include="include\globals.h" />
     <ClInclude Include="include\gui.h" />
     <ClInclude Include="include\hr_time.h" />
+    <ClInclude Include="include\hud.h" />
     <ClInclude Include="include\input.h" />
     <ClInclude Include="include\Kinect-win32.h" />
     <ClInclude Include="include\listener.h" />
@@ -23,10 +25,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\algorithm.cpp" />
+    <ClCompile Include="src\augment.cpp" />
     <ClCompile Include="src\basicShapes.cpp" />
     <ClCompile Include="src\globals.cpp" />
     <ClCompile Include="src\gui.cpp" />
     <ClCompile Include="src\hr_time.cpp" />
+    <ClCompile Include="src\hud.cpp" />
     <ClCompile Include="src\input.cpp" />
     <ClCompile Include="src\listener.cpp" />
     <ClCompile Include="src\main.cpp" />
