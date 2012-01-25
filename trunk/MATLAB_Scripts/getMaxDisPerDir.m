@@ -15,19 +15,30 @@ function [ maxDistList ] = getMaxDisPerDir( inPolarPC, numOut )
     maxDir = max(max(inPolarPC(:,:,2)));
     minHeight = min(min(inPolarPC(:,:,1)));
     factor = numOut/(maxDir - minDir + 0.00001);
+    sliceSize = 1/factor;
     maxDistList = NaN(numOut,2); %Make more general
     
-    for i = 1:size(inPolarPC,1)
-        for j = 1:size(inPolarPC,2)
+    for i = 2:size(inPolarPC,1)-1
+        for j = 2:size(inPolarPC,2)-1
             if (~isnan(inPolarPC(i,j,2)))
                 if (inPolarPC(i,j,1) > minHeight+100)
                     dirOn = floor((inPolarPC(i,j,2)-minDir).*factor)+1;
                     if (isnan(maxDistList(dirOn,1)))
-                        maxDistList(dirOn,1) = inPolarPC(i,j,2);
-                        maxDistList(dirOn,2) = inPolarPC(i,j,3);
+                        maxDistList(dirOn,1) = ...
+                            minDir+(sliceSize*(dirOn-1))+(sliceSize/2);
+                        maxDistList(dirOn,2) = (inPolarPC(i,j,3) ...
+                            + inPolarPC(i-1,j-1,3) + inPolarPC(i,j-1,3) ...
+                            + inPolarPC(i+1,j-1,3) + inPolarPC(i+1,j,3) ...
+                            + inPolarPC(i+1,j+1,3) + inPolarPC(i,j+1,3) ...
+                            + inPolarPC(i-1,j+1,3) + inPolarPC(i-1,j,3))/9;
                     elseif (inPolarPC(i,j,3) > maxDistList(dirOn,2))
-                        maxDistList(dirOn,1) = inPolarPC(i,j,2);
-                        maxDistList(dirOn,2) = inPolarPC(i,j,3);
+                        maxDistList(dirOn,1) = ...
+                            minDir+(sliceSize*(dirOn-1))+(sliceSize/2);
+                        maxDistList(dirOn,2) = (inPolarPC(i,j,3) ...
+                            + inPolarPC(i-1,j-1,3) + inPolarPC(i,j-1,3) ...
+                            + inPolarPC(i+1,j-1,3) + inPolarPC(i+1,j,3) ...
+                            + inPolarPC(i+1,j+1,3) + inPolarPC(i,j+1,3) ...
+                            + inPolarPC(i-1,j+1,3) + inPolarPC(i-1,j,3))/9;
                     end
                 end
             end

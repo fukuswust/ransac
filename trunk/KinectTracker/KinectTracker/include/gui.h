@@ -51,4 +51,6 @@ void drawTopDownViewPoint(float x,float y, float z);
 
 void drawAugmentedCube(float x, float y, float z, float s);
 
+void drawAugmentedCorners();
+
 #endif

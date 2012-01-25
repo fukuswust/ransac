@@ -51,6 +51,12 @@ int maxZj = 0;
 float origZ[CLOUD_SIZE] = {0.0f};
 float stdErrorList[39] = {0.0f};
 float stdErrorListDis[39] = {0.0f};
+// Corners
+float wallCorners[40*6]; // x, z, t(2)/f(1), Lconn, Lweight, Rweight
+int   numCorners = 0;
+// Global Map
+MapCorner globalMapCorners[100];
+int numGlobalCorners = 0;
 
 Kinect::Kinect *K;
 Listener *L;

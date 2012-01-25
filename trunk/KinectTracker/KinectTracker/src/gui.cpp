@@ -232,14 +232,15 @@ void drawTopDownMap(int cx, int cy, int r, float heightSlices[], int numSlices){
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
 	drawCircle(cx, cy, r, 32);
 	//Draw Local Top Down Map 
-	float delX = 15.0f*cos((30.0f*PI)/180.0f);
-	float delY = 15.0f*sin((30.0f*PI)/180.0f);
+	float delX = 15.0f*cos((50.0f*PI)/180.0f);
+	float delY = 15.0f*sin((50.0f*PI)/180.0f);
 	//Draw Origin
-	glColor3f(1.0f, 0.0f, 0.0f);
-	glBegin(GL_LINES);
+	glBegin(GL_TRIANGLES);
+	glColor3f(0.0f, 0.0f, 0.0f);
 	glVertex2f(cx, cy);
+	glColor3f(0.0f, 0.0f, 1.0f);
 	glVertex2f(cx+delX, cy-delY);
-	glVertex2f(cx, cy);
+	glColor3f(0.0f, 0.0f, 1.0f);
 	glVertex2f(cx-delX, cy-delY);
 	glEnd();
 	//Draw Slice
@@ -251,33 +252,61 @@ void drawTopDownMap(int cx, int cy, int r, float heightSlices[], int numSlices){
 	float prevDelDis = 999999.0;
 	for (int i=0, iStat=0; i < numSlices*2; iStat++) {
 		char printBuff[128];
-		float tmpX = heightSlices[i++]/(400.0f/r);
-		float tmpZ = heightSlices[i++]/(400.0f/r);
+		float tmpX = heightSlices[i++]/(MAX_ALLOWED_DIS/r);
+		float tmpZ = heightSlices[i++]/(MAX_ALLOWED_DIS/r);
 		float dis = sqrt((tmpX*tmpX)+(tmpZ*tmpZ));
 		float dir = atan2(tmpZ,tmpX);
 		if (wallStatus[iStat] == 1) { //False Corner
-			glColor3f(1.0f, 0.0f, 0.0f);
+			glColor4f(1.0f, 0.0f, 0.0f, 0.5f);
 		} else if (wallStatus[iStat] == 2) { //True Corner
-			glColor3f(0.0f, 1.0f, 0.0f);
-		} else if (wallStatus[iStat] == 3) { 
-			glColor3f(1.0f, 1.0f, 0.0f);
-		} else if (wallStatus[iStat] == 4) {
-			glColor3f(0.0f, 0.0f, 1.0f);
+			glColor4f(0.0f, 1.0f, 0.0f, 0.5f);
 		} else { //Wall
-			glColor3f(0.0f, 0.0f, 0.0f);
+			glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
+		}
+		//glVertex2f(cx+tmpX, cy+tmpZ);
+	}
+	// Draw Local Wall Corner Points
+	glPointSize(5.0f);
+	for (int i = 0; i < numCorners; i++) {
+		float tmpX = wallCorners[(i*6)+0]/(MAX_ALLOWED_DIS/r);
+		float tmpZ = wallCorners[(i*6)+1]/(MAX_ALLOWED_DIS/r);
+		float cornerType = wallCorners[(i*6)+2];
+		if (cornerType == 1) { //false
+			glColor3f(1.0f, 0.0f, 0.0f);
+		} else {
+			glColor3f(0.0f, 1.0f, 0.0f);
 		}
 		glVertex2f(cx+tmpX, cy+tmpZ);
-		if (iStat < 40) {
-			//glVertex2f(cx-40.0f+(stdErrorListDis[iStat-1]/2.0f), cy-50.0f+(stdErrorList[iStat-1]*1.0f));
-			if (prevError != 999999.0f) {
-				float curAccel = stdErrorList[iStat-1] - prevError;
-				//glVertex2f(cx-40.0f+(iStat*3.0f), cy+120.0f+(curAccel*3.0f));
-			}
-			prevError = stdErrorList[iStat-1];
-		}
+	}
+	// Draw Local Wall Corner Connectors
+	glEnd();
+	glColor4f(1.0f, 1.0f, 0.0f, 0.5f);
+	glBegin(GL_LINE_STRIP);
+	for (int i = 0; i < numCorners; i++) {
+		float tmpX = wallCorners[(i*6)+0]/(MAX_ALLOWED_DIS/r);
+		float tmpZ = wallCorners[(i*6)+1]/(MAX_ALLOWED_DIS/r);
+		float cornerConnectivity = wallCorners[(i*6)+3];
+		if (cornerConnectivity == 0) { //Not Connected
+			glEnd();
+			glBegin(GL_LINE_STRIP);
+			glVertex2f(cx+tmpX, cy+tmpZ);
+		} else {
+			glVertex2f(cx+tmpX, cy+tmpZ);
+		}		
+	}
+	glPointSize(7.0f);
+	glEnd();
+	//Draw Global Map
+	glColor3f(0.0f, 0.0f, 0.0f);
+	glBegin(GL_POINTS);
+	for (int i=0; i < numGlobalCorners; i++) {
+		float tmpX = globalMapCorners[i].x/(MAX_ALLOWED_DIS/r);
+		float tmpZ = globalMapCorners[i].z/(MAX_ALLOWED_DIS/r);
+		glVertex2f(cx+tmpX, cy+tmpZ);
 	}
 	glEnd();
 	glPointSize(1.0f);
+	glColor3f(1.0f, 1.0f, 1.0f);
 }
 
 void drawHeightLine(float heightSlices[], int heightSliceIJ[], int numSlices) {
@@ -400,5 +429,40 @@ void drawAugmentedCube(float x, float y, float z, float s) {
 	glEnd();
 
 	glColor3f(1.0f, 1.0f, 1.0f);
+	glLineWidth(1.0f);
+}
+
+void drawAugmentedCorners() {
+	glLineWidth(4.0f);
+	glBegin(GL_LINES);
+	for (int i = 0; i < numCorners; i++) {
+		float tmpX = wallCorners[(i*6)+0];
+		float tmpZ = wallCorners[(i*6)+1];
+		float cornerType = wallCorners[(i*6)+2];
+		if (cornerType == 1) { //false
+			glColor4f(1.0f, 0.0f, 0.0f, 0.5f);
+		} else {
+			glColor4f(0.0f, 1.0f, 0.0f, 0.5f);
+		}
+		drawTopDownViewPoint(tmpX,0,tmpZ);
+		drawTopDownViewPoint(tmpX,300,tmpZ);
+	}
+	glEnd();
+
+	glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
+	glBegin(GL_LINE_STRIP);
+	for (int i = 0; i < numCorners; i++) {
+		float tmpX = wallCorners[(i*6)+0];
+		float tmpZ = wallCorners[(i*6)+1];
+		float cornerConnectivity = wallCorners[(i*6)+3];
+		if (cornerConnectivity == 0) { //Not Connected
+			glEnd();
+			glBegin(GL_LINE_STRIP);
+			drawTopDownViewPoint(tmpX,150.0f,tmpZ);
+		} else {
+			drawTopDownViewPoint(tmpX,150.0f,tmpZ);
+		}		
+	}
+	glEnd();
 	glLineWidth(1.0f);
 }

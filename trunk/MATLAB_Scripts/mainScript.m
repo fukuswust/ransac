@@ -1,5 +1,5 @@
 %% Initial Constants
-frameName = '000012';
+frameName = '000005';
 
 %% Loop
 lastFile = 33;
@@ -92,7 +92,7 @@ maxDisList = polarToCartesian2D(maxDisListPolar);
 maxDisList(:,2) = -maxDisList(:,2);
 scatter(maxDisList(:,1), maxDisList(:,2), 30, 'filled')
 axis equal
-%saveas(gcf,[dataPath '/MATLAB_output/32_' frameName '.bmp']) 
+saveas(gcf,[dataPath '/MATLAB_output/32_' frameName '.bmp']) 
 tdView{fileOn+1} = maxDisList;
 
 end
@@ -154,11 +154,14 @@ for fileOn=firstSliceFile:3:lastSliceFile
     frameName = sprintf('%.6u',fileOn);
     fileName = [dataPath '/../sliceData/' frameName '.csv'];
     if exist(fileName, 'file')
-        inWallSlice{indexOn} = csvread(fileName);
+        inWallSlice = csvread(fileName);
+        newIndex = 1;
         for i=1:40
-            if inWallSlice{indexOn}(i,1) == -999999.0
-                wallSlice{indexOn}(i,1) = NaN;
-                wallSlice{indexOn}(i,2) = NaN;
+            if inWallSlice(i,1) ~= -999999.0 ...
+                    && inWallSlice(i,2) <= 400
+                wallSlice{indexOn}(newIndex,1) = -inWallSlice(i,1);
+                wallSlice{indexOn}(newIndex,2) = inWallSlice(i,2);
+                newIndex = newIndex + 1;
             end
         end
         indexOn = indexOn + 1;
@@ -166,57 +169,111 @@ for fileOn=firstSliceFile:3:lastSliceFile
 end
 numData = indexOn - 1;
 
-%% Convert to Cartesian
-for frame = 1:numData
-pTdView{frame} = wallSlice{frame};
-pTdView{frame}(:,1) = -pTdView{frame}(:,1);
-cTdView{frame} = polarToCartesian2D(pTdView{frame});
-scatter(cTdView{frame}(:,1), cTdView{frame}(:,2), 30, 'filled', 'blue')
-axis([-300 300 0 600])
+%% Set Range
+curMinRange = 1;
+curMaxRange = numData;
+
+%% Apply Filter
+for frame = 124:124
+    pTdView{frame}(i-1,1) = wallSlice{frame}(i-1,1);
+    pTdView{frame}(i-1,2) = -wallSlice{frame}(i-1,2);
+    cTdView{frame} = polarToCartesian2D(pTdView{frame});
+    scatter(cTdView{frame}(:,1), cTdView{frame}(:,2), 30, 'filled', 'blue')
+    hold on
+    frameName = sprintf('%.6u',frame);
+    title(['Frame: ' frameName])
+    axis([-250 250 0 500])
+    drawnow
+    pause(.001)
+    %saveas(gcf,[dataPath '/MATLAB_output/9_' frameName '.bmp'])
+end
+
+%% Find Wall Corners
+for frame = curMinRange:curMaxRange
+[tc fc] = findWallCorners(cTdView{frame}, pTdView{frame});
+scatter(cTdView{frame}(:,1), cTdView{frame}(:,2), 30, 'filled', 'black')
+hold on
+scatter(cTdView{frame}(tc,1), cTdView{frame}(tc,2), 30, 'filled', 'green')
+scatter(cTdView{frame}(fc,1), cTdView{frame}(fc,2), 30, 'filled', 'red')
+hold off
+frameName = sprintf('%.6u',frame);
+title(['Frame: ' frameName])
+axis([-250 250 0 500])
 drawnow
 pause(.001)
 %saveas(gcf,[dataPath '/MATLAB_output/9_' frameName '.bmp'])
 end
 
 %% Show Polar Graph
-for frame = 1:numData
+for frame = curMinRange:curMaxRange
+curMaxDis{frame} = 0;
+for i=1:size(pTdView{frame},1)
+    if ~isnan(pTdView{frame}(i,1))
+        if pTdView{frame}(i,2) > curMaxDis{frame}
+            curMaxDis{frame} = pTdView{frame}(i,2);
+            curMaxDir{frame} = pTdView{frame}(i,1);
+        end
+    end
+end
 scatter(pTdView{frame}(:,1), pTdView{frame}(:,2), 30, 'filled', 'blue')
-axis([0.5 2.5 0 600])
+hold on
+scatter(curMaxDir{frame}, curMaxDis{frame}, 30, 'filled', 'red')
+hold off
+frameName = sprintf('%.6u',frame);
+title(['Frame: ' frameName])
+axis([0.5 2.5 0 500])
 drawnow
 pause(.001)
 %saveas(gcf,[dataPath '/MATLAB_output/10_' frameName '.bmp'])
 end
 
-%% Find Corner
-for frame = 1:numData
-curMaxDis = 0;
-for i=1:40
-    if ~isnan(pTdView{frame}(i,1))
-        if pTdView{frame}(i,2) > curMaxDis
-            curMaxDis = pTdView{frame}(i,2);
-            curMaxDir = pTdView{frame}(i,1);
-        end
-    end
-end
-cornerX = curMaxDis*cos(curMaxDir);
-cornerZ = curMaxDis*sin(curMaxDir);
+%% Align to Corner
+for frame = curMinRange:curMaxRange
+cornerX = curMaxDis{frame}*cos(curMaxDir{frame});
+cornerZ = curMaxDis{frame}*sin(curMaxDir{frame});
 alignedTd{frame}(1:40,1) = cTdView{frame}(:,1) - cornerX;
 alignedTd{frame}(1:40,2) = cTdView{frame}(:,2) - cornerZ;
 scatter(alignedTd{frame}(:,1), alignedTd{frame}(:,2), 30, 'filled', 'blue')
 axis([-300 300 -300 300])
+frameName = sprintf('%.6u',frame);
+title(['Frame: ' frameName])
 drawnow
 pause(.001)
 %saveas(gcf,[dataPath '/MATLAB_output/10_' frameName '.bmp'])
 end
 
-%% Find Rotation in Polar
-for frame = 1:numData
+%% Find Polar Rotation from Corner Origin
+for frame = curMinRange:curMaxRange
 pAlignedTd{frame} = cartesianToPolar2D(alignedTd{frame});
+curMaxDis{frame} = 0;
+for i=1:40
+    if ~isnan(pAlignedTd{frame}(i,1))
+        if pAlignedTd{frame}(i,2) > curMaxDis{frame}
+            curMaxDis{frame} = pAlignedTd{frame}(i,2);
+            curMaxDir{frame} = pAlignedTd{frame}(i,1);
+        end
+    end
+end
 scatter(pAlignedTd{frame}(:,1), pAlignedTd{frame}(:,2), 30, 'filled', 'blue')
+line([curMaxDir{frame} curMaxDir{frame}],[0 curMaxDis{frame}], 'color', 'red')
 axis([-pi() pi() 0 600])
+frameName = sprintf('%.6u',frame);
+title(['Frame: ' frameName])
 drawnow
 pause(.001)
 %saveas(gcf,[dataPath '/MATLAB_output/11_' frameName '.bmp'])
+end
+
+%% Find Polar Rotation
+for frame = curMinRange:curMaxRange
+finalRot{frame} = apply2dTransform(alignedTd{frame}, -curMaxDir{frame}, 0, 0);
+scatter(finalRot{frame}(:,1), finalRot{frame}(:,2), 30, 'filled', 'blue')
+axis([-300 300 -300 300])
+frameName = sprintf('%.6u',frame);
+title(['Frame: ' frameName])
+drawnow
+pause(.001)
+%saveas(gcf,[dataPath '/MATLAB_output/10_' frameName '.bmp'])
 end
 
 %% Show Nearest Neighbors

@@ -131,31 +131,8 @@ void drawScene() {
     #define CUBE_SIZE 50.0f
 	//drawAugmentedCube(0.0f, 0.0f, 0.0f, CUBE_SIZE);
 
-	// Draw Top Down Corners
-	glLineWidth(4.0f);
-	glBegin(GL_LINES);
-	for (int i=0, iStat=0; i < numWallSlicePts*2; iStat++) {
-		float tmpX = cWallSlice[i++];
-		float tmpZ = cWallSlice[i++];
-		if (wallStatus[iStat] == 1) { //False Corner
-			glColor3f(1.0f, 0.0f, 0.0f);
-		} else if (wallStatus[iStat] == 2) { //True Corner
-			glColor3f(0.0f, 1.0f, 0.0f);
-		} else if (wallStatus[iStat] == 3) { 
-			glColor3f(1.0f, 1.0f, 0.0f);
-		} else if (wallStatus[iStat] == 4) {
-			glColor3f(0.0f, 0.0f, 1.0f);
-		} else { //Wall
-			glColor3f(0.0f, 0.0f, 0.0f);
-		}
-		if (wallStatus[iStat] != 0) {
-			drawTopDownViewPoint(tmpX,0,tmpZ);
-			drawTopDownViewPoint(tmpX,200,tmpZ);
-		}
-	}
-	glEnd();
-	glColor3f(1.0f, 1.0f, 1.0f);
-	glLineWidth(1.0f);
+	//Draw Wall Corners
+	drawAugmentedCorners();
 
 	//Draw Frame Count (in 2D)
 #define HUD_FPS_X 5
@@ -178,19 +155,6 @@ void drawScene() {
 	sprintf(printBuff, "Z: %f", zValue);
 	orthoPrint(450, viewHeight - HUD_FPS_Y, printBuff);
 
-	//Wall Stat
-	for (int iStat=0; iStat < numWallSlicePts; iStat++) {
-		if (wallStatus[iStat] == 1) { //False Corner
-			glColor3f(1.0f, 0.0f, 0.0f);
-		} else if (wallStatus[iStat] == 2) { //True Corner
-			glColor3f(0.0f, 1.0f, 0.0f);
-		} else { //Wall
-			glColor3f(1.0f, 1.0f, 1.0f);
-		}
-		sprintf(printBuff, "%i", wallStatus[iStat]);
-		orthoPrint(50+iStat*10, viewHeight - 24, printBuff);
-	}
-
 	// Draw Height Measurement Bar
 #define HUD_HEIGHT_BAR_X 5
 #define HUD_HEIGHT_BAR_Y 5
@@ -209,7 +173,7 @@ void drawScene() {
 	drawPitchHud(xPitchLbl, yPitchLbl, HUD_PITCH_RADIUS, pitchValue);
 
 	// Draw Local Top Down Map (in 2D, upper right)
-#define HUD_MAP_CIRCLE_SIZE 80
+#define HUD_MAP_CIRCLE_SIZE 200
 #define HUD_MAP_X (5 + HUD_MAP_CIRCLE_SIZE)
 #define HUD_MAP_Y (5 + HUD_MAP_CIRCLE_SIZE)
 	drawTopDownMap(viewWidth - HUD_MAP_X, HUD_MAP_Y, HUD_MAP_CIRCLE_SIZE, 

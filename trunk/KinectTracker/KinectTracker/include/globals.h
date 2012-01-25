@@ -21,12 +21,21 @@
 #define DEPTH_SCALE_FACTOR 16
 #define MAX_FLOOR_POINTS ((640*480)/(DEPTH_SCALE_FACTOR*DEPTH_SCALE_FACTOR))
 #define MAX_WALL_POINTS ((640*480)/(DEPTH_SCALE_FACTOR*DEPTH_SCALE_FACTOR))
-#define MAX_ALLOWED_DIS 400.0f
+#define MAX_ALLOWED_DIS 700.0f
 #define NUM_SLICES (640/DEPTH_SCALE_FACTOR)
 #define CLOUD_SIZE ((640*480)/(DEPTH_SCALE_FACTOR*DEPTH_SCALE_FACTOR))
-#define CLOUD_AVG_FACTOR 0.0f
+#define CLOUD_AVG_FACTOR 0.5f
 
 #define PI 3.14159265
+
+struct MapCorner {
+	float x;
+	float z;
+	bool truth;
+	bool leftConn;
+	float leftWeight;
+	float rightWeight;
+};
 
 // Recording file counter
 extern int outFileOn;
@@ -77,6 +86,12 @@ extern float translationMatrix[3];
 extern float origZ[CLOUD_SIZE];
 extern float stdErrorList[39];
 extern float stdErrorListDis[39];
+// Corners
+extern float wallCorners[40*6]; // x, z, t(2)/f(1), Lconn, Lweight, Rweight
+extern int   numCorners;
+// Global Map
+extern MapCorner globalMapCorners[100];
+extern int numGlobalCorners;
 
 extern int maxZi;
 extern int maxZj;
