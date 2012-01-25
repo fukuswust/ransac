@@ -162,7 +162,7 @@ void runAlgorithm() {
 			// Determine max Distances for each Direction
 			int dirIndex = (int)floor((tmpDir-currentMinDir)*dirFactor)*2;
 			if (tmpDis > pWallSliceNan[dirIndex+1]) {
-				pWallSliceNan[dirIndex  ] = offset - 1; //Distance array location
+				pWallSliceNan[dirIndex  ] = -tmpDir;//offset - 1; //Distance array location
 				pWallSliceNan[dirIndex+1] = tmpDis;
 			}
 		}
@@ -177,12 +177,17 @@ void runAlgorithm() {
 	int newIndex = 0;
 	int statOn = 0;
 	bool fromOut = false;
-	float prevDis = 0.0f;
-	for (int i = 1; i < NUM_SLICES; i++) {
+	float prevDis = pWallSliceNan[1];
+	for (int i = 1; i < NUM_SLICES-1; i++) {
 		int startIndex = pWallSliceNan[i*2];
 		float tmpDis = pWallSliceNan[(i*2)+1];
-		if (startIndex != -999999.0f && tmpDis < MAX_ALLOWED_DIS) {
-			float tmpDir = -(currentMinDir + (i*dirSection) + (dirSection/2.0f));
+		float tmpNxtDis = pWallSliceNan[(i*2)+3];
+		float diffLeftDis = abs(tmpDis - prevDis);
+		float diffRightDis = abs(tmpNxtDis - tmpDis);
+		bool  isNoise = (min(diffLeftDis,diffRightDis) > 35.0f);
+		if (startIndex != -999999.0f && tmpDis < MAX_ALLOWED_DIS && !isNoise) {
+			//float tmpDir = -(currentMinDir + (i*dirSection) + (dirSection/2.0f));
+			float tmpDir = pWallSliceNan[(i*2)+0];
 			cWallSlice[newIndex++] = tmpDis*cos(tmpDir);
 			cWallSlice[newIndex--] = -tmpDis*sin(tmpDir);
 			pWallSlice[newIndex++] = tmpDir;
@@ -197,7 +202,7 @@ void runAlgorithm() {
 			}
 			statOn++;
 			prevDis = tmpDis;
-		} else if (tmpDis >= MAX_ALLOWED_DIS) {
+		} else if (tmpDis >= MAX_ALLOWED_DIS && !isNoise) {
 			if (statOn != 0) {
 				if (prevDis < MAX_ALLOWED_DIS-50.0f) {
 					wallStatus[statOn-1] = 2;
@@ -216,12 +221,30 @@ void runAlgorithm() {
 		wallStatus[numWallSlicePts-1] = 1;
 	}
 
+#ifdef RECORD_SLICES
+	recordSlices(pWallSlice, numWallSlicePts, outFileOn);
+#endif
+
+	// Detect corner points
+	float prevLineM = 999999.0;
+	float prevLineB = 999999.0;
+	numCorners = 0;
 	for (int i = 0; i < numWallSlicePts-1; ) { 
 		float origX = cWallSlice[(i*2)+0];
 		float origZ = cWallSlice[(i*2)+1];
-		float prevDisToPoint = -1.0f;
+		float prevDisToPoint = 0.0f;
+
+		// Initialize Regression
+		float sumX = origX;
+		float sumZ = origZ;
+		float sumXsquared = origX * origX;
+		float sumZsquared = origZ * origZ;
+		float sumXZ = origX * origZ;
+		int   nPoints = 1;
+		float prevX = 999999.0f;
 
 		int   nextPoint = i+1;
+		bool endStrip = false;
 		for (int j = i+1; j < numWallSlicePts; j++) {
 			float ptX = cWallSlice[(j*2)+0];
 			float ptZ = cWallSlice[(j*2)+1];
@@ -229,8 +252,28 @@ void runAlgorithm() {
 			float delZ = ptZ - origZ;
 			float disToPoint = sqrt((delX*delX)+(delZ*delZ));
 
+			// Check for Huge Jumps
+			if (disToPoint - prevDisToPoint > 40.0f) {
+				float leftDisFromCam = pWallSlice[(j*2)-1];
+				float rightDisFromCam = pWallSlice[(j*2)+1];
+				float camDisDiff = abs(leftDisFromCam - rightDisFromCam);
+				if (leftDisFromCam < rightDisFromCam) { //Left corner is in front of right
+					wallStatus[j-1] = 2;
+					wallStatus[j] = 1;
+					endStrip = true;
+				} else { //Right corner is in front of left
+					wallStatus[j-1] = 1;
+					wallStatus[j] = 2;
+					endStrip = true;
+				}
+			}
+			prevDisToPoint = disToPoint;
+
+			// Create Line Equation
 			float m = delZ/delX;
 			float b = ptZ - m*ptX;
+
+			// Determine sum of error between each point in between ends
 			float error = 0.0;
 			for (int k = i+1; k < j; k++) { //Loop through points in between
 				float predictZ = m*cWallSlice[(k*2)+0] + b;
@@ -241,33 +284,169 @@ void runAlgorithm() {
 			stdErrorList[j-1] = error;
 			stdErrorListDis[j-1] = disToPoint;
 
+			// Check for error exceeding allowable amount (point not on line)
 			float errorDir = atan2(error,disToPoint/2.0f);
 			if (errorDir > PI/4) {
-				wallStatus[j-1] = 2;
-				wallStatus[j] = 2;
-				nextPoint = j;
-				break;
-			}
-			
-			/*if (prevDisToPoint != -1) {
-				if (abs(disToPoint - prevDisToPoint) < 10.0f) {
-					prevDisToPoint = (disToPoint/nPoints)*(nPoints+1);
-				} else {
-					wallStatus[j] = 2;
-					nextPoint = j;
+				if (j == numWallSlicePts-1) { //End the strip if at the end of data
+					nextPoint = j+1;
+					endStrip = true;
 					break;
 				}
-			} else {
-				prevDisToPoint = disToPoint*2.0f;
-			}*/
+				float leftDisFromCam = pWallSlice[(j*2)-1];
+				float rightDisFromCam = pWallSlice[(j*2)+1];
+				float camDisDiff = abs(leftDisFromCam - rightDisFromCam);
+				if (camDisDiff < 25.0f) { //Points are close (Both true corners)
+					wallStatus[j-1] = 2;
+					wallStatus[j] = 2;
+				} else if (leftDisFromCam < rightDisFromCam) { //Left corner is in front of right
+					wallStatus[j-1] = 2;
+					wallStatus[j] = 1;
+					endStrip = true;
+				} else { //Right corner is in front of left
+					wallStatus[j-1] = 1;
+					wallStatus[j] = 2;
+					endStrip = true;
+				}
+				nextPoint = j;
+				break;
+			} else { // Add to regression as long as value on line
+				nPoints++;
+				sumX += ptX;
+				sumZ += ptZ;
+				sumXsquared += ptX * ptX;
+				sumZsquared += ptZ * ptZ;
+				sumXZ += ptX * ptZ;
+				prevX = ptX;
+			}
+			if (j == numWallSlicePts-1) { //End the strip if at the end of data
+				endStrip = true;
+				break;
+			}
+			if (wallStatus[j] != 0) { //End the strip if reach another corner (break in data)
+				endStrip = true;
+				break;
+			}
+			nextPoint = j;
 		}
+
+		// Perform Regression for Line from i to j-1
+		if (nPoints > 2) {
+			float lineM = ( float(nPoints) * sumXZ - sumZ * sumX) /
+				( float(nPoints) * sumXsquared - sumX * sumX);
+			float lineB = (sumZ - lineM * sumX) / float(nPoints);
+			if (endStrip) { //Just ended line strip - Estimate right corner
+				if (prevLineM == 999999.0) { //Just started line strip - Estimate left corner
+					wallCorners[(numCorners*6)+0] = origX;
+					wallCorners[(numCorners*6)+1] = (origX*lineM)+lineB;
+					wallCorners[(numCorners*6)+2] = wallStatus[i];
+					wallCorners[(numCorners*6)+3] = 0.0f; // Not connected to left
+					numCorners++;
+				} else { // Determine line intersection with previous
+					float lineSlopeDiff = abs(atan(lineM) - atan(prevLineM));
+					if (lineSlopeDiff < PI/6) {
+						//Predict right part of previous line
+						float prevPrevX = cWallSlice[(i*2)-2];
+						wallCorners[(numCorners*6)+0] = prevPrevX;
+						wallCorners[(numCorners*6)+1] = (prevPrevX*prevLineM)+prevLineB;
+						wallCorners[(numCorners*6)+2] = wallStatus[i-1];
+						numCorners++;
+						//Predict left part of current line
+						wallCorners[(numCorners*6)+0] = origX;
+						wallCorners[(numCorners*6)+1] = (origX*lineM)+lineB;
+						wallCorners[(numCorners*6)+2] = wallStatus[i];
+						wallCorners[(numCorners*6)+3] = 0.0f; // Not connected to left
+						numCorners++;
+					} else {
+						float interX = (lineB-prevLineB)/(prevLineM-lineM);
+						wallCorners[(numCorners*6)+0] = interX;
+						wallCorners[(numCorners*6)+1] = (interX*lineM)+lineB;
+						wallCorners[(numCorners*6)+2] = wallStatus[i];
+						wallCorners[(numCorners*6)+3] = 1.0f; // Connected to left
+						numCorners++;
+					}
+				}
+				//Estimate right corner
+				wallCorners[(numCorners*6)+0] = prevX;
+				wallCorners[(numCorners*6)+1] = (prevX*lineM)+lineB;
+				wallCorners[(numCorners*6)+2] = wallStatus[nextPoint-1];
+				wallCorners[(numCorners*6)+3] = 1.0f; // Connected to left
+				numCorners++;
+				prevLineM = 999999.0;
+			} else { //Not done with strip
+				if (prevLineM == 999999.0) { //Just started line strip - Estimate left corner
+					wallCorners[(numCorners*6)+0] = origX;
+					wallCorners[(numCorners*6)+1] = (origX*lineM)+lineB;
+					wallCorners[(numCorners*6)+2] = wallStatus[i];
+					wallCorners[(numCorners*6)+3] = 0.0f; // Not connected to left
+					numCorners++;
+				} else { // Determine line intersection with previous
+					float lineSlopeDiff = abs(atan(lineM) - atan(prevLineM));
+					if (lineSlopeDiff < PI/6) {
+						//Predict right part of previous line
+						float prevPrevX = cWallSlice[(i*2)-2];
+						wallCorners[(numCorners*6)+0] = prevPrevX;
+						wallCorners[(numCorners*6)+1] = (prevPrevX*prevLineM)+prevLineB;
+						wallCorners[(numCorners*6)+2] = wallStatus[i-1];
+						numCorners++;
+						//Predict left part of current line
+						wallCorners[(numCorners*6)+0] = origX;
+						wallCorners[(numCorners*6)+1] = (origX*lineM)+lineB;
+						wallCorners[(numCorners*6)+2] = wallStatus[i];
+						wallCorners[(numCorners*6)+3] = 0.0f; // Not connected to left
+						numCorners++;
+					} else {
+						float interX = (lineB-prevLineB)/(prevLineM-lineM);
+						wallCorners[(numCorners*6)+0] = interX;
+						wallCorners[(numCorners*6)+1] = (interX*lineM)+lineB;
+						wallCorners[(numCorners*6)+2] = wallStatus[i];
+						wallCorners[(numCorners*6)+3] = 1.0f; // Connected to left
+						numCorners++;		
+					}
+				}
+				prevLineM = lineM;
+				prevLineB = lineB;
+			}
+		} else {
+			prevLineM = 999999.0;
+		}
+
+		// Next start on j
 		i = nextPoint;
 	}
-	
 
-#ifdef RECORD_SLICES
-	recordSlices(pWallSlice, numWallSlicePts, outFileOn);
-#endif
+	// Loop through determined corner values and compare to the global model
+	for (int i=0; i < numCorners; i++) {
+		float localX = wallCorners[(i*6)+0];
+		float localZ = wallCorners[(i*6)+1];
+		float localTruthValue = wallCorners[(i*6)+2];
+		float localLeftConn = wallCorners[(i*6)+3];
+		float localLeftWeight = wallCorners[(i*6)+4];
+		float localRightWeight = wallCorners[(i*6)+5];
+		if (localTruthValue == 2.0f) {
+			bool found = false;
+			for (int j=0; j < numGlobalCorners; j++) {
+				float globX = globalMapCorners[j].x;
+				float globZ = globalMapCorners[j].z;
+				float delX = localX - globX;
+				float delZ = localZ - globZ;
+				float disToGlob = sqrt((delX*delX)+(delZ*delZ));
+				if (disToGlob < 20.0f) { //Close enough to match
+					float globW = globalMapCorners[numGlobalCorners].leftWeight;
+					globalMapCorners[numGlobalCorners].x += localX/globW;
+					globalMapCorners[numGlobalCorners].z += localZ/globW;
+					globalMapCorners[numGlobalCorners].leftWeight++;
+					found = true;
+					break;
+				}
+			}
+			if (!found) { //Add
+				globalMapCorners[numGlobalCorners].x = localX;
+				globalMapCorners[numGlobalCorners].z = localZ;
+				globalMapCorners[numGlobalCorners].leftWeight = 1.0f;
+				numGlobalCorners++;
+			}
+		}
+	}
 
 	if (yawValue == 999999.0) { //First Frame
 		// Set final values
