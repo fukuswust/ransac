@@ -102,15 +102,19 @@ void drawScene() {
 	drawColorBackground(viewWidth, viewHeight, texID);
 
 	// Draw Floor Points
-	drawFloorPoints(floorIJ, numFloorPoints);
+	if (showFloorPoints) {
+		drawFloorPoints(floorIJ, numFloorPoints);
+	}
 
 	// Draw Wall Points
-	drawWallPoints(wallIJ, numWallPoints);
+	if (showWallPoints) {
+		drawWallPoints(wallIJ, numWallPoints);
+	}
 
 	// Draw Height Slice
-#ifdef DRAW_HEIGHT_SLICE
-	drawHeightLine(heightSlices, heightSliceIJ, 640/DEPTH_SCALE_FACTOR);
-#endif
+	if (showHeightSlice) {
+		drawHeightLine(heightSlices, heightSliceIJ, 640/DEPTH_SCALE_FACTOR);
+	}
 
 	orthogonalEnd();
 
@@ -129,7 +133,9 @@ void drawScene() {
 	//drawAugmentedCube(0.0f, 0.0f, 0.0f, CUBE_SIZE);
 
 	//Draw Wall Corners
-	drawAugmentedCorners();
+	if (showLocalMap) {
+		drawAugmentedCorners();
+	}
 
 	//Draw Frame Count (in 2D)
 #define HUD_FPS_X 5
@@ -141,37 +147,39 @@ void drawScene() {
 	orthoPrint(HUD_FPS_X, viewHeight - HUD_FPS_Y, printBuff);
 	fpsStopWatch->startTimer();
 
-	//Yaw
-	glColor3f(1.0f, 1.0f, 1.0f);
-	sprintf(printBuff, "Yaw: %f", (yawValue/PI)*180.0f);
-	orthoPrint(150, viewHeight - HUD_FPS_Y, printBuff);
+	if (showOnScreenDisplay) {
+		//Yaw
+		glColor3f(1.0f, 1.0f, 1.0f);
+		sprintf(printBuff, "Yaw: %f", (yawValue/PI)*180.0f);
+		orthoPrint(150, viewHeight - HUD_FPS_Y, printBuff);
 
-	//X
-	glColor3f(1.0f, 1.0f, 1.0f);
-	sprintf(printBuff, "X: %f", xValue);
-	orthoPrint(300, viewHeight - HUD_FPS_Y, printBuff);
+		//X
+		glColor3f(1.0f, 1.0f, 1.0f);
+		sprintf(printBuff, "X: %f", xValue);
+		orthoPrint(300, viewHeight - HUD_FPS_Y, printBuff);
 
-	//Z
-	glColor3f(1.0f, 1.0f, 1.0f);
-	sprintf(printBuff, "Z: %f", zValue);
-	orthoPrint(450, viewHeight - HUD_FPS_Y, printBuff);
+		//Z
+		glColor3f(1.0f, 1.0f, 1.0f);
+		sprintf(printBuff, "Z: %f", zValue);
+		orthoPrint(450, viewHeight - HUD_FPS_Y, printBuff);
 
-	// Draw Height Measurement Bar
-#define HUD_HEIGHT_BAR_X 5
-#define HUD_HEIGHT_BAR_Y 5
-	drawHeightHud(HUD_HEIGHT_BAR_X, HUD_HEIGHT_BAR_Y, heightValue);
+		// Draw Height Measurement Bar
+		#define HUD_HEIGHT_BAR_X 5
+		#define HUD_HEIGHT_BAR_Y 5
+		drawHeightHud(HUD_HEIGHT_BAR_X, HUD_HEIGHT_BAR_Y, heightValue);
 
-	// Draw Roll
-#define HUD_ROLL_RADIUS 30
-	float xRollLbl = 95;
-	float yRollLbl = 48;
-	drawRollHud(xRollLbl, yRollLbl, HUD_ROLL_RADIUS, rollValue);
+		// Draw Roll
+		#define HUD_ROLL_RADIUS 30
+		float xRollLbl = 95;
+		float yRollLbl = 48;
+		drawRollHud(xRollLbl, yRollLbl, HUD_ROLL_RADIUS, rollValue);
 	
-	// Draw Pitch
-#define HUD_PITCH_RADIUS 30
-	float xPitchLbl = 95;
-	float yPitchLbl = 130;
-	drawPitchHud(xPitchLbl, yPitchLbl, HUD_PITCH_RADIUS, pitchValue);
+		// Draw Pitch
+		#define HUD_PITCH_RADIUS 30
+		float xPitchLbl = 95;
+		float yPitchLbl = 130;
+		drawPitchHud(xPitchLbl, yPitchLbl, HUD_PITCH_RADIUS, pitchValue);
+	}
 
 	// Draw Local Top Down Map (in 2D, upper right)
 #define HUD_MAP_CIRCLE_SIZE 200

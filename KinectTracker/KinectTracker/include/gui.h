@@ -11,8 +11,6 @@
 #ifndef GUI_H
 #define GUI_H
 
-#define DRAW_HEIGHT_SLICE
-
 void update(int value);
 void initGui(int argc, char **argv);
 void initRendering();
