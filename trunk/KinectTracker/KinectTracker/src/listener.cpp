@@ -1,5 +1,7 @@
 #include "listener.h"
 #include "globals.h"
+#include "record.h"
+#include "algorithm.h"
 
 void Listener::KinectDisconnected(Kinect::Kinect *K) 
 {
@@ -12,8 +14,20 @@ void Listener::KinectDisconnected(Kinect::Kinect *K)
 void Listener::DepthReceived(Kinect::Kinect *K) 
 {
 	mDepthFrameOn++;
-	// K->mDepthBuffer is now valid and usable!
-	// see Kinect-Demo.cpp for a more complete example on what to do with this buffer
+	K->ParseDepthBuffer(); 
+
+	// GET ACCEL DATA
+	K->GetAcceleroData(&xAccel, &yAccel, &zAccel);
+
+	// RECORD DATA if recording and if at least one RGB camera frame has been captured
+	#ifdef RECORD_RAW
+	recordColor(K->mColorBuffer, outFileOn);
+	recordDepth(K->mDepthBuffer, outFileOn);
+	recordAccel(xAccel, yAccel, zAccel, outFileOn);
+	#endif
+	outFileOn++;
+
+	runAlgorithm();
 };
 		
 		// Color frame reception complete. this only means the transfer of 1 frame has succeeded. 
@@ -22,8 +36,9 @@ void Listener::DepthReceived(Kinect::Kinect *K)
 void Listener::ColorReceived(Kinect::Kinect *K) 
 {
 	mColorFrameOn++;
-	// K->mColorBuffer is now valid and usable!
-	// see Kinect-Demo.cpp for a more complete example on what to do with this buffer
+	K->ParseColorBuffer();
+	glBindTexture( GL_TEXTURE_2D, texID );
+	glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 640, 480, GL_RGB, GL_UNSIGNED_BYTE, K->mColorBuffer );
 };
 		
 		// not functional yet:

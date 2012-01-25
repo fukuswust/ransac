@@ -42,6 +42,12 @@
     <ClInclude Include="include\basicShapes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\hud.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\augment.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\algorithm.cpp">
@@ -69,6 +75,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\basicShapes.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\hud.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\augment.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
