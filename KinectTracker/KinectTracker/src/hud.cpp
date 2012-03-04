@@ -2,10 +2,54 @@
 #include "globals.h"
 #include "basicShapes.h"
 
-// Draws height bar with the top left corner at topx, topy.
-// Goes from 0 to 3 meters by defaults.  Height input in cm.
-void drawHeightHud(int topx, int topy, float height)
-{
+void drawHud() {
+	char printBuff[256];
+
+	// Draw Crosshair (in 2D)
+	drawCrosshair(viewWidth, viewHeight);
+
+	//Draw Frame Count (in 2D)
+	glColor3f(1.0f, 1.0f, 1.0f);
+	fpsStopWatch->stopTimer();
+	avgFrameTime = (0.1*(float)(fpsStopWatch->getElapsedTime()))+(0.9f*avgFrameTime);
+	sprintf(printBuff, "FPS: %u", (unsigned int)(1.0f/avgFrameTime));
+	orthoPrint(HUD_FPS_X, viewHeight - HUD_FPS_Y, printBuff);
+	fpsStopWatch->startTimer();
+
+	#ifdef HUD_DEBUG
+		//Yaw
+		glColor3f(1.0f, 1.0f, 1.0f);
+		sprintf(printBuff, "Yaw: %f", (yawValue/PI)*180.0f);
+		orthoPrint(150, viewHeight - HUD_FPS_Y, printBuff);
+
+		//X
+		glColor3f(1.0f, 1.0f, 1.0f);
+		sprintf(printBuff, "X: %f", xValue);
+		orthoPrint(300, viewHeight - HUD_FPS_Y, printBuff);
+
+		//Z
+		glColor3f(1.0f, 1.0f, 1.0f);
+		sprintf(printBuff, "Z: %f", zValue);
+		orthoPrint(450, viewHeight - HUD_FPS_Y, printBuff);
+	#endif
+
+	// Draw Height Measurement Bar
+	drawHeightHud(HUD_HEIGHT_BAR_X, HUD_HEIGHT_BAR_Y, heightValue);
+
+	// Draw Roll
+	drawRollHud(HUD_ROLL_X, HUD_ROLL_Y, HUD_ROLL_RADIUS, rollValue);
+	
+	// Draw Pitch
+	drawPitchHud(HUD_PITCH_X, HUD_PITCH_Y, HUD_PITCH_RADIUS, pitchValue);
+
+	// Draw Top Down Map
+	topDownMap.setX(viewWidth-HUD_MAP_X);
+	topDownMap.setY(HUD_MAP_Y);
+	topDownMap.setRadius(HUD_MAP_RADIUS);
+	topDownMap.draw();
+}
+
+void drawHeightHud(int topx, int topy, float height) {
 	// Draw Big White Background
 	glColor4f(1.0f, 1.0f, 1.0f, 0.7f); // White
 	glRectf(topx, topy, topx+45.0f, topy+195.0f);
@@ -39,8 +83,7 @@ void drawHeightHud(int topx, int topy, float height)
 	orthoPrint(topx+25, topy+185, "0m");
 }
 
-void drawRollHud(int cx, int cy, int r, float roll)
-{
+void drawRollHud(int cx, int cy, int r, float roll) {
 	// Draw Background
 	glColor4f(1.0f, 1.0f, 1.0f, 0.6f); // White
 	drawCircleSolid(cx, cy, r, 16);
@@ -61,8 +104,7 @@ void drawRollHud(int cx, int cy, int r, float roll)
 	drawCircleSolid(cx, cy, 3.5, 8);
 }
 
-void drawPitchHud(int cx, int cy, int r, float pitch)
-{
+void drawPitchHud(int cx, int cy, int r, float pitch) {
 	// Draw Background
 	glColor4f(1.0f, 1.0f, 1.0f, 0.6f); // White
 	drawCircleSolid(cx, cy, r, 16);
@@ -81,67 +123,4 @@ void drawPitchHud(int cx, int cy, int r, float pitch)
 	// Draw center point
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
 	drawCircleSolid(cx, cy, 3.5, 8);
-}
-
-void drawTopDownMap(int cx, int cy, int r) {
-	//Draw Local Top Down Map Background
-	glColor4f(1.0f, 1.0f, 1.0f, 0.5f); // White
-	drawCircleSolid(cx, cy, r, 32);
-	glColor3f(0.0f, 0.0f, 0.0f); // Black
-	drawCircle(cx, cy, r, 32);
-	//Draw Local Top Down Map 
-	float delX = 15.0f*cos((50.0f*PI)/180.0f);
-	float delY = 15.0f*sin((50.0f*PI)/180.0f);
-	//Draw Camera
-	glBegin(GL_TRIANGLES);
-	glColor3f(0.0f, 0.0f, 0.0f);
-	glVertex2f(cx, cy);
-	glColor3f(0.0f, 0.0f, 1.0f);
-	glVertex2f(cx+delX, cy-delY);
-	glColor3f(0.0f, 0.0f, 1.0f);
-	glVertex2f(cx-delX, cy-delY);
-	glEnd();
-	// Draw Local Wall Corner Points
-	glPointSize(5.0f);
-	glBegin(GL_POINTS);
-	for (int i = 0; i < numCorners; i++) {
-		float tmpX = wallCorners[(i*6)+0]/(MAX_ALLOWED_DIS/r);
-		float tmpZ = wallCorners[(i*6)+1]/(MAX_ALLOWED_DIS/r);
-		float cornerType = wallCorners[(i*6)+2];
-		if (cornerType == 1) { //false
-			glColor3f(1.0f, 0.0f, 0.0f);
-		} else {
-			glColor3f(0.0f, 1.0f, 0.0f);
-		}
-		glVertex2f(cx+tmpX, cy+tmpZ);
-	}
-	// Draw Local Wall Corner Connectors
-	glEnd();
-	glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
-	glBegin(GL_LINE_STRIP);
-	for (int i = 0; i < numCorners; i++) {
-		float tmpX = wallCorners[(i*6)+0]/(MAX_ALLOWED_DIS/r);
-		float tmpZ = wallCorners[(i*6)+1]/(MAX_ALLOWED_DIS/r);
-		float cornerConnectivity = wallCorners[(i*6)+3];
-		if (cornerConnectivity == 0) { //Not Connected
-			glEnd();
-			glBegin(GL_LINE_STRIP);
-			glVertex2f(cx+tmpX, cy+tmpZ);
-		} else {
-			glVertex2f(cx+tmpX, cy+tmpZ);
-		}		
-	}
-	glPointSize(7.0f);
-	glEnd();
-	//Draw Global Map
-	glColor3f(0.0f, 0.0f, 0.0f);
-	glBegin(GL_POINTS);
-	for (int i=0; i < numGlobalCorners; i++) {
-		float tmpX = globalMapCorners[i].x/(MAX_ALLOWED_DIS/r);
-		float tmpZ = globalMapCorners[i].z/(MAX_ALLOWED_DIS/r);
-		glVertex2f(cx+tmpX, cy+tmpZ);
-	}
-	glEnd();
-	glPointSize(1.0f);
-	glColor3f(1.0f, 1.0f, 1.0f);
 }

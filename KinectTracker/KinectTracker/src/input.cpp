@@ -19,6 +19,10 @@ void handleKeypress(unsigned char key, //The key that was pressed
 			exit(0); //Exit the program
 			break;
 		}
+		case 'c': {
+			yawValue = 999999.0f;
+			break;
+		}
 		case 'f': {
 			// Toggle Fullscreen
 			isFullscreen = !isFullscreen;
@@ -30,9 +34,13 @@ void handleKeypress(unsigned char key, //The key that was pressed
 			}
 			break;
 		}
+		case 'm': {
+			K->SetMotorPosition(1);
+			break;
+		}
 		case 'o': {
 			// Toggle onscreen display
-			showOnScreenDisplay = !showOnScreenDisplay;
+			showHud = !showHud;
 			// The rest of this is handled in gui.cpp
 			break;
 		}
@@ -48,8 +56,21 @@ void handleKeypress(unsigned char key, //The key that was pressed
 			showWallPoints = !showWallPoints;
 			break;
 		}
-		case '4': {
-			showLocalMap = !showLocalMap;
+
+		case 'w': {
+			augCubeZ -= 10.0f;
+			break;
+		}
+		case 's': {
+			augCubeZ += 10.0f;
+			break;
+		}
+		case 'a': {
+			augCubeX -= 10.0f;
+			break;
+		}
+		case 'd': {
+			augCubeX += 10.0f;
 			break;
 		}
 	}

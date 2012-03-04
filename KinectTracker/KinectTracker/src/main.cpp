@@ -30,9 +30,6 @@ int initKinect() {
 	// listener before deleting the instance! A good place to unregister 
 	// would be your listener destructor.
 	K->AddListener(L);
-
-	// SetMotorPosition accepts 0 to 1 range
-	//K->SetMotorPosition(1);
 	
 	// Led mode ranges from 0 to 7, see the header for possible values
 	K->SetLedMode(Kinect::Led_Red);
