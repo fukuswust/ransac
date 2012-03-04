@@ -4,6 +4,7 @@
 #include "hr_time.h"
 #include "listener.h"
 #include "Kinect-win32.h"
+#include "topDownMap.h"
 
 #include <stdlib.h>
 #ifdef __APPLE__
@@ -27,22 +28,45 @@
 
 #define PI 3.14159265
 
-struct MapCorner {
+union SlicePoint {
+	struct {
+		float x;
+		float z;
+	};
+	struct {
+		float dir;
+		float dis;
+	};
+};
+
+struct GlobalMapPoint {
 	float x;
 	float z;
-	bool truth;
-	bool leftConn;
+	float weight;
+};
+
+struct GlobalMapCorner {
+	float x;
+	float z;
+	float leftDir;
+	float leftDis;
 	float leftWeight;
+	float rightDir;
+	float rightDis;
 	float rightWeight;
 };
 
 struct LocalMapCorner {
 	float x;
 	float z;
-	bool truth;
-	bool leftConn;
+	bool  truth;
+	float leftDir;
+	float leftDis;
 	float leftWeight;
+	float rightDir;
+	float rightDis;
 	float rightWeight;
+	int   matchingGlobal;
 };
 
 // Recording file counter
@@ -89,12 +113,22 @@ extern float pitchRollMatrix[9];
 extern float translationMatrix[3];
 // Running Average
 extern float origZ[CLOUD_SIZE];
-// Corners
-extern float wallCorners[40*6]; // x, z, t(2)/f(1), Lconn, Lweight, Rweight
-extern int   numCorners;
 // Global Map
-extern MapCorner globalMapCorners[100];
+extern GlobalMapCorner globalMapCorners[100];
 extern int numGlobalCorners;
+// Global/Local Map Points
+extern SlicePoint wallSlicePoints[NUM_SLICES];
+extern SlicePoint localMapPoints[NUM_SLICES];
+extern int localToGlobal[NUM_SLICES];
+extern GlobalMapPoint globalMapPoints[1023];
+extern int numGlobalPoints;
+// Augmentations
+#define AUG_CUBE_SIZE 50.0f
+extern float augCubeX;
+extern float augCubeY;
+extern float augCubeZ;
+// Top Down Map
+extern TopDownMap topDownMap;
 
 extern int maxZi;
 extern int maxZj;
@@ -107,10 +141,9 @@ extern GLuint texID;
 
 // Setup booleans for keyboard toggles
 extern bool isFullscreen;
-extern bool showOnScreenDisplay;
+extern bool showHud;
 extern bool showHeightSlice;
 extern bool showFloorPoints;
 extern bool showWallPoints;
-extern bool showLocalMap;
 
 #endif

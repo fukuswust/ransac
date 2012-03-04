@@ -118,16 +118,16 @@ void runAlgorithm() {
 		}
 	}
 	float dirFactor = (640.0f/DEPTH_SCALE_FACTOR)/(currentMaxDir - currentMinDir + 0.000001f);
-	float dirSection = 1/dirFactor;
 	heightValue = -currentMinHeight;
 	#pragma endregion Convert depth to polar, determine color, and mins/maxes
 
 	#pragma region SECOND PASS
 	// Determine Floor Points
 	// Find max distances for each direction
-	float pWallSliceNan[NUM_SLICES*2];
-	for (int i = 0; i < NUM_SLICES*2; i++) {
-		pWallSliceNan[i] = -999999.0f;
+	//float pWallSliceNan[NUM_SLICES*2];
+	for (int i = 0; i < NUM_SLICES; i++) {
+		wallSlicePoints[i].dis = -999999.0f;
+		wallSlicePoints[i].dir = -999999.0f;
 	}
 	currentMinHeight += 25.0f;
 	offset = 0;
@@ -165,35 +165,27 @@ void runAlgorithm() {
 			}
 
 			// Determine max Distances for each Direction
-			int dirIndex = (int)floor((tmpDir-currentMinDir)*dirFactor)*2;
-			if (tmpDis > pWallSliceNan[dirIndex+1]) {
-				pWallSliceNan[dirIndex  ] = -tmpDir;//offset - 1; //Distance array location
-				pWallSliceNan[dirIndex+1] = tmpDis;
+			int dirIndex = (int)floor((tmpDir+(3.0f*PI/4.0))/(PI/2.0f/40.0f));
+			if (dirIndex >= 0 && dirIndex < NUM_SLICES) {
+				if (tmpDis > wallSlicePoints[dirIndex].dis && tmpY > currentMinHeight && tmpDis < MAX_ALLOWED_DIS) {
+					wallSlicePoints[dirIndex].dir = tmpDir;
+					wallSlicePoints[dirIndex].dis = tmpDis;
+				}
 			}
 		}
 	}
 	currentMinHeight -= 25.0f;
 	#pragma endregion Determine floor points and max distances for each direction
 
-	//Remove NaNs and distances outside of max
-	float pWallSlice[NUM_SLICES*2];
-	float cWallSlice[NUM_SLICES*2];
-	int wallStatus[NUM_SLICES];
-	int numWallSlicePts = 0;
-	numWallSlicePts = sliceRemoveOutsideRange(pWallSliceNan, cWallSlice, pWallSlice, wallStatus);
-
 #ifdef RECORD_SLICES
 	//Record slice data
 	recordSlices(pWallSlice, numWallSlicePts, outFileOn);
 #endif
 
-	// Detect corner points
-	sliceDetectCorners(cWallSlice, pWallSlice, wallStatus, numWallSlicePts);
-
-	// Loop through determined corner values and compare to the global model
-	// Update model points, translation, and orientation
-	//updateGlobalMap();
-
+	// Determine X, Z, and Yaw from slices and update maps
+	compareToLocalMap();
+	
+	// Set augmentation transformation variables
 	setPositionAndOrientation();
 		
 	#pragma region THIRD PASS
@@ -236,7 +228,7 @@ void runAlgorithm() {
 			}
 
 			// Find Wall Points
-			if (tmpDis > pWallSliceNan[(dirIndex*2)+1] - 20) {
+			if (tmpDis > wallSlicePoints[dirIndex].dis - 20) {
 				numWallPoints++;
 				wallIJ[wijOffset++] = ijPointCloud[ijOffset++]; // i -> j
 				wallIJ[wijOffset++] = ijPointCloud[ijOffset++]; // j -> next
@@ -281,287 +273,7 @@ void findRotationToUp(float xVect, float yVect, float zVect) {
 	pitchRollMatrix[8] = uGravY + (t*uZ*uZ);
 }
 
-int sliceRemoveOutsideRange(float pWallSliceNan[], float cWallSlice[], float pWallSlice[], int wallStatus[]) {
-	for (int iStat=0; iStat < NUM_SLICES; iStat++) {
-		wallStatus[iStat] = 0;
-	}
-	int newIndex = 0;
-	int statOn = 0;
-	bool fromOut = false;
-	float prevDis = pWallSliceNan[1];
-	for (int i = 1; i < NUM_SLICES-1; i++) {
-		int startIndex = pWallSliceNan[i*2];
-		float tmpDis = pWallSliceNan[(i*2)+1];
-		float tmpNxtDis = pWallSliceNan[(i*2)+3];
-		float diffLeftDis = abs(tmpDis - prevDis);
-		float diffRightDis = abs(tmpNxtDis - tmpDis);
-		bool  isNoise = (min(diffLeftDis,diffRightDis) > 35.0f);
-		if (startIndex != -999999.0f && tmpDis < MAX_ALLOWED_DIS && !isNoise) {
-			float tmpDir = pWallSliceNan[(i*2)+0];
-			cWallSlice[newIndex++] = tmpDis*cos(tmpDir);
-			cWallSlice[newIndex--] = -tmpDis*sin(tmpDir);
-			pWallSlice[newIndex++] = tmpDir;
-			pWallSlice[newIndex++] = tmpDis;
-			if (fromOut) {
-				if (tmpDis < MAX_ALLOWED_DIS-50.0f) {
-					wallStatus[statOn] = 2;
-				} else {
-					wallStatus[statOn] = 1;
-				}
-				fromOut = false;
-			}
-			statOn++;
-			prevDis = tmpDis;
-		} else if (tmpDis >= MAX_ALLOWED_DIS && !isNoise) {
-			if (statOn != 0) {
-				if (prevDis < MAX_ALLOWED_DIS-50.0f) {
-					wallStatus[statOn-1] = 2;
-				} else {
-					wallStatus[statOn-1] = 1;
-				}
-			}
-			fromOut = true;
-		}
-	}
-	int numWallSlicePts = newIndex/2;
-	if (wallStatus[0] == 0) {
-		wallStatus[0] = 1;
-	}
-	if (wallStatus[numWallSlicePts-1] == 0) {
-		wallStatus[numWallSlicePts-1] = 1;
-	}
-	return numWallSlicePts;
-}
-
-void sliceDetectCorners(float cWallSlice[], float pWallSlice[], int wallStatus[], int numWallSlicePts) {
-	float prevLineM = 999999.0;
-	float prevLineB = 999999.0;
-	numCorners = 0;
-	for (int i = 0; i < numWallSlicePts-1; ) { 
-		float origX = cWallSlice[(i*2)+0];
-		float origZ = cWallSlice[(i*2)+1];
-		float prevDisToPoint = 0.0f;
-
-		// Initialize Regression
-		float sumX = origX;
-		float sumZ = origZ;
-		float sumXsquared = origX * origX;
-		float sumZsquared = origZ * origZ;
-		float sumXZ = origX * origZ;
-		int   nPoints = 1;
-		float prevX = 999999.0f;
-
-		int   nextPoint = i+1;
-		bool endStrip = false;
-		for (int j = i+1; j < numWallSlicePts; j++) {
-			float ptX = cWallSlice[(j*2)+0];
-			float ptZ = cWallSlice[(j*2)+1];
-			float delX = ptX - origX;
-			float delZ = ptZ - origZ;
-			float disToPoint = sqrt((delX*delX)+(delZ*delZ));
-
-			// Check for Huge Jumps
-			if (disToPoint - prevDisToPoint > 40.0f) {
-				float leftDisFromCam = pWallSlice[(j*2)-1];
-				float rightDisFromCam = pWallSlice[(j*2)+1];
-				float camDisDiff = abs(leftDisFromCam - rightDisFromCam);
-				if (leftDisFromCam < rightDisFromCam) { //Left corner is in front of right
-					wallStatus[j-1] = 2;
-					wallStatus[j] = 1;
-					endStrip = true;
-				} else { //Right corner is in front of left
-					wallStatus[j-1] = 1;
-					wallStatus[j] = 2;
-					endStrip = true;
-				}
-			}
-			prevDisToPoint = disToPoint;
-
-			// Create Line Equation
-			float m = delZ/delX;
-			float b = ptZ - m*ptX;
-
-			// Determine sum of error between each point in between ends
-			float error = 0.0;
-			for (int k = i+1; k < j; k++) { //Loop through points in between
-				float predictZ = m*cWallSlice[(k*2)+0] + b;
-				float actualZ = cWallSlice[(k*2)+1];
-				float predDiff = predictZ - actualZ;
-				error += abs(predDiff);
-			}
-
-			// Check for error exceeding allowable amount (point not on line)
-			float errorDir = atan2(error,disToPoint/2.0f);
-			if (errorDir > PI/4) {
-				if (j == numWallSlicePts-1) { //End the strip if at the end of data
-					nextPoint = j+1;
-					endStrip = true;
-					break;
-				}
-				float leftDisFromCam = pWallSlice[(j*2)-1];
-				float rightDisFromCam = pWallSlice[(j*2)+1];
-				float camDisDiff = abs(leftDisFromCam - rightDisFromCam);
-				if (camDisDiff < 25.0f) { //Points are close (Both true corners)
-					wallStatus[j-1] = 2;
-					wallStatus[j] = 2;
-				} else if (leftDisFromCam < rightDisFromCam) { //Left corner is in front of right
-					wallStatus[j-1] = 2;
-					wallStatus[j] = 1;
-					endStrip = true;
-				} else { //Right corner is in front of left
-					wallStatus[j-1] = 1;
-					wallStatus[j] = 2;
-					endStrip = true;
-				}
-				nextPoint = j;
-				break;
-			} else { // Add to regression as long as value on line
-				nPoints++;
-				sumX += ptX;
-				sumZ += ptZ;
-				sumXsquared += ptX * ptX;
-				sumZsquared += ptZ * ptZ;
-				sumXZ += ptX * ptZ;
-				prevX = ptX;
-			}
-			if (j == numWallSlicePts-1) { //End the strip if at the end of data
-				endStrip = true;
-				break;
-			}
-			if (wallStatus[j] != 0) { //End the strip if reach another corner (break in data)
-				endStrip = true;
-				break;
-			}
-			nextPoint = j;
-		}
-
-		// Perform Regression for Line from i to j-1
-		if (nPoints > 2) {
-			float lineM = ( float(nPoints) * sumXZ - sumZ * sumX) /
-				( float(nPoints) * sumXsquared - sumX * sumX);
-			float lineB = (sumZ - lineM * sumX) / float(nPoints);
-			if (endStrip) { //Just ended line strip - Estimate right corner
-				if (prevLineM == 999999.0) { //Just started line strip - Estimate left corner
-					wallCorners[(numCorners*6)+0] = origX;
-					wallCorners[(numCorners*6)+1] = (origX*lineM)+lineB;
-					wallCorners[(numCorners*6)+2] = wallStatus[i];
-					wallCorners[(numCorners*6)+3] = 0.0f; // Not connected to left
-					numCorners++;
-				} else { // Determine line intersection with previous
-					float lineSlopeDiff = abs(atan(lineM) - atan(prevLineM));
-					if (lineSlopeDiff < PI/6) {
-						//Predict right part of previous line
-						float prevPrevX = cWallSlice[(i*2)-2];
-						wallCorners[(numCorners*6)+0] = prevPrevX;
-						wallCorners[(numCorners*6)+1] = (prevPrevX*prevLineM)+prevLineB;
-						wallCorners[(numCorners*6)+2] = wallStatus[i-1];
-						numCorners++;
-						//Predict left part of current line
-						wallCorners[(numCorners*6)+0] = origX;
-						wallCorners[(numCorners*6)+1] = (origX*lineM)+lineB;
-						wallCorners[(numCorners*6)+2] = wallStatus[i];
-						wallCorners[(numCorners*6)+3] = 0.0f; // Not connected to left
-						numCorners++;
-					} else {
-						float interX = (lineB-prevLineB)/(prevLineM-lineM);
-						wallCorners[(numCorners*6)+0] = interX;
-						wallCorners[(numCorners*6)+1] = (interX*lineM)+lineB;
-						wallCorners[(numCorners*6)+2] = wallStatus[i];
-						wallCorners[(numCorners*6)+3] = 1.0f; // Connected to left
-						numCorners++;
-					}
-				}
-				//Estimate right corner
-				wallCorners[(numCorners*6)+0] = prevX;
-				wallCorners[(numCorners*6)+1] = (prevX*lineM)+lineB;
-				wallCorners[(numCorners*6)+2] = wallStatus[nextPoint-1];
-				wallCorners[(numCorners*6)+3] = 1.0f; // Connected to left
-				numCorners++;
-				prevLineM = 999999.0;
-			} else { //Not done with strip
-				if (prevLineM == 999999.0) { //Just started line strip - Estimate left corner
-					wallCorners[(numCorners*6)+0] = origX;
-					wallCorners[(numCorners*6)+1] = (origX*lineM)+lineB;
-					wallCorners[(numCorners*6)+2] = wallStatus[i];
-					wallCorners[(numCorners*6)+3] = 0.0f; // Not connected to left
-					numCorners++;
-				} else { // Determine line intersection with previous
-					float lineSlopeDiff = abs(atan(lineM) - atan(prevLineM));
-					if (lineSlopeDiff < PI/6) {
-						//Predict right part of previous line
-						float prevPrevX = cWallSlice[(i*2)-2];
-						wallCorners[(numCorners*6)+0] = prevPrevX;
-						wallCorners[(numCorners*6)+1] = (prevPrevX*prevLineM)+prevLineB;
-						wallCorners[(numCorners*6)+2] = wallStatus[i-1];
-						numCorners++;
-						//Predict left part of current line
-						wallCorners[(numCorners*6)+0] = origX;
-						wallCorners[(numCorners*6)+1] = (origX*lineM)+lineB;
-						wallCorners[(numCorners*6)+2] = wallStatus[i];
-						wallCorners[(numCorners*6)+3] = 0.0f; // Not connected to left
-						numCorners++;
-					} else {
-						float interX = (lineB-prevLineB)/(prevLineM-lineM);
-						wallCorners[(numCorners*6)+0] = interX;
-						wallCorners[(numCorners*6)+1] = (interX*lineM)+lineB;
-						wallCorners[(numCorners*6)+2] = wallStatus[i];
-						wallCorners[(numCorners*6)+3] = 1.0f; // Connected to left
-						numCorners++;		
-					}
-				}
-				prevLineM = lineM;
-				prevLineB = lineB;
-			}
-		} else {
-			prevLineM = 999999.0;
-		}
-
-		// Next start on j
-		i = nextPoint;
-	}
-}
-
-void updateGlobalMap() {
-	for (int i=0; i < numCorners; i++) {
-		float localX = wallCorners[(i*6)+0];
-		float localZ = wallCorners[(i*6)+1];
-		float localTruthValue = wallCorners[(i*6)+2];
-		float localLeftConn = wallCorners[(i*6)+3];
-		float localLeftWeight = wallCorners[(i*6)+4];
-		float localRightWeight = wallCorners[(i*6)+5];
-		if (localTruthValue == 2.0f) {
-			bool found = false;
-			for (int j=0; j < numGlobalCorners; j++) {
-				float globX = globalMapCorners[j].x;
-				float globZ = globalMapCorners[j].z;
-				float delX = localX - globX;
-				float delZ = localZ - globZ;
-				float disToGlob = sqrt((delX*delX)+(delZ*delZ));
-				if (disToGlob < 20.0f) { //Close enough to match
-					float globW = globalMapCorners[numGlobalCorners].leftWeight;
-					globalMapCorners[numGlobalCorners].x += localX/globW;
-					globalMapCorners[numGlobalCorners].z += localZ/globW;
-					globalMapCorners[numGlobalCorners].leftWeight++;
-					found = true;
-					break;
-				}
-			}
-			if (!found) { //Add
-				globalMapCorners[numGlobalCorners].x = localX;
-				globalMapCorners[numGlobalCorners].z = localZ;
-				globalMapCorners[numGlobalCorners].leftWeight = 1.0f;
-				numGlobalCorners++;
-			}
-		}
-	}
-}
-
 void setPositionAndOrientation() {
-	// Set final top-down values
-	yawValue = 0;
-	xValue = 0;
-	zValue = 0;
-
 	// Camera Orientation
 	// Translation
 	translationMatrix[0] = xValue; // x translation
@@ -578,4 +290,418 @@ void setPositionAndOrientation() {
 	yawMatrix[6] = sin(-yawValue);
 	yawMatrix[7] = 0;
 	yawMatrix[8] = cos(-yawValue);
+}
+
+void compareToLocalMap() {
+	if (yawValue != 999999.0) { //Not in initial state
+		#pragma region Determine polar index offset
+		// Determine Initial Error
+		int currentOffset = 0;
+		float currentError = determinePolarDisError(wallSlicePoints, localMapPoints, 0);
+
+		// Determine Min Left Error
+		float prevLeftError = currentError;
+		int currentLeftOffset = -1;
+		while (currentLeftOffset > -5) {
+			float leftError = determinePolarDisError(wallSlicePoints, localMapPoints, currentLeftOffset);
+			if (leftError < prevLeftError) {
+				currentLeftOffset--;
+				prevLeftError = leftError;
+			} else {
+				break;
+			}
+		}
+
+		// Determine Min Right Error
+		float prevRightError = currentError;
+		int currentRightOffset = 1;
+		while (currentRightOffset < 5) {
+			float rightError = determinePolarDisError(wallSlicePoints, localMapPoints, currentRightOffset);
+			if (rightError < prevRightError) {
+				currentRightOffset++;
+				prevRightError = rightError;
+			} else {
+				break;
+			}
+		}
+
+		// Finalize Offset Direction
+		if (prevLeftError < currentError && prevLeftError < prevRightError) {
+			currentError = prevLeftError;
+			currentOffset = currentLeftOffset;
+		} else if (prevRightError < currentError && prevRightError < prevLeftError) {
+			currentError = prevRightError;
+			currentOffset = currentRightOffset;
+		}
+		#pragma endregion
+				
+		//Determine yaw transformation
+		float delDir = minimizePolarDirError2(wallSlicePoints , localMapPoints, currentOffset);
+		if (abs(delDir) > 0.4) {
+			currentError++;
+		}
+		yawValue += delDir;
+		/*if (yawValue >= PI) {
+			yawValue -= 2*PI;
+		} else if (yawValue < -PI) {
+			yawValue += 2*PI;
+		}*/
+
+		for (int i=0; i<NUM_SLICES; i++) { //Reorient slice to local map
+			if (wallSlicePoints[i].dis != -999999.0) {
+				float tmpDis = wallSlicePoints[i].dis;
+				float tmpDir = wallSlicePoints[i].dir + delDir;
+				wallSlicePoints[i].x = tmpDis*cos(tmpDir);
+				wallSlicePoints[i].z = tmpDis*sin(tmpDir);
+			}
+			if (localMapPoints[i].dis != -999999.0) {
+				float tmpDis = localMapPoints[i].dis;
+				float tmpDir = localMapPoints[i].dir;
+				localMapPoints[i].x = tmpDis*cos(tmpDir);
+				localMapPoints[i].z = tmpDis*sin(tmpDir);
+			}
+		}
+
+		// Determine X, Z Translation
+		float delX;
+		float delZ;
+		minimizeCartesianError(wallSlicePoints , localMapPoints, currentOffset, delX, delZ);
+		xValue += delX;
+		zValue += delZ;
+
+		for (int i=0; i<NUM_SLICES; i++) { //Reorient slice to local map
+			if (wallSlicePoints[i].dis != -999999.0) {
+				float tmpX = wallSlicePoints[i].x + delX;
+				float tmpZ = wallSlicePoints[i].z + delZ;
+				wallSlicePoints[i].dis = sqrt((tmpX*tmpX)+(tmpZ*tmpZ));
+				wallSlicePoints[i].dir = atan2(tmpZ, tmpX);
+			}
+			if (localMapPoints[i].dis != -999999.0) {
+				float tmpX = localMapPoints[i].x;
+				float tmpZ = localMapPoints[i].z;
+				localMapPoints[i].dis = sqrt((tmpX*tmpX)+(tmpZ*tmpZ));
+				localMapPoints[i].dir = atan2(tmpZ, tmpX);
+			}
+		}
+
+	} else { //In initial state
+		numGlobalPoints = 0;
+		for (int i=0; i<NUM_SLICES; i++) { //Create global map from first view
+			if (wallSlicePoints[i].dis != -999999.0) {
+				float tmpDis = wallSlicePoints[i].dis;
+				float tmpDir = wallSlicePoints[i].dir;
+				globalMapPoints[numGlobalPoints].x = tmpDis*cos(tmpDir);
+				globalMapPoints[numGlobalPoints].z = tmpDis*sin(tmpDir);
+				numGlobalPoints++;
+			}
+		}
+		if (numGlobalPoints > 20) { //Enough points to start map
+			yawValue = 0.0f;
+			xValue = 0.0f;
+			zValue = 0.0f;
+		} else { //Not enough points to start map
+			numGlobalPoints = 0;
+		}
+	}
+
+	// UPDATE MAPS
+	//Update Local Map
+	for (int i=0; i < NUM_SLICES; i++) {
+		localMapPoints[i].dis = 999999.0f;
+	}
+	for (int i=0; i < numGlobalPoints; i++) {
+		float tmpX = globalMapPoints[i].x;
+		float tmpZ = globalMapPoints[i].z;
+		float delX = tmpX - xValue;
+		float delZ = tmpZ - zValue;
+		float tmpDis = sqrt((delX*delX)+(delZ*delZ));
+		if (tmpDis < MAX_ALLOWED_DIS) {
+			float tmpDir = atan2(delZ,delX) - yawValue;
+			int dirIndex = (int)floor((tmpDir+(3.0f*PI/4.0))/(PI/2.0f/40.0f));	
+			if (dirIndex >= 0 && dirIndex < NUM_SLICES) {
+				if (tmpDis < localMapPoints[dirIndex].dis) {
+					localToGlobal[dirIndex] = i;
+					localMapPoints[dirIndex].dir = tmpDir;
+					localMapPoints[dirIndex].dis = tmpDis;
+				}
+			}
+		}
+	}
+
+	// Average in new wall slice
+	float rate = 0.1;
+	for (int i=0; i < NUM_SLICES; i++) {
+		if (localMapPoints[i].dis == 999999.0f) { //Missing local model point
+			if (wallSlicePoints[i].dis != -999999.0f) { //Available wall slice: Add
+				if (numGlobalPoints < 1023) {
+					localMapPoints[i].dis = wallSlicePoints[i].dis;
+					localMapPoints[i].dir = wallSlicePoints[i].dir;
+					localToGlobal[i] = numGlobalPoints;
+					numGlobalPoints++;
+				}
+			} else { //No new points
+				localMapPoints[i].dis = -999999.0f;
+				localMapPoints[i].dir = -999999.0f;
+			}
+		} else {
+			if (wallSlicePoints[i].dis != -999999.0f) { //Available wall slice: Average
+				//localMapPoints[i].dis = (localMapPoints[i].dis*(1-rate))+(wallSlicePoints[i].dis*rate);
+				//localMapPoints[i].dir = (localMapPoints[i].dir*(1-rate))+(wallSlicePoints[i].dir*rate);
+			}
+		}
+	}
+
+	// Update Global Model
+	for (int i=0; i < NUM_SLICES; i++) {
+		float tmpDis = localMapPoints[i].dis;
+		if (tmpDis != -999999.0f) {
+			float tmpDir = localMapPoints[i].dir + yawValue;
+			int tmpIndex = localToGlobal[i];
+			globalMapPoints[tmpIndex].x = (tmpDis*cos(tmpDir))+xValue;
+			globalMapPoints[tmpIndex].z = (tmpDis*sin(tmpDir))+zValue;
+		}
+	}
+	
+}
+
+float determineCartesianError(SlicePoint set1[] , SlicePoint set2[], int sep) {
+	//Determine loop start and end from index seperation
+	int start, end;
+	if (sep < 0) {
+		start = -sep;
+	} else {
+		start = 0;
+	}
+	if (sep > 0) {
+		end = NUM_SLICES-1-sep;
+	} else {
+		end = NUM_SLICES-1;
+	}
+
+	//Accumulate Total Error
+	int num = 0;
+	float totalError = 0.0f;
+	for (int i=start; i<=end; i++) {
+		if (set1[i].dis != -999999.0 && set2[i+sep].dis != -999999.0) {
+			float delX = set1[i].x - set2[i+sep].x;
+			float delZ = set1[i].z - set2[i+sep].z;
+			totalError += (delX*delX) + (delZ*delZ);
+			num++;
+		}
+	}
+
+	//Calculate Error
+	if (num < 5) { //Not Enough Correlations
+		return 999999.0f;
+	} else {
+		return totalError/num;
+	}
+}
+
+void  minimizeCartesianError(SlicePoint set1[] , SlicePoint set2[], int sep, float &delX, float &delZ) {
+	//Determine loop start and end from index seperation
+	int start, end;
+	if (sep < 0) {	
+		start = -sep;
+	} else {
+		start = 0;
+	}
+	if (sep > 0) {
+		end = NUM_SLICES-1-sep;
+	} else {
+		end = NUM_SLICES-1;
+	}
+
+	//Accumulate Total DelX and DelZ
+	delX = 0.0f;
+	delZ = 0.0f;
+	int num = 0;
+	for (int i=start; i<=end; i++) {
+		float x1 = set1[i].x;
+		float x2 = set2[i+sep].x;
+		if (x1 != -999999.0f && x2 != -999999.0f) {
+            delX += x2 - x1;
+			delZ += set2[i+sep].z - set1[i].z;
+			num++;
+		}
+	}
+
+	//Calculate DelDir
+	if (num < 5) { //Not Enough Correlations
+		delX = 999999.0f;
+		delZ = 999999.0f;
+	} else {
+		delX /= num;
+		delZ /= num;
+	}
+}
+
+float determinePolarDirError(SlicePoint set1[] , SlicePoint set2[], int sep) {
+	//Determine loop start and end from index seperation
+	int start, end;
+	if (sep < 0) {
+		start = -sep;
+	} else {
+		start = 0;
+	}
+	if (sep > 0) {
+		end = NUM_SLICES-2-sep;
+	} else {
+		end = NUM_SLICES-2;
+	}
+
+	//Accumulate Total Error
+	int num = 0;
+	float totalError = 0.0f;
+	for (int i=start; i<=end; i++) {
+		float dis1 = set2[i+sep].dis;
+		float dis2 = set2[i+sep+1].dis;
+		float inDis = set1[i].dis;
+		if (inDis != -999999.0f && dis1 != -999999.0f && dis2 != -999999.0f) {
+			float dir1 = set2[i+sep].dir;
+			float dir2 = set2[i+sep+1].dir;
+            float m = (dis2-dis1)/(dir2-dir1);
+            float b = dis1 - (dir1*m);
+			float outDir;
+			if (m != 0) {
+				outDir = (inDis-b)/m;
+			} else {
+				outDir = 999999.0f;
+			}
+			if (outDir > dir1) {
+				outDir = dir1;
+			} else 	if (outDir < dir2) {
+				outDir = dir2;
+			}
+            float delDir = outDir - set1[i].dir;
+			totalError += (delDir*delDir);
+			num++;
+		}
+	}
+
+	//Calculate Error
+	if (num < 5) { //Not Enough Correlations
+		return 999999.0f;
+	} else {
+		return totalError/num;
+	}
+}
+
+float minimizePolarDirError(SlicePoint set1[] , SlicePoint set2[], int sep) {
+	//Determine loop start and end from index seperation
+	int start, end;
+	if (sep < 0) {	
+		start = -sep;
+	} else {
+		start = 0;
+	}
+	if (sep > 0) {
+		end = NUM_SLICES-2-sep;
+	} else {
+		end = NUM_SLICES-2;
+	}
+
+	//Accumulate Total DelDir
+	int num = 0;
+	float totalDelDir = 0.0f;
+	for (int i=start; i<=end; i++) {
+		float dis1 = set2[i+sep].dis;
+		float dis2 = set2[i+sep+1].dis;
+		float inDis = set1[i].dis;
+		if (inDis != -999999.0f && dis1 != -999999.0f && dis2 != -999999.0f) {
+			float dir1 = set2[i+sep].dir;
+			float dir2 = set2[i+sep+1].dir;
+            float m = (dis2-dis1)/(dir2-dir1);
+            float b = dis1 - (dir1*m);
+			float outDir;
+			if (m != 0) {
+				outDir = (inDis-b)/m;
+			} else {
+				outDir = 999999.0f;
+			}
+			if (outDir > dir1) {
+				outDir = dir1;
+			} else 	if (outDir < dir2) {
+				outDir = dir2;
+			}
+            totalDelDir += outDir - set1[i].dir;
+			num++;
+		}
+	}
+
+	//Calculate DelDir
+	if (num < 5) { //Not Enough Correlations
+		return 999999.0f;
+	} else {
+		return totalDelDir/num;
+	}
+}
+
+float determinePolarDisError(SlicePoint set1[] , SlicePoint set2[], int sep) {
+	//Determine loop start and end from index seperation
+	int start, end;
+	if (sep < 0) {	
+		start = -sep;
+	} else {
+		start = 0;
+	}
+	if (sep > 0) {
+		end = NUM_SLICES-1-sep;
+	} else {
+		end = NUM_SLICES-1;
+	}
+
+	//Accumulate Total Error
+	int num = 0;
+	float totalError = 0.0f;
+	for (int i=start; i<=end; i++) {
+		float dis1 = set1[i].dis;
+		float dis2 = set2[i+sep].dis;
+		if (dis1 != -999999.0f && dis2 != -999999.0f) {
+            float delDis = dis2 - dis1;
+			totalError += (delDis*delDis);
+			num++;
+		}
+	}
+
+	//Calculate Error
+	if (num < 5) { //Not Enough Correlations
+		return 999999.0f;
+	} else {
+		return totalError/num;
+	}
+}
+
+float minimizePolarDirError2(SlicePoint set1[] , SlicePoint set2[], int sep) {
+	//Determine loop start and end from index seperation
+	int start, end;
+	if (sep < 0) {	
+		start = -sep;
+	} else {
+		start = 0;
+	}
+	if (sep > 0) {
+		end = NUM_SLICES-1-sep;
+	} else {
+		end = NUM_SLICES-1;
+	}
+
+	//Accumulate Total DelDir
+	int num = 0;
+	float totalDelDir = 0.0f;
+	for (int i=start; i<=end; i++) {
+		float dir1 = set1[i].dir;
+		float dir2 = set2[i+sep].dir;
+		if (dir1 != -999999.0f && dir2 != -999999.0f) {
+            totalDelDir += dir2 - dir1;
+			num++;
+		}
+	}
+
+	//Calculate DelDir
+	if (num < 5) { //Not Enough Correlations
+		return 999999.0f;
+	} else {
+		return totalDelDir/num;
+	}
 }

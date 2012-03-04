@@ -36,8 +36,8 @@ int   wallIJ[MAX_WALL_POINTS*2];
 int   numWallPoints;
 // Top Down Position
 float yawValue = 999999.0f;
-float xValue = 999999.0f;
-float zValue = 999999.0f;
+float xValue = 0.0f;
+float zValue = 0.0f;
 // Camera Orientation
 float yawMatrix[9];
 float pitchRollMatrix[9];
@@ -46,12 +46,23 @@ int maxZi = 0;
 int maxZj = 0;
 // Running Average
 float origZ[CLOUD_SIZE] = {0.0f};
-// Corners
-float wallCorners[40*6]; // x, z, t(2)/f(1), Lconn, Lweight, Rweight
-int   numCorners = 0;
 // Global Map
-MapCorner globalMapCorners[100];
+GlobalMapCorner globalMapCorners[100];
 int numGlobalCorners = 0;
+// Global/Local Map Points
+SlicePoint wallSlicePoints[NUM_SLICES];
+SlicePoint localMapPoints[NUM_SLICES];
+int localToGlobal[NUM_SLICES];
+GlobalMapPoint globalMapPoints[1023];
+int numGlobalPoints = 0;
+// Augmentations
+//local
+//global
+float augCubeX = -AUG_CUBE_SIZE/2.0f;
+float augCubeY = 0.0f;
+float augCubeZ = -100.0f;
+// Top Down Map
+TopDownMap topDownMap;
 
 Kinect::Kinect *K;
 Listener *L;
@@ -61,8 +72,7 @@ GLuint texID;
 
 // Set inital values for gui keyboard shortcut states.
 bool isFullscreen = false;
-bool showOnScreenDisplay = true;
+bool showHud = true;
 bool showHeightSlice = false;
 bool showFloorPoints = false;
 bool showWallPoints = false;
-bool showLocalMap = true;

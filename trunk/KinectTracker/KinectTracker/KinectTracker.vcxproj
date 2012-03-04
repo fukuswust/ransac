@@ -22,6 +22,7 @@
     <ClInclude Include="include\Kinect-win32.h" />
     <ClInclude Include="include\listener.h" />
     <ClInclude Include="include\record.h" />
+    <ClInclude Include="include\topDownMap.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\algorithm.cpp" />
@@ -35,6 +36,7 @@
     <ClCompile Include="src\listener.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\record.cpp" />
+    <ClCompile Include="src\topDownMap.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="lib\Kinect.lib" />

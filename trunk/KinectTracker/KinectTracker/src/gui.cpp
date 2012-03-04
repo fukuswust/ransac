@@ -23,10 +23,10 @@ void initGui(int argc, char **argv) {
 	glutReshapeFunc(handleResize);
 	glutTimerFunc(10, update, 0);
 
-	//Start Timer
+	//Start FPS Timer
 	fpsStopWatch = new CStopWatch();
 	fpsStopWatch->startTimer(); 
-	update(4);
+	update(0);
 	glutMainLoop(); //Start the main loop.  glutMainLoop doesn't return.
 }
 
@@ -91,104 +91,41 @@ void handleResize(int w, int h) {
 }
 
 void drawScene() {
-	char printBuff[256];
 	//Clear information from last draw
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	//Draw 2D Scene in Background
 	orthogonalStart (viewWidth, viewHeight);
-
 	// Draw RGB Camera in background (in 2D)
 	drawColorBackground(viewWidth, viewHeight, texID);
-
-	// Draw Floor Points
-	if (showFloorPoints) {
-		drawFloorPoints(floorIJ, numFloorPoints);
-	}
-
-	// Draw Wall Points
-	if (showWallPoints) {
-		drawWallPoints(wallIJ, numWallPoints);
-	}
-
-	// Draw Height Slice
-	if (showHeightSlice) {
-		drawHeightLine(heightSlices, heightSliceIJ, 640/DEPTH_SCALE_FACTOR);
-	}
-
 	orthogonalEnd();
+
 
 	//Draw 3D Scene
 	glMatrixMode(GL_MODELVIEW); //Switch to the drawing perspective
 	glLoadIdentity(); //Reset the drawing perspective
+	orthogonalStart(viewWidth, viewHeight);
+	drawAugmentedCube(augCubeX,augCubeY,augCubeZ,AUG_CUBE_SIZE);
+	orthogonalEnd();
 
 	//Draw 2D Overlay
 	orthogonalStart(viewWidth, viewHeight);
-
-	// Draw Crosshair (in 2D)
-	drawCrosshair(viewWidth, viewHeight);
-
-	// Draw Augmentation
-    #define CUBE_SIZE 50.0f
-	//drawAugmentedCube(0.0f, 0.0f, 0.0f, CUBE_SIZE);
-
-	//Draw Wall Corners
-	if (showLocalMap) {
-		drawAugmentedCorners();
+	// Draw Floor Points
+	if (showFloorPoints) {
+		drawFloorPoints(floorIJ, numFloorPoints);
 	}
-
-	//Draw Frame Count (in 2D)
-#define HUD_FPS_X 5
-#define HUD_FPS_Y 7
-	glColor3f(1.0f, 1.0f, 1.0f);
-	fpsStopWatch->stopTimer();
-	avgFrameTime = (0.1*(float)(fpsStopWatch->getElapsedTime()))+(0.9f*avgFrameTime);
-	sprintf(printBuff, "FPS: %u", (unsigned int)(1.0f/avgFrameTime));
-	orthoPrint(HUD_FPS_X, viewHeight - HUD_FPS_Y, printBuff);
-	fpsStopWatch->startTimer();
-
-	if (showOnScreenDisplay) {
-		//Yaw
-		glColor3f(1.0f, 1.0f, 1.0f);
-		sprintf(printBuff, "Yaw: %f", (yawValue/PI)*180.0f);
-		orthoPrint(150, viewHeight - HUD_FPS_Y, printBuff);
-
-		//X
-		glColor3f(1.0f, 1.0f, 1.0f);
-		sprintf(printBuff, "X: %f", xValue);
-		orthoPrint(300, viewHeight - HUD_FPS_Y, printBuff);
-
-		//Z
-		glColor3f(1.0f, 1.0f, 1.0f);
-		sprintf(printBuff, "Z: %f", zValue);
-		orthoPrint(450, viewHeight - HUD_FPS_Y, printBuff);
-
-		// Draw Height Measurement Bar
-		#define HUD_HEIGHT_BAR_X 5
-		#define HUD_HEIGHT_BAR_Y 5
-		drawHeightHud(HUD_HEIGHT_BAR_X, HUD_HEIGHT_BAR_Y, heightValue);
-
-		// Draw Roll
-		#define HUD_ROLL_RADIUS 30
-		float xRollLbl = 95;
-		float yRollLbl = 48;
-		drawRollHud(xRollLbl, yRollLbl, HUD_ROLL_RADIUS, rollValue);
-	
-		// Draw Pitch
-		#define HUD_PITCH_RADIUS 30
-		float xPitchLbl = 95;
-		float yPitchLbl = 130;
-		drawPitchHud(xPitchLbl, yPitchLbl, HUD_PITCH_RADIUS, pitchValue);
+	// Draw Wall Points
+	if (showWallPoints) {
+		drawWallPoints(wallIJ, numWallPoints);
 	}
-
-	// Draw Local Top Down Map (in 2D, upper right)
-#define HUD_MAP_CIRCLE_SIZE 200
-#define HUD_MAP_X (5 + HUD_MAP_CIRCLE_SIZE)
-#define HUD_MAP_Y (5 + HUD_MAP_CIRCLE_SIZE)
-	drawTopDownMap(viewWidth - HUD_MAP_X, HUD_MAP_Y, HUD_MAP_CIRCLE_SIZE);
-
-	//Return to Default
-	glColor3f(1.0f, 1.0f, 1.0f);
+	// Draw Height Slice
+	if (showHeightSlice) {
+		drawHeightLine(heightSlices, heightSliceIJ, 640/DEPTH_SCALE_FACTOR);
+	}
+	//Draw the HUD
+	if (showHud) {
+		drawHud();
+	}
 	orthogonalEnd();
 
 	//Send the scene to the screen
