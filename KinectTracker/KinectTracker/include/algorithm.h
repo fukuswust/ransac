@@ -14,15 +14,12 @@ void setPositionAndOrientation();
 
 void compareToLocalMap();
 
-float determineCartesianError(SlicePoint set1[] , SlicePoint set2[], int sep);
+void  moveOffsets(SlicePoint set1[] , SlicePoint set2[], int closestLocal[]);
 
-void  minimizeCartesianError(SlicePoint set1[] , SlicePoint set2[], int sep, float &delX, float &delZ);
+float determineError(SlicePoint set1[] , SlicePoint set2[], int closestLocal[]);
 
-float determinePolarDirError(SlicePoint set1[] , SlicePoint set2[], int sep);
+void performRotation(SlicePoint set[], float rot);
 
-float minimizePolarDirError(SlicePoint set1[] , SlicePoint set2[], int sep);
+void performTranslation(SlicePoint set[], float x, float z);
 
-float determinePolarDisError(SlicePoint set1[] , SlicePoint set2[], int sep);
-
-float minimizePolarDirError2(SlicePoint set1[] , SlicePoint set2[], int sep);
-
+int minimizeTranslationError(SlicePoint set1[] , SlicePoint set2[], int closestLocal[], float &delX, float &delZ);

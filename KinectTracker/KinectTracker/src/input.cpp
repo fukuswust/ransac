@@ -73,5 +73,17 @@ void handleKeypress(unsigned char key, //The key that was pressed
 			augCubeX += 10.0f;
 			break;
 		}
+		case 'q': {
+			augCubeYaw -= PI/45.0f;
+			break;
+		}
+		case 'e': {
+			augCubeYaw += PI/45.0f;
+			break;
+		}
+		case 'r': {
+			augCubeYaw = 0.0f;
+			break;
+		}
 	}
 }

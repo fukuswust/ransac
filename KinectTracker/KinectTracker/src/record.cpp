@@ -1,17 +1,6 @@
 #include "record.h"
 #include <fstream>
 
-void recordSlices(float slices[], int numSlices, int fileOn) {
-	char bufferFileName[128];
-	sprintf(bufferFileName, "sliceData/%.6u.csv", fileOn);
-	FILE * sliceFile = fopen(bufferFileName,"w");
-	for (int i=0, iIm=0; i < numSlices*2; ) {
-		fprintf(sliceFile,"%f,",slices[i++]);
-		fprintf(sliceFile,"%f\n",slices[i++]);
-	}
-	fclose(sliceFile);
-}
-
 void recordAccel(float xAccel, float yAccel, float zAccel, int fileOn) {
 	char bufferFileName[128];
 	sprintf(bufferFileName, "accelData/%.6u.csv", fileOn);

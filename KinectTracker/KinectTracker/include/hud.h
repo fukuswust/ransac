@@ -15,7 +15,7 @@
 #define HUD_PITCH_X 95
 #define HUD_PITCH_Y 130
 //Top Down Map - Locked to Top Right
-#define HUD_MAP_RADIUS 200
+#define HUD_MAP_RADIUS 150
 #define HUD_MAP_X (5 + HUD_MAP_RADIUS)
 #define HUD_MAP_Y (5 + HUD_MAP_RADIUS)
 

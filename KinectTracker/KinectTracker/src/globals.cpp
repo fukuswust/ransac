@@ -55,12 +55,14 @@ SlicePoint localMapPoints[NUM_SLICES];
 int localToGlobal[NUM_SLICES];
 GlobalMapPoint globalMapPoints[1023];
 int numGlobalPoints = 0;
+int closestLocal[NUM_SLICES];
 // Augmentations
 //local
 //global
 float augCubeX = -AUG_CUBE_SIZE/2.0f;
 float augCubeY = 0.0f;
-float augCubeZ = -100.0f;
+float augCubeZ = -200.0f;
+float augCubeYaw = 0.0f;
 // Top Down Map
 TopDownMap topDownMap;
 

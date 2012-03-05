@@ -177,13 +177,8 @@ void runAlgorithm() {
 	currentMinHeight -= 25.0f;
 	#pragma endregion Determine floor points and max distances for each direction
 
-#ifdef RECORD_SLICES
-	//Record slice data
-	recordSlices(pWallSlice, numWallSlicePts, outFileOn);
-#endif
-
 	// Determine X, Z, and Yaw from slices and update maps
-	compareToLocalMap();
+	//compareToLocalMap(); 
 	
 	// Set augmentation transformation variables
 	setPositionAndOrientation();
@@ -294,93 +289,57 @@ void setPositionAndOrientation() {
 
 void compareToLocalMap() {
 	if (yawValue != 999999.0) { //Not in initial state
-		#pragma region Determine polar index offset
-		// Determine Initial Error
-		int currentOffset = 0;
-		float currentError = determinePolarDisError(wallSlicePoints, localMapPoints, 0);
-
-		// Determine Min Left Error
-		float prevLeftError = currentError;
-		int currentLeftOffset = -1;
-		while (currentLeftOffset > -5) {
-			float leftError = determinePolarDisError(wallSlicePoints, localMapPoints, currentLeftOffset);
-			if (leftError < prevLeftError) {
-				currentLeftOffset--;
-				prevLeftError = leftError;
-			} else {
-				break;
-			}
-		}
-
-		// Determine Min Right Error
-		float prevRightError = currentError;
-		int currentRightOffset = 1;
-		while (currentRightOffset < 5) {
-			float rightError = determinePolarDisError(wallSlicePoints, localMapPoints, currentRightOffset);
-			if (rightError < prevRightError) {
-				currentRightOffset++;
-				prevRightError = rightError;
-			} else {
-				break;
-			}
-		}
-
-		// Finalize Offset Direction
-		if (prevLeftError < currentError && prevLeftError < prevRightError) {
-			currentError = prevLeftError;
-			currentOffset = currentLeftOffset;
-		} else if (prevRightError < currentError && prevRightError < prevLeftError) {
-			currentError = prevRightError;
-			currentOffset = currentRightOffset;
-		}
-		#pragma endregion
-				
-		//Determine yaw transformation
-		float delDir = minimizePolarDirError2(wallSlicePoints , localMapPoints, currentOffset);
-		if (abs(delDir) > 0.4) {
-			currentError++;
-		}
-		yawValue += delDir;
-		/*if (yawValue >= PI) {
-			yawValue -= 2*PI;
-		} else if (yawValue < -PI) {
-			yawValue += 2*PI;
-		}*/
-
-		for (int i=0; i<NUM_SLICES; i++) { //Reorient slice to local map
-			if (wallSlicePoints[i].dis != -999999.0) {
-				float tmpDis = wallSlicePoints[i].dis;
-				float tmpDir = wallSlicePoints[i].dir + delDir;
+		// Convert to Cartesian
+		for (int i = 0; i < NUM_SLICES; i++) {
+			float tmpDis = wallSlicePoints[i].dis;
+			if (tmpDis != -999999.0) {
+				float tmpDir = wallSlicePoints[i].dir;
 				wallSlicePoints[i].x = tmpDis*cos(tmpDir);
 				wallSlicePoints[i].z = tmpDis*sin(tmpDir);
 			}
-			if (localMapPoints[i].dis != -999999.0) {
-				float tmpDis = localMapPoints[i].dis;
+			tmpDis = localMapPoints[i].dis;
+			if (tmpDis != -999999.0) {
 				float tmpDir = localMapPoints[i].dir;
 				localMapPoints[i].x = tmpDis*cos(tmpDir);
 				localMapPoints[i].z = tmpDis*sin(tmpDir);
 			}
 		}
 
-		// Determine X, Z Translation
-		float delX;
-		float delZ;
-		minimizeCartesianError(wallSlicePoints , localMapPoints, currentOffset, delX, delZ);
-		xValue += delX;
-		zValue += delZ;
-
-		for (int i=0; i<NUM_SLICES; i++) { //Reorient slice to local map
-			if (wallSlicePoints[i].dis != -999999.0) {
-				float tmpX = wallSlicePoints[i].x + delX;
-				float tmpZ = wallSlicePoints[i].z + delZ;
-				wallSlicePoints[i].dis = sqrt((tmpX*tmpX)+(tmpZ*tmpZ));
-				wallSlicePoints[i].dir = atan2(tmpZ, tmpX);
+		// Iterate
+		float incAmount = PI/720.0f;
+		for (int i = 0; i < 40; i++) {
+			moveOffsets(wallSlicePoints, localMapPoints, closestLocal);
+			float be = determineError(wallSlicePoints, localMapPoints, closestLocal);
+			performRotation(wallSlicePoints, incAmount);
+			float rre = determineError(wallSlicePoints, localMapPoints, closestLocal);
+			performRotation(wallSlicePoints, -incAmount*2.0f);
+			float rle = determineError(wallSlicePoints, localMapPoints, closestLocal);
+			if (be <= rre && be <= rle) {
+				performRotation(wallSlicePoints, incAmount);
+			} else if (rre <= rle) {
+				performRotation(wallSlicePoints, incAmount*2.0f);
+				yawValue += incAmount;
+			} else {
+				yawValue -= incAmount;
 			}
-			if (localMapPoints[i].dis != -999999.0) {
-				float tmpX = localMapPoints[i].x;
-				float tmpZ = localMapPoints[i].z;
-				localMapPoints[i].dis = sqrt((tmpX*tmpX)+(tmpZ*tmpZ));
-				localMapPoints[i].dir = atan2(tmpZ, tmpX);
+
+			float delX, delZ;
+			int numMatches;
+			numMatches = minimizeTranslationError(wallSlicePoints, localMapPoints, closestLocal, delX, delZ);
+			if (numMatches > 4) {
+				xValue += delX;
+				zValue += delZ;
+				performTranslation(wallSlicePoints, delX, delZ);
+			}
+		}
+
+		// Convert to Polar
+		for (int i = 0; i < NUM_SLICES; i++) {
+			float tmpX = wallSlicePoints[i].x;
+			if (tmpX != -999999.0) {
+				float tmpZ = wallSlicePoints[i].z;
+				wallSlicePoints[i].dis = sqrt((tmpX*tmpX)+(tmpZ*tmpZ));
+				wallSlicePoints[i].dir = atan2(tmpZ,tmpX);
 			}
 		}
 
@@ -399,8 +358,21 @@ void compareToLocalMap() {
 			yawValue = 0.0f;
 			xValue = 0.0f;
 			zValue = 0.0f;
+			for (int i = 0; i < NUM_SLICES; i++) {
+				closestLocal[i] = i;
+			}
 		} else { //Not enough points to start map
 			numGlobalPoints = 0;
+		}
+
+		// Convert to Cartesian
+		for (int i = 0; i < NUM_SLICES; i++) {
+			float tmpDis = wallSlicePoints[i].dis;
+			if (tmpDis != -999999.0) {
+				float tmpDir = wallSlicePoints[i].dir;
+				wallSlicePoints[i].x = tmpDis*cos(tmpDir);
+				wallSlicePoints[i].z = tmpDis*sin(tmpDir);
+			}
 		}
 	}
 
@@ -428,6 +400,13 @@ void compareToLocalMap() {
 		}
 	}
 
+	for (int i=0; i < NUM_SLICES; i++) {
+		if (localMapPoints[i].dis == 999999.0f) {
+			localMapPoints[i].dis == -999999.0f;
+			localMapPoints[i].dir == -999999.0f;
+		}
+	}
+
 	// Average in new wall slice
 	float rate = 0.1;
 	for (int i=0; i < NUM_SLICES; i++) {
@@ -445,8 +424,8 @@ void compareToLocalMap() {
 			}
 		} else {
 			if (wallSlicePoints[i].dis != -999999.0f) { //Available wall slice: Average
-				//localMapPoints[i].dis = (localMapPoints[i].dis*(1-rate))+(wallSlicePoints[i].dis*rate);
-				//localMapPoints[i].dir = (localMapPoints[i].dir*(1-rate))+(wallSlicePoints[i].dir*rate);
+				localMapPoints[i].dis = (localMapPoints[i].dis*(1-rate))+(wallSlicePoints[i].dis*rate);
+				localMapPoints[i].dir = (localMapPoints[i].dir*(1-rate))+(wallSlicePoints[i].dir*rate);
 			}
 		}
 	}
@@ -464,244 +443,96 @@ void compareToLocalMap() {
 	
 }
 
-float determineCartesianError(SlicePoint set1[] , SlicePoint set2[], int sep) {
-	//Determine loop start and end from index seperation
-	int start, end;
-	if (sep < 0) {
-		start = -sep;
-	} else {
-		start = 0;
-	}
-	if (sep > 0) {
-		end = NUM_SLICES-1-sep;
-	} else {
-		end = NUM_SLICES-1;
-	}
-
-	//Accumulate Total Error
-	int num = 0;
-	float totalError = 0.0f;
-	for (int i=start; i<=end; i++) {
-		if (set1[i].dis != -999999.0 && set2[i+sep].dis != -999999.0) {
-			float delX = set1[i].x - set2[i+sep].x;
-			float delZ = set1[i].z - set2[i+sep].z;
-			totalError += (delX*delX) + (delZ*delZ);
-			num++;
+void  moveOffsets(SlicePoint set1[] , SlicePoint set2[], int closestLocal[]) {
+	for (int i = 0; i < NUM_SLICES; i++) {
+		int link = closestLocal[i];
+		// Calculate current link error
+		float delX = (set1[i].x-set2[link].x);
+		float delZ = (set1[i].z-set2[link].z);
+		float curMin = (delX*delX) + (delZ*delZ);
+		int curMinI = link;
+		// Calculate previous link error
+		if (link != 0) {
+			delX = (set1[i].x-set2[link-1].x);
+			delZ = (set1[i].z-set2[link-1].z);
+			float err = (delX*delX) + (delZ*delZ);
+			if (err < curMin) {
+				curMin = err;
+				curMinI = link-1;
+			}
 		}
-	}
-
-	//Calculate Error
-	if (num < 5) { //Not Enough Correlations
-		return 999999.0f;
-	} else {
-		return totalError/num;
+		if (link != NUM_SLICES) {
+			delX = (set1[i].x-set2[link+1].x);
+			delZ = (set1[i].z-set2[link+1].z);
+			float err = (delX*delX) + (delZ*delZ);
+			if (err < curMin) {
+				curMinI = link+1;
+			}
+		}
+		closestLocal[i] = curMinI;
 	}
 }
 
-void  minimizeCartesianError(SlicePoint set1[] , SlicePoint set2[], int sep, float &delX, float &delZ) {
-	//Determine loop start and end from index seperation
-	int start, end;
-	if (sep < 0) {	
-		start = -sep;
-	} else {
-		start = 0;
+float determineError(SlicePoint set1[] , SlicePoint set2[], int closestLocal[]) {
+	float tot = 0.0f;
+	for (int i = 0; i < NUM_SLICES; i++) {
+		int link = closestLocal[i];
+		if (set1[i].x != -999999.0f && set2[link].x != -999999.0f) {
+			float delX = (set1[i].x-set2[link].x);
+			float delZ = (set1[i].z-set2[link].z);
+			tot += (delX*delX) + (delZ*delZ);
+		}
 	}
-	if (sep > 0) {
-		end = NUM_SLICES-1-sep;
-	} else {
-		end = NUM_SLICES-1;
-	}
+	return tot;
+}
 
-	//Accumulate Total DelX and DelZ
+void performRotation(SlicePoint set[], float rot) {
+	for (int i = 0; i < NUM_SLICES; i++) {
+		float tmpX = set[i].x;
+		if (tmpX != -999999.0) {
+			float tmpZ = set[i].z;
+			float tmpDis = sqrt((tmpX*tmpX)+(tmpZ*tmpZ));
+			float tmpDir = atan2(tmpZ,tmpX)+rot;
+			set[i].x = tmpDis*cos(tmpDir);
+			set[i].z = tmpDis*sin(tmpDir);
+		}
+	}
+}
+
+void performTranslation(SlicePoint set[], float x, float z) {
+	for (int i = 0; i < NUM_SLICES; i++) {
+		if (set[i].x != -999999.0) {
+			set[i].x += x;
+			set[i].z += z;
+		}
+	}
+}
+
+int  minimizeTranslationError(SlicePoint set1[] , SlicePoint set2[], int closestLocal[], float &delX, float &delZ) {
 	delX = 0.0f;
 	delZ = 0.0f;
 	int num = 0;
-	for (int i=start; i<=end; i++) {
-		float x1 = set1[i].x;
-		float x2 = set2[i+sep].x;
-		if (x1 != -999999.0f && x2 != -999999.0f) {
-            delX += x2 - x1;
-			delZ += set2[i+sep].z - set1[i].z;
+	for (int i = 0; i < NUM_SLICES; i++) {
+		int link = closestLocal[i];
+		if (set1[i].x != -999999.0f && set2[link].x != -999999.0f) {
+			delX += (set2[link].x-set1[i].x);
+			delZ += (set2[link].z-set1[i].z);
 			num++;
 		}
 	}
 
-	//Calculate DelDir
-	if (num < 5) { //Not Enough Correlations
-		delX = 999999.0f;
-		delZ = 999999.0f;
-	} else {
-		delX /= num;
-		delZ /= num;
+	#define MAX_TRANS 5.0f
+	delX /= num;
+	if (delX > MAX_TRANS) {
+		delX = MAX_TRANS;
+	} else if (delX < -MAX_TRANS) {
+		delX = -MAX_TRANS;
 	}
-}
-
-float determinePolarDirError(SlicePoint set1[] , SlicePoint set2[], int sep) {
-	//Determine loop start and end from index seperation
-	int start, end;
-	if (sep < 0) {
-		start = -sep;
-	} else {
-		start = 0;
+	delZ /= num;
+	if (delZ > MAX_TRANS) {
+		delZ = MAX_TRANS;
+	} else if (delZ < -MAX_TRANS) {
+		delZ = -MAX_TRANS;
 	}
-	if (sep > 0) {
-		end = NUM_SLICES-2-sep;
-	} else {
-		end = NUM_SLICES-2;
-	}
-
-	//Accumulate Total Error
-	int num = 0;
-	float totalError = 0.0f;
-	for (int i=start; i<=end; i++) {
-		float dis1 = set2[i+sep].dis;
-		float dis2 = set2[i+sep+1].dis;
-		float inDis = set1[i].dis;
-		if (inDis != -999999.0f && dis1 != -999999.0f && dis2 != -999999.0f) {
-			float dir1 = set2[i+sep].dir;
-			float dir2 = set2[i+sep+1].dir;
-            float m = (dis2-dis1)/(dir2-dir1);
-            float b = dis1 - (dir1*m);
-			float outDir;
-			if (m != 0) {
-				outDir = (inDis-b)/m;
-			} else {
-				outDir = 999999.0f;
-			}
-			if (outDir > dir1) {
-				outDir = dir1;
-			} else 	if (outDir < dir2) {
-				outDir = dir2;
-			}
-            float delDir = outDir - set1[i].dir;
-			totalError += (delDir*delDir);
-			num++;
-		}
-	}
-
-	//Calculate Error
-	if (num < 5) { //Not Enough Correlations
-		return 999999.0f;
-	} else {
-		return totalError/num;
-	}
-}
-
-float minimizePolarDirError(SlicePoint set1[] , SlicePoint set2[], int sep) {
-	//Determine loop start and end from index seperation
-	int start, end;
-	if (sep < 0) {	
-		start = -sep;
-	} else {
-		start = 0;
-	}
-	if (sep > 0) {
-		end = NUM_SLICES-2-sep;
-	} else {
-		end = NUM_SLICES-2;
-	}
-
-	//Accumulate Total DelDir
-	int num = 0;
-	float totalDelDir = 0.0f;
-	for (int i=start; i<=end; i++) {
-		float dis1 = set2[i+sep].dis;
-		float dis2 = set2[i+sep+1].dis;
-		float inDis = set1[i].dis;
-		if (inDis != -999999.0f && dis1 != -999999.0f && dis2 != -999999.0f) {
-			float dir1 = set2[i+sep].dir;
-			float dir2 = set2[i+sep+1].dir;
-            float m = (dis2-dis1)/(dir2-dir1);
-            float b = dis1 - (dir1*m);
-			float outDir;
-			if (m != 0) {
-				outDir = (inDis-b)/m;
-			} else {
-				outDir = 999999.0f;
-			}
-			if (outDir > dir1) {
-				outDir = dir1;
-			} else 	if (outDir < dir2) {
-				outDir = dir2;
-			}
-            totalDelDir += outDir - set1[i].dir;
-			num++;
-		}
-	}
-
-	//Calculate DelDir
-	if (num < 5) { //Not Enough Correlations
-		return 999999.0f;
-	} else {
-		return totalDelDir/num;
-	}
-}
-
-float determinePolarDisError(SlicePoint set1[] , SlicePoint set2[], int sep) {
-	//Determine loop start and end from index seperation
-	int start, end;
-	if (sep < 0) {	
-		start = -sep;
-	} else {
-		start = 0;
-	}
-	if (sep > 0) {
-		end = NUM_SLICES-1-sep;
-	} else {
-		end = NUM_SLICES-1;
-	}
-
-	//Accumulate Total Error
-	int num = 0;
-	float totalError = 0.0f;
-	for (int i=start; i<=end; i++) {
-		float dis1 = set1[i].dis;
-		float dis2 = set2[i+sep].dis;
-		if (dis1 != -999999.0f && dis2 != -999999.0f) {
-            float delDis = dis2 - dis1;
-			totalError += (delDis*delDis);
-			num++;
-		}
-	}
-
-	//Calculate Error
-	if (num < 5) { //Not Enough Correlations
-		return 999999.0f;
-	} else {
-		return totalError/num;
-	}
-}
-
-float minimizePolarDirError2(SlicePoint set1[] , SlicePoint set2[], int sep) {
-	//Determine loop start and end from index seperation
-	int start, end;
-	if (sep < 0) {	
-		start = -sep;
-	} else {
-		start = 0;
-	}
-	if (sep > 0) {
-		end = NUM_SLICES-1-sep;
-	} else {
-		end = NUM_SLICES-1;
-	}
-
-	//Accumulate Total DelDir
-	int num = 0;
-	float totalDelDir = 0.0f;
-	for (int i=start; i<=end; i++) {
-		float dir1 = set1[i].dir;
-		float dir2 = set2[i+sep].dir;
-		if (dir1 != -999999.0f && dir2 != -999999.0f) {
-            totalDelDir += dir2 - dir1;
-			num++;
-		}
-	}
-
-	//Calculate DelDir
-	if (num < 5) { //Not Enough Correlations
-		return 999999.0f;
-	} else {
-		return totalDelDir/num;
-	}
+	return num;
 }

@@ -42,8 +42,8 @@ void TopDownMap::draw() {
 	// Draw Wall Slice Points
 	for (int i = 0; i < NUM_SLICES; i++) {
 		float tmpDis = wallSlicePoints[i].dis;
-		if (tmpDis != -999999.0) {
-			float tmpDir = wallSlicePoints[i].dir;
+		float tmpDir = wallSlicePoints[i].dir;
+		if (wallSlicePoints[i].dis != -999999.0) {
 			float tmpX = (tmpDis*cos(tmpDir))/(MAX_ALLOWED_DIS/radius);
 			float tmpZ = (tmpDis*sin(tmpDir))/(MAX_ALLOWED_DIS/radius);
 			glVertex2f(cx+tmpX, cy+tmpZ);
@@ -52,15 +52,15 @@ void TopDownMap::draw() {
 	glEnd();
 
 	//Draw Global Map
-	glColor3f(0.5f, 0.5f, 0.5f);
+	/*glColor3f(0.5f, 0.5f, 0.5f);
 	glBegin(GL_POINTS);
 	for (int i=0; i < numGlobalPoints; i++) {
 		drawPoint(globalMapPoints[i].x, globalMapPoints[i].z);
 	}
-	glEnd();
+	glEnd();*/
 
 	//Draw Local Map
-	glColor3f(0.0f, 0.0f, 0.0f);
+	/*glColor3f(0.0f, 0.0f, 0.0f);
 	glBegin(GL_POINTS);
 	for (int i=0; i < NUM_SLICES; i++) {
 		float tmpDis = localMapPoints[i].dis;
@@ -72,23 +72,27 @@ void TopDownMap::draw() {
 		}
 	}
 	glEnd();
-	glPointSize(1.0f);
+	glPointSize(1.0f);*/
 
 	//Draw Augmented Cube
+	float x1 = (AUG_CUBE_SIZE*cos(augCubeYaw))/(0.5*MAX_ALLOWED_DIS/radius);
+	float z1 = (AUG_CUBE_SIZE*sin(augCubeYaw))/(0.5*MAX_ALLOWED_DIS/radius);
+	float x2 = (AUG_CUBE_SIZE*cos(augCubeYaw+PI/2))/(0.5*MAX_ALLOWED_DIS/radius);
+	float z2 = (AUG_CUBE_SIZE*sin(augCubeYaw+PI/2))/(0.5*MAX_ALLOWED_DIS/radius);
 	glLineWidth(3.0f);
 	glBegin(GL_LINES);
 	glColor4f(0.0f, 0.0f, 1.0f, 0.5f);
 	drawPoint(augCubeX,augCubeZ);
-	drawPoint(augCubeX+AUG_CUBE_SIZE,augCubeZ);
+	drawPoint(augCubeX+x1,augCubeZ+z1);
 	glColor4f(1.0f, 0.0f, 0.0f, 0.5f);
 	drawPoint(augCubeX,augCubeZ);
-	drawPoint(augCubeX,augCubeZ+AUG_CUBE_SIZE);
+	drawPoint(augCubeX+x2,augCubeZ+z2);
 	glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
-	drawPoint(augCubeX+AUG_CUBE_SIZE,augCubeZ+AUG_CUBE_SIZE);
-	drawPoint(augCubeX+AUG_CUBE_SIZE,augCubeZ);
+	drawPoint(augCubeX+x1+x2,augCubeZ+z1+z2);
+	drawPoint(augCubeX+x1,augCubeZ+z1);
 	glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
-	drawPoint(augCubeX+AUG_CUBE_SIZE,augCubeZ+AUG_CUBE_SIZE);
-	drawPoint(augCubeX,augCubeZ+AUG_CUBE_SIZE);
+	drawPoint(augCubeX+x1+x2,augCubeZ+z1+z2);
+	drawPoint(augCubeX+x2,augCubeZ+z2);
 	drawPoint(0.0f, 0.0f);
 	glEnd();
 	glLineWidth(1.0f);
