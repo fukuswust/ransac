@@ -16,7 +16,6 @@
 #include <math.h>
 
 //#define RECORD_RAW
-//#define RECORD_SLICES
 
 #define DEPTH_SCALE_FACTOR 16
 #define MAX_FLOOR_POINTS ((640*480)/(DEPTH_SCALE_FACTOR*DEPTH_SCALE_FACTOR))
@@ -122,11 +121,13 @@ extern SlicePoint localMapPoints[NUM_SLICES];
 extern int localToGlobal[NUM_SLICES];
 extern GlobalMapPoint globalMapPoints[1023];
 extern int numGlobalPoints;
+extern int closestLocal[NUM_SLICES];
 // Augmentations
 #define AUG_CUBE_SIZE 50.0f
 extern float augCubeX;
 extern float augCubeY;
 extern float augCubeZ;
+extern float augCubeYaw;
 // Top Down Map
 extern TopDownMap topDownMap;
 

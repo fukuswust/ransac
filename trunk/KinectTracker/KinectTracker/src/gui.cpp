@@ -105,7 +105,7 @@ void drawScene() {
 	glMatrixMode(GL_MODELVIEW); //Switch to the drawing perspective
 	glLoadIdentity(); //Reset the drawing perspective
 	orthogonalStart(viewWidth, viewHeight);
-	drawAugmentedCube(augCubeX,augCubeY,augCubeZ,AUG_CUBE_SIZE);
+	drawAugmentedCube(augCubeX,augCubeY,augCubeZ,augCubeYaw,AUG_CUBE_SIZE);
 	orthogonalEnd();
 
 	//Draw 2D Overlay

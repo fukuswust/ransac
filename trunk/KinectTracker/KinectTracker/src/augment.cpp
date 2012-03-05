@@ -105,41 +105,47 @@ void drawTopDownViewPoint(float x, float y, float z) {
 	glVertex2f(fi*xViewFactor, fj*yViewFactor);
 }
 
-void drawAugmentedCube(float x, float y, float z, float s) {
+void drawAugmentedCube(float x, float y, float z, float yaw, float s) {
 	glLineWidth(4.0f);
 	glBegin(GL_LINES);
+
+	float x1 = s*cos(yaw);
+	float z1 = s*sin(yaw);
+	float x2 = s*cos(yaw+PI/2);
+	float z2 = s*sin(yaw+PI/2);
+
 	glColor3f(0.0f, 0.0f, 1.0f);
 	drawAugmentedPoint(x, y, z);
-	drawAugmentedPoint(x+s, y, z);
+	drawAugmentedPoint(x+x1, y, z+z1);
 	glColor3f(0.0f, 1.0f, 0.0f);
 	drawAugmentedPoint(x, y, z);
 	drawAugmentedPoint(x, y+s, z);
 	glColor3f(1.0f, 0.0f, 0.0f);
 	drawAugmentedPoint(x, y, z);
-	drawAugmentedPoint(x, y, z+s);
+	drawAugmentedPoint(x+x2, y, z+z2);
 
 	glColor3f(0.0f, 0.0f, 0.0f);
-	drawAugmentedPoint(x+s, y+s, z+s);
-	drawAugmentedPoint(x,   y+s, z+s);
-	drawAugmentedPoint(x+s, y+s, z+s);
-	drawAugmentedPoint(x+s, y,   z+s);
-	drawAugmentedPoint(x+s, y+s, z+s);
-	drawAugmentedPoint(x+s, y+s, z);
-
-	drawAugmentedPoint(x+s, y,   z);
-	drawAugmentedPoint(x+s, y+s, z);
-	drawAugmentedPoint(x+s, y,   z);
-	drawAugmentedPoint(x+s, y,   z+s);
-
+	drawAugmentedPoint(x+x1+x2, y+s, z+z1+z2);
+	drawAugmentedPoint(x+x2,   y+s, z+z2);
+	drawAugmentedPoint(x+x1+x2, y+s, z+z1+z2);
+	drawAugmentedPoint(x+x1+x2, y, z+z1+z2);
+	drawAugmentedPoint(x+x1+x2, y+s, z+z1+z2);
+	drawAugmentedPoint(x+x1, y+s, z+z1);
+	
+	drawAugmentedPoint(x+x1, y,   z+z1);
+	drawAugmentedPoint(x+x1, y+s, z+z1);
+	drawAugmentedPoint(x+x1, y,   z+z1);
+	drawAugmentedPoint(x+x1+x2, y,  z+z1+z2);
+	
 	drawAugmentedPoint(x,   y+s, z);
-	drawAugmentedPoint(x+s, y+s, z);
+	drawAugmentedPoint(x+x1, y+s, z+z1);
 	drawAugmentedPoint(x,   y+s, z);
-	drawAugmentedPoint(x,   y+s, z+s);
-
-	drawAugmentedPoint(x,   y, z+s);
-	drawAugmentedPoint(x+s, y, z+s);
-	drawAugmentedPoint(x,   y, z+s);
-	drawAugmentedPoint(x,   y+s, z+s);
+	drawAugmentedPoint(x+x2,   y+s, z+z2);
+	
+	drawAugmentedPoint(x+x2,   y, z+z2);
+	drawAugmentedPoint(x+x1+x2, y, z+z1+z2);
+	drawAugmentedPoint(x+x2,   y, z+z2);
+	drawAugmentedPoint(x+x2,   y+s, z+z2);
 	glEnd();
 
 	glColor3f(1.0f, 1.0f, 1.0f);
