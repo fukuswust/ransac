@@ -21,23 +21,6 @@ void drawColorBackground(int viewWidth, int viewHeight, GLuint texID){
 	glDisable(GL_TEXTURE_2D);
 }
 
-void drawHeightLine(float heightSlices[], int heightSliceIJ[], int numSlices) {
-	glColor3f(1.0f, 0.0f, 0.0f);
-	glPointSize(4.0f);
-	glBegin(GL_POINTS);
-	for (int i=0, ij=0; i < numSlices*2; i+=2) {
-		if (heightSlices[i] != 999999.0f) {
-			int tmpI = heightSliceIJ[ij++]*xViewFactor;
-			int tmpJ = heightSliceIJ[ij++]*yViewFactor;
-			glVertex2f(tmpI, tmpJ);
-		} else {
-			ij+=2;
-		}
-	}
-	glEnd();
-	glLineWidth(1.0f);
-}
-
 void drawFloorPoints(int floorIJ[], int numPoints) {
 	glColor3f(0.0f, 1.0f, 0.0f);
 	glPointSize(4.0f);

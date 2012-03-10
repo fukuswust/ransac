@@ -7,7 +7,25 @@
 
 using namespace std;
 
+void initAlgorithm() {
+	// SET INITIAL ROLL AND PITCH VALUES TO GRAVITY
+	curUpVector[0] = accelVector[0];
+	curUpVector[1] = accelVector[1];
+	curUpVector[2] = accelVector[2];
+	normalizeVector(curUpVector);
+	findRotationToUp(curUpVector[0], curUpVector[1], curUpVector[2], pitchRollMatrix);
+
+	// SET INITIAL HEIGHT TO 1.5m
+	heightValue = -150.0f;
+}
+
 void runAlgorithm() {
+	if (!algHasInit) {
+		initAlgorithm();
+		algHasInit = true;
+	}
+
+	#pragma region START
 	// DECLARE POINT CLOUD DATA as Local Array of Floats (40x30x3 on Stack)
 	float depthPointCloud[CLOUD_SIZE*3]; // Stored in the order of [x,y,z]
 	// DECLARE COLOR DATA as Local Array of Floats (40x30 on Stack)
@@ -18,17 +36,11 @@ void runAlgorithm() {
 	int offset = 0;
 	int imOffset = 0;
 	int ijOffset = 0;
-
-	// GET ROLL AND PITCH VALUES
-	float xAccelAvg = xAccel;
-	float yAccelAvg = yAccel;
-	float zAccelAvg = zAccel;
-	rollValue = atan2(xAccelAvg, yAccelAvg);
-	pitchValue = atan2(zAccelAvg, yAccelAvg);
-
-	#pragma region FIRST PASS
-	// GET GRAVITY ROTATION MATRIX (Simlified from MATLAB code for UP vector = [0 1 0])
-	findRotationToUp(xAccelAvg, yAccelAvg, zAccelAvg);
+	int fpIjOffset = 0;
+	int fpOffset = 0;
+	int wijOffset = 0;
+	int wOffset = 0;
+	// Get Pitch and Roll Rotation Matrix
 	float R11 = pitchRollMatrix[0];
 	float R12 = pitchRollMatrix[1];
 	float R13 = pitchRollMatrix[2];
@@ -38,15 +50,23 @@ void runAlgorithm() {
 	float R31 = pitchRollMatrix[6];
 	float R32 = pitchRollMatrix[7];
 	float R33 = pitchRollMatrix[8];
-
-	// SET UP MIN AND MAX PLACEHOLDERS
+	// SET UP MIN HEIGHT PLACEHOLDER
 	float currentMinHeight = 999999.0f;
-	float currentMinDir = 999999.0f;
-	float currentMaxDir = -999999.0f;
+	// SET UP WALL SLICE
+	for (int i = 0; i < NUM_SLICES; i++) {
+		wallSlicePoints[i].dis = -999999.0f;
+		wallSlicePoints[i].dir = -999999.0f;
+	}
+	int floorHist[25] = {0};
+	numFloorPoints = 0;
+	numWallPoints = 0;
+	#pragma endregion Initialize common variables
 
+	#pragma region FIRST PASS
 	// Convert depth data to cartesian point cloud data aligned to initial vector
-	// Detect min height, min direction, and max direction
 	// Assign color data to each point
+	// Detect min height for initial height guess
+	// Detect maximum distances for each direction (wall slice)
 	for (int j = 0; j < 480; j+=DEPTH_SCALE_FACTOR) {
 		for (int i = 0; i < 640; i+=DEPTH_SCALE_FACTOR) {
 			//Acquire Raw Depth Value
@@ -97,146 +117,130 @@ void runAlgorithm() {
 				}
 
 				// Reorient Y-Axis to Gravity
-				depthPointCloud[offset++] = tmpX2 = (tmpX*R11)+(tmpY*R21)+(tmpZ*R31); // x -> y
-				depthPointCloud[offset++] = tmpY2 = (tmpX*R12)+(tmpY*R22)+(tmpZ*R32);  // y	-> z		
-				depthPointCloud[offset++] = tmpZ2 = (tmpX*R13)+(tmpY*R23)+(tmpZ*R33);  // z -> next
-
-				// Check for min and max Dir
-				float dir = atan2(tmpZ2,tmpX2);
-				if (dir < currentMinDir) { // dir
-					currentMinDir = dir; // dir
-				} 
-				if (dir > currentMaxDir) { // dir
-					currentMaxDir = dir; // dir
-				}
+				tmpX2 = (tmpX*R11)+(tmpY*R21)+(tmpZ*R31); 
+				tmpY2 = (tmpX*R12)+(tmpY*R22)+(tmpZ*R32);  		
+				tmpZ2 = (tmpX*R13)+(tmpY*R23)+(tmpZ*R33);  
 
 				// Find Min Height from Y's
 				if (tmpY2 < currentMinHeight) { 
 					currentMinHeight = tmpY2;
 				}
+
+				// Convert to polar coordinates
+				float tmpDir, tmpDis;
+				depthPointCloud[offset++] = tmpY2; // height -> dir
+				depthPointCloud[offset++] = tmpDir = atan2(tmpZ2,tmpX2); // dir -> dis
+				depthPointCloud[offset++] = tmpDis = sqrt((tmpZ2*tmpZ2)+(tmpX2*tmpX2)); // dis -> next
+
+				// Determine max Distances for each Direction
+				int dirIndex = (int)floor((tmpDir+(3.0f*PI/4.0))/(PI/2.0f/40.0f));
+				if (dirIndex >= 0 && dirIndex < NUM_SLICES) {
+					if (tmpDis > wallSlicePoints[dirIndex].dis && tmpY2 > currentMinHeight && tmpDis < MAX_ALLOWED_DIS) {
+						wallSlicePoints[dirIndex].dir = tmpDir;
+						wallSlicePoints[dirIndex].dis = tmpDis;
+					}
+				}
+
 			}
 		}
 	}
-	float dirFactor = (640.0f/DEPTH_SCALE_FACTOR)/(currentMaxDir - currentMinDir + 0.000001f);
-	heightValue = -currentMinHeight;
-	#pragma endregion Convert depth to polar, determine color, and mins/maxes
+	#pragma endregion Convert depth to up vector oriented polar, determine color, min height, and wall slice
 
 	#pragma region SECOND PASS
-	// Determine Floor Points
-	// Find max distances for each direction
-	//float pWallSliceNan[NUM_SLICES*2];
-	for (int i = 0; i < NUM_SLICES; i++) {
-		wallSlicePoints[i].dis = -999999.0f;
-		wallSlicePoints[i].dir = -999999.0f;
-	}
-	currentMinHeight += 25.0f;
+	// Determine initial floor points guess
+	// Determine initial wall points guess
 	offset = 0;
 	ijOffset = 0;
-	int fpIjOffset = 0;
-	int fpOffset = 0;
-	numFloorPoints = 0;
 	for (int i = 0; i < CLOUD_SIZE; i++) {
-		float tmpDir, tmpDis;
-		float tmpX = depthPointCloud[offset++];
-		if (tmpX == 999999.0f) { // height -> dir
+		float tmpY = depthPointCloud[offset++]; // height -> dir
+		if (tmpY == 999999.0f) { 
 			offset += 2; // -> next
-			ijOffset += 2;
+			ijOffset += 2; // -> next
 		} else {
 			// Set temporary variables
-			float tmpY = depthPointCloud[offset++];
-			float tmpZ = depthPointCloud[offset];
-			offset -= 2;
-
-			// Convert to polar coordinates
-			depthPointCloud[offset++] = tmpY; // height -> dir
-			depthPointCloud[offset++] = tmpDir = atan2(tmpZ,tmpX); // dir -> dis
-			depthPointCloud[offset++] = tmpDis = sqrt((tmpZ*tmpZ)+(tmpX*tmpX)); // dis -> dir
+			float tmpDir = depthPointCloud[offset++]; // dir -> dis
+			float tmpDis = depthPointCloud[offset++]; // dis -> next
+			float tmpX = tmpDis*cos(tmpDir);
+			float tmpZ = tmpDis*sin(tmpDir);
 
 			// Determine Floor Points
-			if ((fpOffset < MAX_FLOOR_POINTS*3) && (tmpY < currentMinHeight)) {
-				numFloorPoints++;
-				floorPoints[fpOffset++] = tmpX;
-				floorPoints[fpOffset++] = tmpY;
-				floorPoints[fpOffset++] = tmpZ;
-				floorIJ[fpIjOffset++] = ijPointCloud[ijOffset++];
-				floorIJ[fpIjOffset++] = ijPointCloud[ijOffset++];
-			} else {
-				ijOffset+=2;
-			}
-
-			// Determine max Distances for each Direction
-			int dirIndex = (int)floor((tmpDir+(3.0f*PI/4.0))/(PI/2.0f/40.0f));
-			if (dirIndex >= 0 && dirIndex < NUM_SLICES) {
-				if (tmpDis > wallSlicePoints[dirIndex].dis && tmpY > currentMinHeight && tmpDis < MAX_ALLOWED_DIS) {
-					wallSlicePoints[dirIndex].dir = tmpDir;
-					wallSlicePoints[dirIndex].dis = tmpDis;
+			if (fpOffset < MAX_FLOOR_POINTS*3) {
+				int floorDiff = floor(tmpY-currentMinHeight);
+				if (floorDiff < 25) {
+					numFloorPoints++;
+					floorPoints[fpOffset++] = tmpX;
+					floorPoints[fpOffset++] = tmpY;
+					floorPoints[fpOffset++] = tmpZ;
+					floorIJ[fpIjOffset++] = ijPointCloud[ijOffset++];
+					floorIJ[fpIjOffset++] = ijPointCloud[ijOffset++];
+					ijOffset -= 2;
+					floorHist[floorDiff]++;
 				}
-			}
-		}
-	}
-	currentMinHeight -= 25.0f;
-	#pragma endregion Determine floor points and max distances for each direction
-
-	// Determine X, Z, and Yaw from slices and update maps
-	//compareToLocalMap(); 
-	
-	// Set augmentation transformation variables
-	setPositionAndOrientation();
-		
-	#pragma region THIRD PASS
-	// Determine height slice (in polar coordinates)
-	// Determine wall points
-	numWallPoints = 0;
-	float heightDiffList[640/DEPTH_SCALE_FACTOR];
-	for (int i = 0; i < 640/DEPTH_SCALE_FACTOR; i++) {
-		heightSlices[i*2] = 999999.0f;
-		heightDiffList[i] = 999999.0f;
-	}
-	currentMinHeight += 150.0;
-	offset = 0;
-	imOffset = 0;
-	ijOffset = 0;
-	int wijOffset = 0;
-	for (int i = 0; i < CLOUD_SIZE; i++) {
-		float tmpHeight = depthPointCloud[offset++];
-		if (tmpHeight == 999999.0f) { // height -> dir
-			offset += 2; // -> next
-			imOffset++;
-			ijOffset += 2;
-		} else {
-			// Set temporary variables
-			float tmpDir = depthPointCloud[offset++]; // dir -> height
-			float tmpDis = depthPointCloud[offset++];   // height -> next
-
-			// Find Height Slice
-			int dirIndex = (int)floor((tmpDir-currentMinDir)*dirFactor); 
-			float heightDiff = abs(tmpHeight - currentMinHeight);
-			if ((heightDiff < 10) && (heightDiff < heightDiffList[dirIndex])) {
-				heightDiffList[dirIndex] = heightDiff;
-				heightSlices[dirIndex*2] = tmpDir;
-				heightSlices[(dirIndex*2)+1] = tmpDis;
-				heightSliceColors[dirIndex] = colorPointCloud[imOffset++]; // Set color value
-				heightSliceIJ[dirIndex*2] = ijPointCloud[ijOffset++]; // i -> j
-				heightSliceIJ[(dirIndex*2)+1] = ijPointCloud[ijOffset--]; // j -> i
-			} else {
-				imOffset++;
 			}
 
 			// Find Wall Points
-			if (tmpDis > wallSlicePoints[dirIndex].dis - 20) {
-				numWallPoints++;
-				wallIJ[wijOffset++] = ijPointCloud[ijOffset++]; // i -> j
-				wallIJ[wijOffset++] = ijPointCloud[ijOffset++]; // j -> next
+			int dirIndex = (int)floor((tmpDir+(3.0f*PI/4.0))/(PI/2.0f/40.0f));
+			if (dirIndex >= 0 && dirIndex < NUM_SLICES) {
+				if (tmpDis > wallSlicePoints[dirIndex].dis - 20 && tmpY - currentMinHeight > 50.0f) {
+					numWallPoints++;
+					wallPoints[wOffset++] = tmpX;
+					wallPoints[wOffset++] = tmpY;
+					wallPoints[wOffset++] = tmpZ;
+					wallIJ[wijOffset++] = ijPointCloud[ijOffset++]; // i -> j
+					wallIJ[wijOffset++] = ijPointCloud[ijOffset++]; // j -> next
+				} else {
+					ijOffset += 2;
+				}
 			} else {
 				ijOffset += 2;
 			}
+
 		}
 	}
-	currentMinHeight -= 150;
-	#pragma endregion
+	#pragma endregion Determine floor and wall points
+
+	float alignFloor[3];
+	float floorHeight;
+	segmentFloor(floorPoints, numFloorPoints, floorHist, currentMinHeight, alignFloor, floorHeight);
+
+	#pragma region AVERAGING
+	// Determine new pitch and roll
+	float avgRate = 0.0f;
+	for (int i = 0; i < 3; i++) {
+		avgRate += curUpVector[i]*accelVector[i];
+	}
+	float degVal = acos(avgRate)*180.0f/PI;
+	avgRate = degVal*(AVG_STRENGTH/2.5f);
+	if (avgRate > 1.0f) {
+		avgRate = 1.0f;
+	}
+	avgRate = 1 - abs(avgRate);
+	for (int i = 0; i < 3; i++) {
+		//if (numFloorPoints > MIN_FLOOR_POINTS) {
+		//	curUpVector[i] = (curUpVector[i]*(1.0f-avgRate)) + (alignFloor[i]*avgRate);
+		//} else {
+			curUpVector[i] = (curUpVector[i]*avgRate) + (accelVector[i]*(1.0f-avgRate));
+		//}
+	}
+	normalizeVector(curUpVector);
+
+	// Determine new height
+	if (numFloorPoints > MIN_FLOOR_POINTS) {
+		avgRate = abs(heightValue-floorHeight)*(AVG_STRENGTH/1.5f);
+		if (avgRate > 1.0f) {
+			avgRate = 1.0f;
+		}
+		heightValue = (heightValue*(1.0f-avgRate)) + (floorHeight*avgRate);
+	}
+	#pragma endregion Dynamically average in new position and orientation values 
+
+	// Set augmentation transformation variables
+	rollValue = atan2(curUpVector[0], curUpVector[1]);
+	pitchValue = atan2(curUpVector[2], curUpVector[1]);
+	setPositionAndOrientation();
 }
 
-void findRotationToUp(float xVect, float yVect, float zVect) {
+void findRotationToUp(float xVect, float yVect, float zVect, float M[]) {
 	//Get unit vector and magnitude of gravity
 	float gravMag = sqrt((xVect*xVect)+(yVect*yVect)+(zVect*zVect)); //Quality = diff from 819/512
 	float uGravX = xVect/gravMag;
@@ -257,15 +261,15 @@ void findRotationToUp(float xVect, float yVect, float zVect) {
 	float sx = s*uX;
 	float sz = s*uZ;
 	//Calculate Individual Matrix Elements
-	pitchRollMatrix[0] = uGravY + (t*uX*uX);
-	pitchRollMatrix[1] = -sz;
-	pitchRollMatrix[2] = t*xz;
-	pitchRollMatrix[3] = sz;
-	pitchRollMatrix[4] = uGravY;
-	pitchRollMatrix[5] = -sx;
-	pitchRollMatrix[6] = t*xz;
-	pitchRollMatrix[7] = sx;
-	pitchRollMatrix[8] = uGravY + (t*uZ*uZ);
+	M[0] = uGravY + (t*uX*uX);
+	M[1] = -sz;
+	M[2] = t*xz;
+	M[3] = sz;
+	M[4] = uGravY;
+	M[5] = -sx;
+	M[6] = t*xz;
+	M[7] = sx;
+	M[8] = uGravY + (t*uZ*uZ);
 }
 
 void setPositionAndOrientation() {
@@ -274,6 +278,10 @@ void setPositionAndOrientation() {
 	translationMatrix[0] = xValue; // x translation
 	translationMatrix[1] = heightValue; // height translation
 	translationMatrix[2] = zValue; // z translation
+
+	// Pitch and Roll Rotation
+	// GET  ROTATION MATRIX (Simlified from MATLAB code for UP vector = [0 1 0])
+	findRotationToUp(curUpVector[0], curUpVector[1], curUpVector[2], pitchRollMatrix);
 
 	// Yaw Rotation
 	yawMatrix[0] = cos(-yawValue);
@@ -285,205 +293,6 @@ void setPositionAndOrientation() {
 	yawMatrix[6] = sin(-yawValue);
 	yawMatrix[7] = 0;
 	yawMatrix[8] = cos(-yawValue);
-}
-
-void compareToLocalMap() {
-	if (yawValue != 999999.0) { //Not in initial state
-		// Convert to Cartesian
-		for (int i = 0; i < NUM_SLICES; i++) {
-			float tmpDis = wallSlicePoints[i].dis;
-			if (tmpDis != -999999.0) {
-				float tmpDir = wallSlicePoints[i].dir;
-				wallSlicePoints[i].x = tmpDis*cos(tmpDir);
-				wallSlicePoints[i].z = tmpDis*sin(tmpDir);
-			}
-			tmpDis = localMapPoints[i].dis;
-			if (tmpDis != -999999.0) {
-				float tmpDir = localMapPoints[i].dir;
-				localMapPoints[i].x = tmpDis*cos(tmpDir);
-				localMapPoints[i].z = tmpDis*sin(tmpDir);
-			}
-		}
-
-		// Iterate
-		float incAmount = PI/720.0f;
-		for (int i = 0; i < 40; i++) {
-			moveOffsets(wallSlicePoints, localMapPoints, closestLocal);
-			float be = determineError(wallSlicePoints, localMapPoints, closestLocal);
-			performRotation(wallSlicePoints, incAmount);
-			float rre = determineError(wallSlicePoints, localMapPoints, closestLocal);
-			performRotation(wallSlicePoints, -incAmount*2.0f);
-			float rle = determineError(wallSlicePoints, localMapPoints, closestLocal);
-			if (be <= rre && be <= rle) {
-				performRotation(wallSlicePoints, incAmount);
-			} else if (rre <= rle) {
-				performRotation(wallSlicePoints, incAmount*2.0f);
-				yawValue += incAmount;
-			} else {
-				yawValue -= incAmount;
-			}
-
-			float delX, delZ;
-			int numMatches;
-			numMatches = minimizeTranslationError(wallSlicePoints, localMapPoints, closestLocal, delX, delZ);
-			if (numMatches > 4) {
-				xValue += delX;
-				zValue += delZ;
-				performTranslation(wallSlicePoints, delX, delZ);
-			}
-		}
-
-		// Convert to Polar
-		for (int i = 0; i < NUM_SLICES; i++) {
-			float tmpX = wallSlicePoints[i].x;
-			if (tmpX != -999999.0) {
-				float tmpZ = wallSlicePoints[i].z;
-				wallSlicePoints[i].dis = sqrt((tmpX*tmpX)+(tmpZ*tmpZ));
-				wallSlicePoints[i].dir = atan2(tmpZ,tmpX);
-			}
-		}
-
-	} else { //In initial state
-		numGlobalPoints = 0;
-		for (int i=0; i<NUM_SLICES; i++) { //Create global map from first view
-			if (wallSlicePoints[i].dis != -999999.0) {
-				float tmpDis = wallSlicePoints[i].dis;
-				float tmpDir = wallSlicePoints[i].dir;
-				globalMapPoints[numGlobalPoints].x = tmpDis*cos(tmpDir);
-				globalMapPoints[numGlobalPoints].z = tmpDis*sin(tmpDir);
-				numGlobalPoints++;
-			}
-		}
-		if (numGlobalPoints > 20) { //Enough points to start map
-			yawValue = 0.0f;
-			xValue = 0.0f;
-			zValue = 0.0f;
-			for (int i = 0; i < NUM_SLICES; i++) {
-				closestLocal[i] = i;
-			}
-		} else { //Not enough points to start map
-			numGlobalPoints = 0;
-		}
-
-		// Convert to Cartesian
-		for (int i = 0; i < NUM_SLICES; i++) {
-			float tmpDis = wallSlicePoints[i].dis;
-			if (tmpDis != -999999.0) {
-				float tmpDir = wallSlicePoints[i].dir;
-				wallSlicePoints[i].x = tmpDis*cos(tmpDir);
-				wallSlicePoints[i].z = tmpDis*sin(tmpDir);
-			}
-		}
-	}
-
-	// UPDATE MAPS
-	//Update Local Map
-	for (int i=0; i < NUM_SLICES; i++) {
-		localMapPoints[i].dis = 999999.0f;
-	}
-	for (int i=0; i < numGlobalPoints; i++) {
-		float tmpX = globalMapPoints[i].x;
-		float tmpZ = globalMapPoints[i].z;
-		float delX = tmpX - xValue;
-		float delZ = tmpZ - zValue;
-		float tmpDis = sqrt((delX*delX)+(delZ*delZ));
-		if (tmpDis < MAX_ALLOWED_DIS) {
-			float tmpDir = atan2(delZ,delX) - yawValue;
-			int dirIndex = (int)floor((tmpDir+(3.0f*PI/4.0))/(PI/2.0f/40.0f));	
-			if (dirIndex >= 0 && dirIndex < NUM_SLICES) {
-				if (tmpDis < localMapPoints[dirIndex].dis) {
-					localToGlobal[dirIndex] = i;
-					localMapPoints[dirIndex].dir = tmpDir;
-					localMapPoints[dirIndex].dis = tmpDis;
-				}
-			}
-		}
-	}
-
-	for (int i=0; i < NUM_SLICES; i++) {
-		if (localMapPoints[i].dis == 999999.0f) {
-			localMapPoints[i].dis == -999999.0f;
-			localMapPoints[i].dir == -999999.0f;
-		}
-	}
-
-	// Average in new wall slice
-	float rate = 0.1;
-	for (int i=0; i < NUM_SLICES; i++) {
-		if (localMapPoints[i].dis == 999999.0f) { //Missing local model point
-			if (wallSlicePoints[i].dis != -999999.0f) { //Available wall slice: Add
-				if (numGlobalPoints < 1023) {
-					localMapPoints[i].dis = wallSlicePoints[i].dis;
-					localMapPoints[i].dir = wallSlicePoints[i].dir;
-					localToGlobal[i] = numGlobalPoints;
-					numGlobalPoints++;
-				}
-			} else { //No new points
-				localMapPoints[i].dis = -999999.0f;
-				localMapPoints[i].dir = -999999.0f;
-			}
-		} else {
-			if (wallSlicePoints[i].dis != -999999.0f) { //Available wall slice: Average
-				localMapPoints[i].dis = (localMapPoints[i].dis*(1-rate))+(wallSlicePoints[i].dis*rate);
-				localMapPoints[i].dir = (localMapPoints[i].dir*(1-rate))+(wallSlicePoints[i].dir*rate);
-			}
-		}
-	}
-
-	// Update Global Model
-	for (int i=0; i < NUM_SLICES; i++) {
-		float tmpDis = localMapPoints[i].dis;
-		if (tmpDis != -999999.0f) {
-			float tmpDir = localMapPoints[i].dir + yawValue;
-			int tmpIndex = localToGlobal[i];
-			globalMapPoints[tmpIndex].x = (tmpDis*cos(tmpDir))+xValue;
-			globalMapPoints[tmpIndex].z = (tmpDis*sin(tmpDir))+zValue;
-		}
-	}
-	
-}
-
-void  moveOffsets(SlicePoint set1[] , SlicePoint set2[], int closestLocal[]) {
-	for (int i = 0; i < NUM_SLICES; i++) {
-		int link = closestLocal[i];
-		// Calculate current link error
-		float delX = (set1[i].x-set2[link].x);
-		float delZ = (set1[i].z-set2[link].z);
-		float curMin = (delX*delX) + (delZ*delZ);
-		int curMinI = link;
-		// Calculate previous link error
-		if (link != 0) {
-			delX = (set1[i].x-set2[link-1].x);
-			delZ = (set1[i].z-set2[link-1].z);
-			float err = (delX*delX) + (delZ*delZ);
-			if (err < curMin) {
-				curMin = err;
-				curMinI = link-1;
-			}
-		}
-		if (link != NUM_SLICES) {
-			delX = (set1[i].x-set2[link+1].x);
-			delZ = (set1[i].z-set2[link+1].z);
-			float err = (delX*delX) + (delZ*delZ);
-			if (err < curMin) {
-				curMinI = link+1;
-			}
-		}
-		closestLocal[i] = curMinI;
-	}
-}
-
-float determineError(SlicePoint set1[] , SlicePoint set2[], int closestLocal[]) {
-	float tot = 0.0f;
-	for (int i = 0; i < NUM_SLICES; i++) {
-		int link = closestLocal[i];
-		if (set1[i].x != -999999.0f && set2[link].x != -999999.0f) {
-			float delX = (set1[i].x-set2[link].x);
-			float delZ = (set1[i].z-set2[link].z);
-			tot += (delX*delX) + (delZ*delZ);
-		}
-	}
-	return tot;
 }
 
 void performRotation(SlicePoint set[], float rot) {
@@ -508,31 +317,117 @@ void performTranslation(SlicePoint set[], float x, float z) {
 	}
 }
 
-int  minimizeTranslationError(SlicePoint set1[] , SlicePoint set2[], int closestLocal[], float &delX, float &delZ) {
-	delX = 0.0f;
-	delZ = 0.0f;
-	int num = 0;
-	for (int i = 0; i < NUM_SLICES; i++) {
-		int link = closestLocal[i];
-		if (set1[i].x != -999999.0f && set2[link].x != -999999.0f) {
-			delX += (set2[link].x-set1[i].x);
-			delZ += (set2[link].z-set1[i].z);
-			num++;
+void solveVector(float M[3][3], float R[3]) {
+	float r = -M[1][0]/M[0][0];
+	//M[1][0] = 0;
+	M[1][1] += r*M[0][1];
+	M[1][2] += r*M[0][2];
+	R[1]    += r*R[0];
+
+	r = -M[2][0]/M[0][0];
+	//M[2][0] = 0;
+	M[2][1] += r*M[0][1];
+	M[2][2] += r*M[0][2];
+	R[2]    += r*R[0];
+
+	r = -M[2][1]/M[1][1];
+	//M[2][1] = 0;
+	M[2][2] += r*M[1][2];
+	R[2]    += r*R[1];
+
+	r = -M[0][1]/M[1][1];
+	//M[0][1] = 0;
+	M[0][2] += r*M[1][2];
+	R[0]    += r*R[1];
+
+	r = -M[1][2]/M[2][2];
+	//M[1][2] = 0;
+	R[1]    += r*R[2];
+
+	r = -M[0][2]/M[2][2];
+	//M[0][2] = 0;
+	R[0]    += r*R[2];
+
+	R[0] /= M[0][0];
+	R[1] /= M[1][1];
+	R[2] /= M[2][2];
+}
+
+void normalizeVector(float R[3]) {
+	float mag = sqrt((R[0]*R[0])+(R[1]*R[1])+(R[2]*R[2]));
+	R[0] /= mag;
+	R[1] /= mag;
+	R[2] /= mag;
+}
+
+void segmentFloor(float floorPoints[], int &numFloorPoints, int floorHist[], float currentMinHeight, float alignFloor[], float &floorHeight) {
+	floorHeight = 999999.0f;
+	if (numFloorPoints > MIN_FLOOR_POINTS) {
+		// Determine Mode of Y's
+		int maxHistAm = 0;
+		int maxHistI = 0;
+		for (int i = 0; i < 25; i++) {
+			int curAm = floorHist[i];
+			if (curAm > maxHistAm) {
+				maxHistAm = curAm;
+				maxHistI = i;
+			}
+		}
+		float floorCenterY = currentMinHeight + (float)maxHistI;
+		// Eliminate Points Futher than Amount from Mode
+		int tmpNumFP = 0;
+		float sumX = 0;
+		float sumX2 = 0;
+		float sumXY = 0;
+		float sumXZ = 0;
+		float sumY = 0;
+		float sumY2 = 0;
+		float sumYZ = 0;
+		float sumZ = 0;
+		for (int i = 0; i < numFloorPoints; i++) {
+			float tmpY = floorPoints[(i*3)+1];
+			if (abs(tmpY-floorCenterY) < 5.0f) {
+				float tmpX = floorPoints[(i*3)+0];
+				float tmpZ = floorPoints[(i*3)+2];
+				floorPoints[(tmpNumFP*3)+0] = tmpX;
+				floorPoints[(tmpNumFP*3)+1] = tmpY;
+				floorPoints[(tmpNumFP*3)+2] = tmpZ;
+				floorIJ[(tmpNumFP*2)+0]     = floorIJ[(i*2)+0];
+				floorIJ[(tmpNumFP*2)+1]     = floorIJ[(i*2)+1];
+				tmpNumFP++;
+				sumX  += tmpX;
+				sumX2 += tmpX*tmpX;
+				sumXY += tmpX*tmpZ;
+				sumXZ += tmpX*tmpY;
+				sumY  += tmpZ;
+				sumY2 += tmpZ*tmpZ;
+				sumYZ += tmpY*tmpZ;
+				sumZ  += tmpY;
+			}
+		}
+		numFloorPoints = tmpNumFP;
+		if (numFloorPoints > MIN_FLOOR_POINTS) {
+			// Regress Plane
+			float M[3][3] = {
+				{sumX2, sumXY, sumX},
+				{sumXY, sumY2, sumY},
+				{sumX,  sumY,  numFloorPoints}
+			};
+			float R[3] = {sumXZ, sumYZ, sumZ};
+			solveVector(M, R);
+			float midX = sumX / numFloorPoints;
+			float midZ = sumY / numFloorPoints;
+			float midY = (R[0]*midX)+(R[1]*midZ)+R[2];
+			alignFloor[0] = -R[0]/R[2];
+			alignFloor[1] = 1/R[2];
+			alignFloor[2] = -R[1]/R[2];
+			normalizeVector(alignFloor);
+			if (alignFloor[1] < 0) {
+				alignFloor[0] *= -1.0f;
+				alignFloor[1] *= -1.0f;
+				alignFloor[2] *= -1.0f;
+			}
+			floorHeight = -midY;
 		}
 	}
-
-	#define MAX_TRANS 5.0f
-	delX /= num;
-	if (delX > MAX_TRANS) {
-		delX = MAX_TRANS;
-	} else if (delX < -MAX_TRANS) {
-		delX = -MAX_TRANS;
-	}
-	delZ /= num;
-	if (delZ > MAX_TRANS) {
-		delZ = MAX_TRANS;
-	} else if (delZ < -MAX_TRANS) {
-		delZ = -MAX_TRANS;
-	}
-	return num;
 }

@@ -17,13 +17,14 @@ void Listener::DepthReceived(Kinect::Kinect *K)
 	K->ParseDepthBuffer(); 
 
 	// GET ACCEL DATA
-	K->GetAcceleroData(&xAccel, &yAccel, &zAccel);
+	K->GetAcceleroData(&accelVector[0], &accelVector[1], &accelVector[2]);
+	normalizeVector(accelVector);
 
 	// RECORD DATA if recording and if at least one RGB camera frame has been captured
 	#ifdef RECORD_RAW
 	recordColor(K->mColorBuffer, outFileOn);
 	recordDepth(K->mDepthBuffer, outFileOn);
-	recordAccel(xAccel, yAccel, zAccel, outFileOn);
+	recordAccel(accelVector[0], accelVector[1], accelVector[2], outFileOn);
 	#endif
 	outFileOn++;
 

@@ -20,7 +20,7 @@ void handleKeypress(unsigned char key, //The key that was pressed
 			break;
 		}
 		case 'c': {
-			yawValue = 999999.0f;
+			yawValue = 0.0f;
 			break;
 		}
 		case 'f': {
@@ -45,14 +45,10 @@ void handleKeypress(unsigned char key, //The key that was pressed
 			break;
 		}
 		case '1': {
-			showHeightSlice = !showHeightSlice;
-			break;
-		}
-		case '2': {
 			showFloorPoints = !showFloorPoints;
 			break;
 		}
-		case '3': {
+		case '2': {
 			showWallPoints = !showWallPoints;
 			break;
 		}

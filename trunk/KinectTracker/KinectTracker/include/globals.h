@@ -24,6 +24,8 @@
 #define NUM_SLICES (640/DEPTH_SCALE_FACTOR)
 #define CLOUD_SIZE ((640*480)/(DEPTH_SCALE_FACTOR*DEPTH_SCALE_FACTOR))
 #define CLOUD_AVG_FACTOR 0.5f
+#define MIN_FLOOR_POINTS 25
+#define AVG_STRENGTH 0.1f
 
 #define PI 3.14159265
 
@@ -88,8 +90,9 @@ extern float heightValue;
 extern CStopWatch* fpsStopWatch;
 extern float avgFrameTime;
 // Pitch and Roll
-extern float xAccel, yAccel, zAccel;
+extern float accelVector[3];
 extern float rollValue, pitchValue;
+extern float curUpVector[3];
 // Height Slices
 extern float heightSlices[(640/DEPTH_SCALE_FACTOR)*2];
 extern float heightSliceColors[(640/DEPTH_SCALE_FACTOR)];
@@ -123,7 +126,7 @@ extern GlobalMapPoint globalMapPoints[1023];
 extern int numGlobalPoints;
 extern int closestLocal[NUM_SLICES];
 // Augmentations
-#define AUG_CUBE_SIZE 50.0f
+#define AUG_CUBE_SIZE 100.0f
 extern float augCubeX;
 extern float augCubeY;
 extern float augCubeZ;
@@ -137,13 +140,13 @@ extern int maxZj;
 extern Kinect::Kinect *K;
 extern Listener *L;
 extern Kinect::KinectFinder KF;
+extern bool algHasInit;
 
 extern GLuint texID;
 
 // Setup booleans for keyboard toggles
 extern bool isFullscreen;
 extern bool showHud;
-extern bool showHeightSlice;
 extern bool showFloorPoints;
 extern bool showWallPoints;
 

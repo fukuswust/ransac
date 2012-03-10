@@ -118,13 +118,15 @@ void drawScene() {
 	if (showWallPoints) {
 		drawWallPoints(wallIJ, numWallPoints);
 	}
-	// Draw Height Slice
-	if (showHeightSlice) {
-		drawHeightLine(heightSlices, heightSliceIJ, 640/DEPTH_SCALE_FACTOR);
-	}
 	//Draw the HUD
 	if (showHud) {
 		drawHud();
+	}
+	//Draw Warnings
+	if (numFloorPoints <= MIN_FLOOR_POINTS) {
+		glColor3f(1.0f, 0.0f, 0.0f);
+		orthoPrint(200, viewHeight - 40.0f, "WARNING: CANNOT SEE FLOOR");
+		glColor3f(0.0f, 0.0f, 0.0f);
 	}
 	orthogonalEnd();
 
