@@ -20,8 +20,9 @@ float heightValue = 0.0f;
 CStopWatch* fpsStopWatch;
 float avgFrameTime = 0.0f;
 // Pitch and Roll
-float xAccel, yAccel, zAccel;
+float accelVector[3];
 float rollValue=0.0f, pitchValue=0.0f;
+float curUpVector[3] = {0.0f, 1.0f, 0.0f};
 // Height Slices
 float heightSlices[(640/DEPTH_SCALE_FACTOR)*2];
 float heightSliceColors[(640/DEPTH_SCALE_FACTOR)];
@@ -35,7 +36,7 @@ float wallPoints[MAX_WALL_POINTS*3];
 int   wallIJ[MAX_WALL_POINTS*2];
 int   numWallPoints;
 // Top Down Position
-float yawValue = 999999.0f;
+float yawValue = 0.0f;//999999.0f;
 float xValue = 0.0f;
 float zValue = 0.0f;
 // Camera Orientation
@@ -69,12 +70,12 @@ TopDownMap topDownMap;
 Kinect::Kinect *K;
 Listener *L;
 Kinect::KinectFinder KF;
+bool algHasInit = false;
 
 GLuint texID;
 
 // Set inital values for gui keyboard shortcut states.
 bool isFullscreen = false;
 bool showHud = true;
-bool showHeightSlice = false;
 bool showFloorPoints = false;
 bool showWallPoints = false;

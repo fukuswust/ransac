@@ -1,8 +1,10 @@
 #include "globals.h"
 
+void initAlgorithm();
+
 void runAlgorithm();
 
-void findRotationToUp(float xVect, float yVect, float zVect);
+void findRotationToUp(float xVect, float yVect, float zVect, float M[]);
 
 int  sliceRemoveOutsideRange(float pWallSliceNan[], float cWallSlice[], float pWallSlice[], int wallStatus[]);
 
@@ -12,14 +14,12 @@ void updateGlobalMap();
 
 void setPositionAndOrientation();
 
-void compareToLocalMap();
-
-void  moveOffsets(SlicePoint set1[] , SlicePoint set2[], int closestLocal[]);
-
-float determineError(SlicePoint set1[] , SlicePoint set2[], int closestLocal[]);
-
 void performRotation(SlicePoint set[], float rot);
 
 void performTranslation(SlicePoint set[], float x, float z);
 
-int minimizeTranslationError(SlicePoint set1[] , SlicePoint set2[], int closestLocal[], float &delX, float &delZ);
+void solveVector(float M[3][3], float R[3]);
+
+void normalizeVector(float R[3]);
+
+void segmentFloor(float floorPoints[], int &numFloorPoints, int floorHist[], float currentMinHeight, float alignFloor[], float &floorHeight);
