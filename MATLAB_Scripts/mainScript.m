@@ -1,5 +1,5 @@
 %% Initial Constants
-frameName = '000005';
+frameName = '000025';
 
 %% Loop
 lastFile = 33;
@@ -72,6 +72,57 @@ imwrite(tmp,[dataPath '/MATLAB_output/2_' frameName '.bmp']);
 floorHeight = min(min(gPointCloud(:,:,1)));
 fprintf('Height: %f cm\n', floorHeight);
 
+%% Segment Mesh
+totFloor = 0;
+for i = 1:30
+    for j = 1:40
+        if ~isnan(fPointCloud(i,j,1))
+            totFloor = totFloor + 1;
+            floorPoints(totFloor,1:3) = permute(fPointCloud(i,j,1:3),[1 3 2]);
+        end
+    end
+end
+scatter3(floorPoints(:,1),floorPoints(:,3),floorPoints(:,2));
+axis equal
+
+%% Get First Plane Extimate
+sFloorPoints = sort(floorPoints,2);
+floorModeY = mode(floor(sFloorPoints(:,2)));
+totMFloor = 0;
+for i = 1:totFloor
+    if abs(floorPoints(i,2)-floorModeY) < 5
+        totMFloor = totMFloor + 1;
+        mFloorPoints(totMFloor,1:3) = floorPoints(i,1:3);
+    end
+end
+scatter3(mFloorPoints(:,1),mFloorPoints(:,2),mFloorPoints(:,3));
+axis equal
+
+%% Regress Plane
+x = mFloorPoints(:,1);
+z = mFloorPoints(:,2);
+y = mFloorPoints(:,3);
+M = [sum(x.^2) sum(x.*y) sum(x);
+     sum(x.*y) sum(y.^2) sum(y);
+     sum(x)    sum(y)    totMFloor];
+A = [sum(x.*z); sum(y.*z); sum(z)];
+V = M\A;
+align = [-V(1)/V(3) 1/V(3) -V(2)/V(3)];
+align = align/sqrt(sum(align.^2));
+if align(2) < 0
+    align = -align;
+end
+upVect = [0 1 0];
+alignRotate = getRotationMatrix(align, upVect);
+faPointCloud = transform3dMatrix(gPointCloud, alignRotate);
+x = faPointCloud(:,:,1);
+y = faPointCloud(:,:,2);
+z = faPointCloud(:,:,3);
+scatter(x(:),y(:));
+%printImage(faPointCloud(:,:,2)); %All floor should be black
+axis equal
+
+
 %% Convert to Polar
 pPointCloud = cartesianToPolar(gPointCloud);
 tmp = printImage(pPointCloud(:,:,3));
@@ -92,25 +143,57 @@ maxDisList = polarToCartesian2D(maxDisListPolar);
 maxDisList(:,2) = -maxDisList(:,2);
 scatter(maxDisList(:,1), maxDisList(:,2), 30, 'filled')
 axis equal
-saveas(gcf,[dataPath '/MATLAB_output/32_' frameName '.bmp']) 
-tdView{fileOn+1} = maxDisList;
-
-end
-
-%% Fit Lines to Walls
-lines = fitWallsToLines(maxDisList);
-scatter(maxDisList(:,1), maxDisList(:,2), 30, 'filled')
-t = 2;
-line([-20 20], [((lines(t,1)*-20)+lines(t,2)) ...
-    ((lines(t,1)*20)+lines(t,2))])
-axis equal
-saveas(gcf,[dataPath '/MATLAB_output/34_' frameName '.bmp'])
+%saveas(gcf,[dataPath '/MATLAB_output/32_' frameName '.bmp']) 
+%tdView{fileOn+1} = maxDisList;
 
 %% Segment Walls
 wPointCloud = segmentWalls(pPointCloud, maxDisListPolar);
 tmp = printImage(wPointCloud(:,:,3));
 axis equal
 imwrite(tmp,[dataPath '/MATLAB_output/4_' frameName '.bmp']);
+
+%% Segment Mesh
+% Polar to Cartesian
+wCPC = polarToCartesian(wPointCloud);
+% Split
+totWall = 0;
+for i = 1:30
+    for j = 1:40
+        if ~isnan(wCPC(i,j,1))
+            totWall = totWall + 1;
+            wallPoints(totWall,1:3) = permute(wCPC(i,j,1:3),[1 3 2]);
+        end
+    end
+end
+% Draw Top-Down
+scatter(wallPoints(:,1),-wallPoints(:,3));
+axis equal
+
+%% Determine Wall Normal
+rep = 574;
+norm = zeros(rep,3);
+for i = 1:rep
+    r1 = mod(i,totWall)+1;
+    r2 = randi(totWall);
+    while (r1 == r2)
+        r2 = randi(totWall);
+    end
+    r3 = randi(totWall);
+    while (r3 == r1 || r3 == r2)
+        r3 = randi(totWall);
+    end
+    
+    p1 = wallPoints(r1,:);
+    p2 = wallPoints(r2,:);
+    p3 = wallPoints(r3,:);
+    norm(i,1:3) = cross(p1-p2,p1-p3);
+    norm(i,1:3) = norm(i,1:3)/(sqrt(sum(norm(i,1:3).^2)));
+end
+temp = norm(:,1);
+hist(temp(:));
+
+%%
+end
 
 %% Extract Height Slices
 [slices source] = extractHeightSlice(pPointCloud, 125, 80, 10);
@@ -122,13 +205,13 @@ imwrite(tmp,[dataPath '/MATLAB_output/5_' frameName '.bmp']);
 pointColor = zeros(size(slices,1),3);
 for i = 1:size(slices,1)
     if isnan(slices(i,3))
-        pointColor(i,1) = 1;
+        pointColor(i,1) = 0;
         pointColor(i,2) = 0;
         pointColor(i,3) = 0;
     else
-        pointColor(i,1) = slices(i,3);
-        pointColor(i,2) = slices(i,3);
-        pointColor(i,3) = slices(i,3);
+        pointColor(i,1) = 0;
+        pointColor(i,2) = 0;
+        pointColor(i,3) = 0;
     end
 end
 
@@ -159,8 +242,8 @@ for fileOn=firstSliceFile:3:lastSliceFile
         for i=1:40
             if inWallSlice(i,1) ~= -999999.0 ...
                     && inWallSlice(i,2) <= 400
-                wallSlice{indexOn}(newIndex,1) = -inWallSlice(i,1);
-                wallSlice{indexOn}(newIndex,2) = inWallSlice(i,2);
+                pTdView{indexOn}(newIndex,1) = -inWallSlice(i,1);
+                pTdView{indexOn}(newIndex,2) = inWallSlice(i,2);
                 newIndex = newIndex + 1;
             end
         end
@@ -173,10 +256,8 @@ numData = indexOn - 1;
 curMinRange = 1;
 curMaxRange = numData;
 
-%% Apply Filter
-for frame = 124:124
-    pTdView{frame}(i-1,1) = wallSlice{frame}(i-1,1);
-    pTdView{frame}(i-1,2) = -wallSlice{frame}(i-1,2);
+%% Convert to Cartesian
+for frame = curMinRange:curMaxRange
     cTdView{frame} = polarToCartesian2D(pTdView{frame});
     scatter(cTdView{frame}(:,1), cTdView{frame}(:,2), 30, 'filled', 'blue')
     hold on
@@ -184,9 +265,76 @@ for frame = 124:124
     title(['Frame: ' frameName])
     axis([-250 250 0 500])
     drawnow
-    pause(.001)
+    hold off
     %saveas(gcf,[dataPath '/MATLAB_output/9_' frameName '.bmp'])
 end
+
+%% 
+frame = 123;
+cTdView{frame} = polarToCartesian2D(pTdView{frame});
+scatter(cTdView{frame}(:,1), cTdView{frame}(:,2), 30, 'filled', 'blue')
+hold on
+frameName = sprintf('%.6u',frame);
+title(['Frame: ' frameName])
+axis([-250 250 0 500])
+drawnow
+hold off
+
+%% Compare 2 Frames
+sep = 1;
+inSep = 0;
+for frame = 8
+    scatter(cTdView{frame}(:,1), cTdView{frame}(:,2), 30, 'filled', 'blue')
+    hold on
+    scatter(cTdView{frame+sep}(:,1), cTdView{frame+sep}(:,2), 30, 'filled', 'red')
+    for i = 1:size(cTdView{frame},1)
+        if i+inSep > 1 && i+inSep < size(cTdView{frame+sep},1)
+        line([cTdView{frame}(i,1) cTdView{frame+sep}(i+inSep,1)], ...
+                    [cTdView{frame}(i,2) cTdView{frame+sep}(i+inSep,2)])
+        end
+    end
+    axis([-300 300 0 600])
+    hold off
+end
+
+%% Determine MSE
+sep = 1;
+for frame = 8
+    inSep = 1;
+    nextPos = pTdView{frame+sep};
+    trans0 = pTdView{frame};
+    trans1 = apply2dTransform(trans0,0,0,0);
+    trans2 = apply2dTransform(trans1,0,0,0);
+    
+    
+    determineError(trans2,nextPos,inSep)
+    scatter(trans2(:,1), trans2(:,2), 30, 'filled', 'blue')
+    hold on
+    scatter(nextPos(:,1), nextPos(:,2), 30, 'filled', 'red')
+    for i = 1:size(pTdView{frame},1)
+        if i+inSep > 1 && i+inSep < size(nextPos,1)
+        line([trans2(i,1) nextPos(i+inSep,1)], ...
+                    [trans2(i,2) nextPos(i+inSep,2)])
+        end
+    end
+    %axis([-300 300 0 600])
+    %axis([-pi() pi() 0 600])
+    hold off
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 %% Find Wall Corners
 for frame = curMinRange:curMaxRange
