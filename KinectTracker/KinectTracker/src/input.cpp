@@ -8,12 +8,14 @@ void handleKeypress(unsigned char key, //The key that was pressed
 					int x, int y) {    //The current mouse coordinates
 	switch (key) {
 		case ESC_KEY: { //Escape key
-			// remove and delete the listener instance
-			K->RemoveListener(L);
-			delete L;
+			if (USE_KINECT) {
+				// remove and delete the listener instance
+				K->RemoveListener(L);
+				delete L;
 	
-			//turn the led off
-			K->SetLedMode(Kinect::Led_Off);
+				//turn the led off
+				K->SetLedMode(Kinect::Led_Off);
+			}
 	
 			// when the KinectFinder instance is destroyed, it will tear down and free all kinects.
 			exit(0); //Exit the program

@@ -107,7 +107,7 @@ void drawAugmentedCube(float x, float y, float z, float yaw, float s) {
 	drawAugmentedPoint(x, y, z);
 	drawAugmentedPoint(x+x2, y, z+z2);
 
-	glColor3f(0.0f, 0.0f, 0.0f);
+	glColor3f(0.2f, 0.2f, 0.2f);
 	drawAugmentedPoint(x+x1+x2, y+s, z+z1+z2);
 	drawAugmentedPoint(x+x2,   y+s, z+z2);
 	drawAugmentedPoint(x+x1+x2, y+s, z+z1+z2);
