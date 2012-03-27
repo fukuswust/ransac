@@ -48,7 +48,9 @@ int initKinect() {
 }
 
 int main(int argc, char **argv) {
-	int ret = initKinect();
-	if (ret != -1) {return ret;}
+	if (USE_KINECT) {
+		int ret = initKinect();
+		if (ret != -1) {return ret;}
+	}
 	initGui(argc, argv); // Contains GUI loop
 };

@@ -134,7 +134,7 @@ void runAlgorithm() {
 
 				// Determine max Distances for each Direction
 				int dirIndex = (int)floor((tmpDir+(3.0f*PI/4.0))/(PI/2.0f/40.0f));
-				if (dirIndex >= 0 && dirIndex < NUM_SLICES) {
+				if (dirIndex >= 0 && dirIndex < NUM_SLICES && 50.0f && tmpY - currentMinHeight < 200.0f) {
 					if (tmpDis > wallSlicePoints[dirIndex].dis && tmpY2 > currentMinHeight && tmpDis < MAX_ALLOWED_DIS) {
 						wallSlicePoints[dirIndex].dir = tmpDir;
 						wallSlicePoints[dirIndex].dis = tmpDis;
@@ -180,8 +180,8 @@ void runAlgorithm() {
 
 			// Find Wall Points
 			int dirIndex = (int)floor((tmpDir+(3.0f*PI/4.0))/(PI/2.0f/40.0f));
-			if (dirIndex >= 0 && dirIndex < NUM_SLICES) {
-				if (tmpDis > wallSlicePoints[dirIndex].dis - 20 && tmpY - currentMinHeight > 50.0f) {
+			if (dirIndex >= 0 && dirIndex < NUM_SLICES && tmpDis < MAX_ALLOWED_DIS) {
+				if (tmpDis > wallSlicePoints[dirIndex].dis - 20 && tmpY - currentMinHeight > 50.0f && tmpY - currentMinHeight < 200.0f) {
 					numWallPoints++;
 					wallPoints[wOffset++] = tmpX;
 					wallPoints[wOffset++] = tmpY;
@@ -194,7 +194,6 @@ void runAlgorithm() {
 			} else {
 				ijOffset += 2;
 			}
-
 		}
 	}
 	#pragma endregion Determine floor and wall points
@@ -202,6 +201,7 @@ void runAlgorithm() {
 	float alignFloor[3];
 	float floorHeight;
 	segmentFloor(floorPoints, numFloorPoints, floorHist, currentMinHeight, alignFloor, floorHeight);
+
 
 	#pragma region AVERAGING
 	// Determine new pitch and roll

@@ -52,17 +52,19 @@ void TopDownMap::draw() {
 	glEnd();
 
 	// Draw Wall Points
-	glPointSize(5.0f);
-	glColor3f(0.0f, 0.0f, 1.0f);
-	glBegin(GL_POINTS);
-	int offset =  0;
-	for (int i = 0; i < numWallPoints; i++) {
-		float tmpX = wallPoints[offset++]/(MAX_ALLOWED_DIS/radius);
-		offset++;
-		float tmpZ = wallPoints[offset++]/(MAX_ALLOWED_DIS/radius);
-		glVertex2f(cx+tmpX, cy+tmpZ);
+	if (showWallPoints) {
+		glPointSize(5.0f);
+		glColor3f(0.0f, 0.0f, 1.0f);
+		glBegin(GL_POINTS);
+		int offset =  0;
+		for (int i = 0; i < numWallPoints; i++) {
+			float tmpX = wallPoints[offset++]/(MAX_ALLOWED_DIS/radius);
+			offset++;
+			float tmpZ = wallPoints[offset++]/(MAX_ALLOWED_DIS/radius);
+			glVertex2f(cx+tmpX, cy+tmpZ);
+		}
+		glEnd();
 	}
-	glEnd();
 
 	//Draw Augmented Cube
 	float x1 = (AUG_CUBE_SIZE*cos(augCubeYaw))/(0.25*MAX_ALLOWED_DIS/radius);
@@ -77,10 +79,9 @@ void TopDownMap::draw() {
 	glColor4f(1.0f, 0.0f, 0.0f, 0.5f);
 	drawPoint(augCubeX,augCubeZ);
 	drawPoint(augCubeX+x2,augCubeZ+z2);
-	glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
+	glColor4f(0.2f, 0.2f, 0.2f, 0.5f);
 	drawPoint(augCubeX+x1+x2,augCubeZ+z1+z2);
 	drawPoint(augCubeX+x1,augCubeZ+z1);
-	glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
 	drawPoint(augCubeX+x1+x2,augCubeZ+z1+z2);
 	drawPoint(augCubeX+x2,augCubeZ+z2);
 	drawPoint(0.0f, 0.0f);

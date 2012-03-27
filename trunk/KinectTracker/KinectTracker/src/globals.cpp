@@ -15,7 +15,7 @@ int viewYOffset = 0;
 float xViewFactor = 0.0f;
 float yViewFactor = 0.0f;
 // Sensor Height
-float heightValue = 0.0f;
+float heightValue = -150.0f;
 // FPS calculation
 CStopWatch* fpsStopWatch;
 float avgFrameTime = 0.0f;
@@ -40,9 +40,9 @@ float yawValue = 0.0f;//999999.0f;
 float xValue = 0.0f;
 float zValue = 0.0f;
 // Camera Orientation
-float yawMatrix[9];
-float pitchRollMatrix[9];
-float translationMatrix[3];
+float yawMatrix[9] = {1, 0, 0, 0, 1, 0, 0, 0, 1};
+float pitchRollMatrix[9] = {1, 0, 0, 0, 1, 0, 0, 0, 1};
+float translationMatrix[3] = {0, -heightValue, 0};
 int maxZi = 0;
 int maxZj = 0;
 // Running Average
