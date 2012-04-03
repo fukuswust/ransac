@@ -17,7 +17,7 @@
 
 //#define RECORD_RAW
 
-#define USE_KINECT false
+#define USE_KINECT true
 #define DEPTH_SCALE_FACTOR 16
 #define MAX_FLOOR_POINTS ((640*480)/(DEPTH_SCALE_FACTOR*DEPTH_SCALE_FACTOR))
 #define MAX_WALL_POINTS ((640*480)/(DEPTH_SCALE_FACTOR*DEPTH_SCALE_FACTOR))
@@ -39,6 +39,12 @@ union SlicePoint {
 		float dir;
 		float dis;
 	};
+};
+
+struct Line {
+	float m;
+	float b;
+	float n;
 };
 
 struct GlobalMapPoint {
@@ -134,6 +140,13 @@ extern float augCubeZ;
 extern float augCubeYaw;
 // Top Down Map
 extern TopDownMap topDownMap;
+extern SlicePoint tdWall[40];
+extern int numTdWallPts;
+extern Line tdLine[8];
+extern int numTdLines;
+extern float tdPrevDir;
+extern float tdPrevX;
+extern float tdPrevZ;
 
 extern int maxZi;
 extern int maxZj;

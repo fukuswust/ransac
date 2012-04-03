@@ -134,8 +134,8 @@ void runAlgorithm() {
 
 				// Determine max Distances for each Direction
 				int dirIndex = (int)floor((tmpDir+(3.0f*PI/4.0))/(PI/2.0f/40.0f));
-				if (dirIndex >= 0 && dirIndex < NUM_SLICES && 50.0f && tmpY - currentMinHeight < 200.0f) {
-					if (tmpDis > wallSlicePoints[dirIndex].dis && tmpY2 > currentMinHeight && tmpDis < MAX_ALLOWED_DIS) {
+				if (dirIndex >= 0 && dirIndex < NUM_SLICES) {
+					if (tmpDis > wallSlicePoints[dirIndex].dis) {
 						wallSlicePoints[dirIndex].dir = tmpDir;
 						wallSlicePoints[dirIndex].dis = tmpDis;
 					}
@@ -149,8 +149,15 @@ void runAlgorithm() {
 	#pragma region SECOND PASS
 	// Determine initial floor points guess
 	// Determine initial wall points guess
+	for (int i = 0; i < NUM_SLICES; i++) {
+		if (wallSlicePoints[i].dis == -999999.0f) {
+			wallSlicePoints[i].dis = 999999.0f;
+			wallSlicePoints[i].dir = 999999.0f;
+		}
+	}
 	offset = 0;
 	ijOffset = 0;
+	int wallHist[40][20] = {0};
 	for (int i = 0; i < CLOUD_SIZE; i++) {
 		float tmpY = depthPointCloud[offset++]; // height -> dir
 		if (tmpY == 999999.0f) { 
@@ -181,13 +188,19 @@ void runAlgorithm() {
 			// Find Wall Points
 			int dirIndex = (int)floor((tmpDir+(3.0f*PI/4.0))/(PI/2.0f/40.0f));
 			if (dirIndex >= 0 && dirIndex < NUM_SLICES && tmpDis < MAX_ALLOWED_DIS) {
-				if (tmpDis > wallSlicePoints[dirIndex].dis - 20 && tmpY - currentMinHeight > 50.0f && tmpY - currentMinHeight < 200.0f) {
-					numWallPoints++;
-					wallPoints[wOffset++] = tmpX;
-					wallPoints[wOffset++] = tmpY;
-					wallPoints[wOffset++] = tmpZ;
-					wallIJ[wijOffset++] = ijPointCloud[ijOffset++]; // i -> j
-					wallIJ[wijOffset++] = ijPointCloud[ijOffset++]; // j -> next
+				if (tmpY - currentMinHeight > 50.0f && tmpY - currentMinHeight < 200.0f && tmpDis < MAX_ALLOWED_DIS) {
+					int disDiff = floor(wallSlicePoints[dirIndex].dis - tmpDis);
+					if (disDiff < 20) {
+						numWallPoints++;
+						wallPoints[wOffset++] = tmpX;
+						wallPoints[wOffset++] = tmpY;
+						wallPoints[wOffset++] = tmpZ;
+						wallIJ[wijOffset++] = ijPointCloud[ijOffset++]; // i -> j
+						wallIJ[wijOffset++] = ijPointCloud[ijOffset++]; // j -> next
+						wallHist[dirIndex][disDiff]++;
+					} else {
+						ijOffset += 2;
+					}
 				} else {
 					ijOffset += 2;
 				}
@@ -202,6 +215,28 @@ void runAlgorithm() {
 	float floorHeight;
 	segmentFloor(floorPoints, numFloorPoints, floorHist, currentMinHeight, alignFloor, floorHeight);
 
+	int lineID[40];
+	numTdWallPts = flattenWall(wallSlicePoints, wallHist, tdWall, lineID);
+	numTdLines = detectTdLines(tdWall, numTdWallPts, lineID, tdLine);
+
+	float avgRateYaw = 0.75f;
+	if (numTdLines > 1) {
+		//if (tdPrevDir == 999999.0f) {
+		float tdDir0 = atan(-tdLine[0].m);
+		float tdDir1 = atan(-tdLine[1].m);
+		float xDir, zDir;
+		if (tdDir0 <= 0) {
+			xDir = tdDir0;
+			zDir = tdDir1;
+		} else {
+			xDir = tdDir1;
+			zDir = tdDir0;
+		}
+		float dirDiff = abs(tdDir0 - tdDir1)*180.f/PI;
+		if (dirDiff - 10.0f < 90.0f && dirDiff + 10.0f > 90.0f) {
+			yawValue = (yawValue*avgRateYaw)+(xDir*(1.0f-avgRateYaw));
+		}
+	}
 
 	#pragma region AVERAGING
 	// Determine new pitch and roll
@@ -430,4 +465,183 @@ void segmentFloor(float floorPoints[], int &numFloorPoints, int floorHist[], flo
 			floorHeight = -midY;
 		}
 	}
+}
+
+int  flattenWall(SlicePoint wallSlicePoints[], int wallHist[][20], SlicePoint tdWall[], int lineID[]) {
+	int numTdWallPts = 0;
+	for (int dirOn = 0; dirOn < 40; dirOn++) {
+		// Find Hist Maximum
+		int maxV = 0;
+		int maxI = -1;
+		for (int i = 0; i < 20; i++) {
+			if (wallHist[dirOn][i] > maxV) {
+				maxV = wallHist[dirOn][i];
+				maxI = i;
+			}
+		}
+		// Add point if sufficient data 
+		if (maxV > 0) {
+			float tmpDir = (dirOn * (PI/2.0f/40.0f)) - (3.0f*PI/4.0);
+			float tmpDis = wallSlicePoints[dirOn].dis - maxI;
+			tdWall[numTdWallPts].x = tmpDis*cos(tmpDir);
+			tdWall[numTdWallPts].z = tmpDis*sin(tmpDir);
+			lineID[numTdWallPts] = dirOn/5;
+			numTdWallPts++;
+		}
+	}
+	return numTdWallPts;
+}
+
+int  detectTdLines(SlicePoint tdWall[], int numTdWallPts, int lineID[40], Line tdLine[]) {
+	int n[8] = {0};
+	float sX[8] = {0.0f};
+	float sZ[8] = {0.0f};
+	float sXX[8] = {0.0f};
+	float sZZ[8] = {0.0f};
+	float sXZ[8] = {0.0f};
+	float m[8] = {0.0f};
+	float b[8] = {0.0f};
+	float err[8] = {0.0f};
+
+	for (int rep = 0; rep < 5; rep++) {
+		// Initialize counters to 0
+		for (int i = 0; i < 8; i++) {
+			n[i] = 0;
+			sX[i] = 0.0f;
+			sZ[i] = 0.0f;
+			sXX[i] = 0.0f;
+			sZZ[i] = 0.0f;
+			sXZ[i] = 0.0f;
+		}
+
+		// Get sums for regession
+		for (int i = 0; i < numTdWallPts; i++) {
+			int lID = lineID[i];
+			float x = tdWall[i].x;
+			float z = tdWall[i].z;
+			n[lID]++;
+			sX[lID] += x;
+			sZ[lID] += z;
+			sXX[lID] += x*x;
+			sZZ[lID] += z*z;
+			sXZ[lID] += x*z;
+		}
+
+		// Solve regressions
+		for (int secOn = 0; secOn < 8; secOn++) {
+			if (n[secOn] > 1) {
+				m[secOn] = ( (float)n[secOn] * sXZ[secOn] - sZ[secOn] * sX[secOn] ) / 
+					( (float)n[secOn] * sXX[secOn] - sX[secOn] * sX[secOn] );
+				b[secOn] = ( sZ[secOn] - m[secOn] * sX[secOn] ) / (float)n[secOn];   
+				float ssx = m[secOn] * ( sXZ[secOn] - sX[secOn] * sZ[secOn] / (float)n[secOn] );
+				float ssz2 = sZZ[secOn] - sZ[secOn] * sZ[secOn] / (float)n[secOn];
+				float ssz = ssz2 - ssx;
+				if (n[secOn] == 2) {
+					err[secOn] = 0.0f;
+				} else {
+					err[secOn] = sqrt(ssz / ((float)n[secOn] - 2));
+				}
+			} else if (n[secOn] == 1) { 
+				m[secOn] = sZ[secOn]/sX[secOn];
+				b[secOn] = 0.0f;
+				err[secOn] = 0.0f;
+			} else {
+				m[secOn] = 999999.0f;
+				b[secOn] = 999999.0f;
+				err[secOn] = 999999.0f;
+			}
+		}
+
+		// Join Lines
+		if (rep > 2) {
+			for (int l1 = 0; l1 < 7; l1++) {
+				for (int l2 = l1+1; l2 < 7; l2++) {
+					if (n[l1] > 1 && n[l2] > 0) {
+						// Get Sums
+						int   jn   = n[l1] + n[l2];
+						float jsX  = sX[l1] + sX[l2];
+						float jsZ  = sZ[l1] + sZ[l2];
+						float jsXX = sXX[l1] + sXX[l2];
+						float jsZZ = sZZ[l1] + sZZ[l2];
+						float jsXZ = sXZ[l1] + sXZ[l2];
+						// Perform Regression
+						float jm = ((float)jn * jsXZ - jsZ * jsX ) / ( (float)jn * jsXX - jsX * jsX );
+						float jb = ( jsZ - jm * jsX ) / (float)jn;   
+						float jssx = jm * ( jsXZ - jsX * jsZ / (float)jn );
+						float jssz2 = jsZZ - jsZ * jsZ / (float)jn;
+						float jssz = jssz2 - jssx;
+						float jerr = sqrt(jssz / ((float)jn - 2));
+						// Check for joining lines
+						if (n[l2] > 1) {
+							if (jerr*(float)jn < err[l1]*(float)n[l1] + err[l2]*(float)n[l2] + (float)n[l2]*10.0f) {
+								n[l1] = 0;
+								n[l2] = jn;
+								sX[l2] = jsX;
+								sZ[l2] = jsZ;
+								sXX[l2] = jsXX;
+								sZZ[l2] = jsZZ;
+								sXZ[l2] = jsXZ;
+								m[l2] = jm;
+								b[l2] = jb;
+								err[l2] = jerr;
+							}
+						} else {
+							if (jerr < err[l1] + 0.5) {
+								n[l1] = 0;
+								n[l2] = jn;
+								sX[l2] = jsX;
+								sZ[l2] = jsZ;
+								sXX[l2] = jsXX;
+								sZZ[l2] = jsZZ;
+								sXZ[l2] = jsXZ;
+								m[l2] = jm;
+								b[l2] = jb;
+								err[l2] = jerr;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// Reassign points to nearest line
+		for (int i = 0; i < numTdWallPts; i++) {
+			float minV = 999999.0f;
+			int minI = 0;
+			for (int secOn = 0; secOn < 8; secOn++) {
+				if (n[secOn] > 0) {
+					float tmpDis = abs(m[secOn]*tdWall[i].x - tdWall[i].z + b[secOn])/ sqrt((m[secOn]*m[secOn]) + 1);
+					if (tmpDis < minV) {
+						minV = tmpDis;
+						minI = secOn;
+					}
+				}
+			}
+			lineID[i] = minI;
+		}
+
+	}
+
+	// Determine Final Lines
+	numTdLines = 0;
+	for (int itr = 0; itr < 8; itr++) {
+		int maxV = 0;
+		int maxI = -1;
+		for (int secOn = 0; secOn < 8; secOn++) {
+			if (n[secOn] > maxV) {
+				maxV = n[secOn];
+				maxI = secOn;
+			}
+		}
+		if (maxI != -1 && maxV > 3) {
+			tdLine[numTdLines].m = m[maxI];
+			tdLine[numTdLines].b = b[maxI];
+			tdLine[numTdLines].n = maxV;
+			n[maxI] = 0;
+			numTdLines++;
+		} else {
+			break;
+		}
+	}
+	return numTdLines;
 }
