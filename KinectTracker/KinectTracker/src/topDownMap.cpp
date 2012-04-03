@@ -36,18 +36,44 @@ void TopDownMap::draw() {
 	glVertex2f(cx-delX, cy-delY);
 	glEnd();
 
-	// Draw Wall Slice Points
+	// Draw Top Down Wall
 	glPointSize(5.0f);
 	glColor3f(1.0f, 0.0f, 0.0f);
 	glBegin(GL_POINTS);
-	for (int i = 0; i < NUM_SLICES; i++) {
-		float tmpDis = wallSlicePoints[i].dis;
-		float tmpDir = wallSlicePoints[i].dir;
-		if (wallSlicePoints[i].dis != -999999.0) {
-			float tmpX = (tmpDis*cos(tmpDir))/(MAX_ALLOWED_DIS/radius);
-			float tmpZ = (tmpDis*sin(tmpDir))/(MAX_ALLOWED_DIS/radius);
+	for (int i = 0; i < numTdWallPts && i < 2; i++) {
+		if (abs(tdWall[i].x) != 999999.0) {
+			float tmpX = tdWall[i].x/(MAX_ALLOWED_DIS/radius);
+			float tmpZ = tdWall[i].z/(MAX_ALLOWED_DIS/radius);
 			glVertex2f(cx+tmpX, cy+tmpZ);
 		}
+	}
+	glEnd();
+
+	// Draw Top Down Lines
+	float inSqrSize = 2*sqrt((float)radius);
+	glLineWidth(4.0f);
+	glColor3f(0.0f, 1.0f, 0.0f);
+	glBegin(GL_LINES);
+	for (int i = 0; i < numTdLines; i++) {
+		float m = tdLine[i].m;
+		float b = tdLine[i].b/(MAX_ALLOWED_DIS/radius);
+		float x1 = 0;
+		float x2 = 1;
+		float y1 = b;
+		float y2 = m + b;
+		float dx = x2-x1;
+		float dy = y2-y1;
+		float dr = sqrt((dx*dx)+(dy*dy));
+		float D = (x1*y2)-(x2*y1);
+		float sgn = 0;
+		float r = radius;
+		 if (dy < 0) {sgn = -1;} else {sgn = 1;}
+		float pt1x = (((D*dy) + (sgn*dx*sqrt((r*r*dr*dr)-(D*D))))/(dr*dr));
+		float pt2x = (((D*dy) - (sgn*dx*sqrt((r*r*dr*dr)-(D*D))))/(dr*dr));
+		float pt1y = (((-D*dx) + (abs(dy)*sqrt((r*r*dr*dr)-(D*D))))/(dr*dr));
+		float pt2y = (((-D*dx) - (abs(dy)*sqrt((r*r*dr*dr)-(D*D))))/(dr*dr));
+		glVertex2f(cx+pt1x, cy+pt1y);
+		glVertex2f(cx+pt2x, cy+pt2y);
 	}
 	glEnd();
 

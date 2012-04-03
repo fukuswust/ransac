@@ -23,3 +23,7 @@ void solveVector(float M[3][3], float R[3]);
 void normalizeVector(float R[3]);
 
 void segmentFloor(float floorPoints[], int &numFloorPoints, int floorHist[], float currentMinHeight, float alignFloor[], float &floorHeight);
+
+int  flattenWall(SlicePoint wallSlicePoints[], int wallHist[][20], SlicePoint tdWall[], int lineID[]);
+
+int  detectTdLines(SlicePoint tdWall[], int numTdWallPts, int lineID[40], Line tdLine[]);

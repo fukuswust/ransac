@@ -36,7 +36,7 @@ float wallPoints[MAX_WALL_POINTS*3];
 int   wallIJ[MAX_WALL_POINTS*2];
 int   numWallPoints;
 // Top Down Position
-float yawValue = 0.0f;//999999.0f;
+float yawValue = 0.0f;
 float xValue = 0.0f;
 float zValue = 0.0f;
 // Camera Orientation
@@ -62,10 +62,18 @@ int closestLocal[NUM_SLICES];
 //global
 float augCubeX = -AUG_CUBE_SIZE/2.0f;
 float augCubeY = 0.0f;
-float augCubeZ = -200.0f;
+float augCubeZ = 0.0f;
 float augCubeYaw = 0.0f;
 // Top Down Map
 TopDownMap topDownMap;
+SlicePoint tdWall[40];
+int numTdWallPts = 0;
+Line tdLine[8];
+int numTdLines = 0;
+float tdPrevDir = 999999.0f;
+float tdPrevX = 999999.0f;
+float tdPrevZ = 999999.0f;
+
 
 Kinect::Kinect *K;
 Listener *L;
