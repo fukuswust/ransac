@@ -215,28 +215,23 @@ void runAlgorithm() {
 	float floorHeight;
 	segmentFloor(floorPoints, numFloorPoints, floorHist, currentMinHeight, alignFloor, floorHeight);
 
+	// Estimate new yaw
 	int lineID[40];
 	numTdWallPts = flattenWall(wallSlicePoints, wallHist, tdWall, lineID);
-	numTdLines = detectTdLines(tdWall, numTdWallPts, lineID, tdLine);
+	float estYaw = estimateYaw(tdWall, numTdWallPts, yawValue);
+	// Average new yaw
+	float degDiff = dirDiffAngle(yawValue, estYaw)*180.0f/PI;
+	printf("%f\n",degDiff*dirDiffAngleSign(yawValue, estYaw));
+	float yawAvg = 1.0f - ((0.1f/5.0f)*degDiff);
+	yawValue = weighedAngleAvg(yawValue, estYaw, yawAvg);
+	numTdLines = 1;
+	tdLine[0].m = tan(yawValue);
+	tdLine[0].b = 0;
+	
+	// Determine X and Z
+	performRotation(tdWall, -yawValue);
+	numTdWallPts = xzMedianFilter(tdWall, numTdWallPts);
 
-	float avgRateYaw = 0.75f;
-	if (numTdLines > 1) {
-		//if (tdPrevDir == 999999.0f) {
-		float tdDir0 = atan(-tdLine[0].m);
-		float tdDir1 = atan(-tdLine[1].m);
-		float xDir, zDir;
-		if (tdDir0 <= 0) {
-			xDir = tdDir0;
-			zDir = tdDir1;
-		} else {
-			xDir = tdDir1;
-			zDir = tdDir0;
-		}
-		float dirDiff = abs(tdDir0 - tdDir1)*180.f/PI;
-		if (dirDiff - 10.0f < 90.0f && dirDiff + 10.0f > 90.0f) {
-			yawValue = (yawValue*avgRateYaw)+(xDir*(1.0f-avgRateYaw));
-		}
-	}
 
 	#pragma region AVERAGING
 	// Determine new pitch and roll
@@ -260,6 +255,7 @@ void runAlgorithm() {
 	normalizeVector(curUpVector);
 
 	// Determine new height
+	floorHeight -= 16.4f;
 	if (numFloorPoints > MIN_FLOOR_POINTS) {
 		avgRate = abs(heightValue-floorHeight)*(AVG_STRENGTH/1.5f);
 		if (avgRate > 1.0f) {
@@ -320,15 +316,15 @@ void setPositionAndOrientation() {
 	findRotationToUp(curUpVector[0], curUpVector[1], curUpVector[2], pitchRollMatrix);
 
 	// Yaw Rotation
-	yawMatrix[0] = cos(-yawValue);
+	yawMatrix[0] = cos(yawValue);
 	yawMatrix[1] = 0;
-	yawMatrix[2] = -sin(-yawValue);
+	yawMatrix[2] = -sin(yawValue);
 	yawMatrix[3] = 0;
 	yawMatrix[4] = 1;
 	yawMatrix[5] = 0;
-	yawMatrix[6] = sin(-yawValue);
+	yawMatrix[6] = sin(yawValue);
 	yawMatrix[7] = 0;
-	yawMatrix[8] = cos(-yawValue);
+	yawMatrix[8] = cos(yawValue);
 }
 
 void performRotation(SlicePoint set[], float rot) {
@@ -645,4 +641,121 @@ int  detectTdLines(SlicePoint tdWall[], int numTdWallPts, int lineID[40], Line t
 		}
 	}
 	return numTdLines;
+}
+
+float estimateYaw(SlicePoint tdWall[], int numTdWallPts, float yawValue) {
+	// Find all possible slopes and directions and put into histogram
+	#define YAW_HIST_SIZE 45
+	int yawHist[YAW_HIST_SIZE] = {0};
+	for (int i = 0; i < numTdWallPts; i++) {
+		for (int j = i-5; j <= i+5; j++) {
+			if (i!=j && j >= 0 && j < numTdWallPts) {
+				float dir = atan2(tdWall[i].z - tdWall[j].z, tdWall[i].x - tdWall[j].x) + PI;
+				float integral;
+				dir = modf(dir/(PI/2.0f), &integral);
+				yawHist[(int)floor(dir*YAW_HIST_SIZE)]++;
+			}
+		}
+	}
+
+	// Find histogram maximum
+	int curMaxV = 0;
+	int curMaxI = -1;
+	for (int i = 0; i < YAW_HIST_SIZE; i++) {
+		if (yawHist[i] > curMaxV) {
+			curMaxV = yawHist[i];
+			curMaxI = i;
+		}
+	}
+	if (curMaxI == -1) {return yawValue;}
+
+	// Determine closest quadrant to current direction
+	float dirEstQuad = (((float)curMaxI/YAW_HIST_SIZE)*(PI/2.0f));
+	if (dirDiffAngle(dirEstQuad+((PI*0.0f)/2.0f), yawValue) <= PI/4.0f) {return dirEstQuad+((PI*0.0f)/2.0f);}
+	if (dirDiffAngle(dirEstQuad+((PI*1.0f)/2.0f), yawValue) <= PI/4.0f) {return dirEstQuad+((PI*1.0f)/2.0f);}
+	if (dirDiffAngle(dirEstQuad+((PI*2.0f)/2.0f), yawValue) <= PI/4.0f) {return dirEstQuad+((PI*2.0f)/2.0f);}
+	return dirEstQuad+((PI*3.0f)/2.0f);
+}
+
+float dirDiffAngle(float dir1, float dir2) {
+	return acos((cos(dir1)*cos(dir2)) + (sin(dir1)*sin(dir2)));
+}
+
+float dirDiffAngleSign(float dir1, float dir2) {
+	if (dir1 > dir2) {
+		if (dir1 - dir2 < PI) {
+			return 1.0f;
+		} else {
+			return -1.0f;
+		}
+	} else {
+		if (dir2 - dir1 < PI) {
+			return -1.0f;
+		} else {
+			return 1.0f;
+		}
+	}
+}
+
+float weighedAngleAvg(float dir1, float dir2, float w) {
+	if (abs(dir2-dir1) < PI) {
+		return (dir1*w)+(dir2*(1-w));
+	} else {
+		float avg;
+		if (dir1 > dir2) {
+			avg = (((dir1-(2.0f*PI))*w)+(dir2*(1-w)));
+		} else {
+			avg = ((dir1*w)+((dir2-(2.0f*PI))*(1-w)));
+		}
+		if (avg < 0.0f) {avg += 2.0f*PI;}
+		return avg;
+	}
+}
+
+int xzMedianFilter(SlicePoint tdWall[], int numTdWallPts) {
+	for (int i = 2; i < numTdWallPts-2; i++) {
+		// Find x median
+		float minVal[3];
+		minVal[0] = tdWall[i-2].x;
+		minVal[1] = 999999.0f;
+		minVal[2] = 999999.0f;
+		for (int j = i-1; j <= i+2; j++) {
+			float val = tdWall[j].x;
+			if (val < minVal[0]) {
+				minVal[2] = minVal[1];
+				minVal[1] = minVal[0];
+				minVal[0] = val;
+			} else if (val < minVal[1]) {
+				minVal[2] = minVal[1];
+				minVal[1] = val;
+			} else if (val < minVal[2]) {
+				minVal[2] = val;
+			}
+		}
+		tdWall[i-2].x = minVal[2];
+		
+		// Find z median
+		minVal[0] = tdWall[i-2].z;
+		minVal[1] = 999999.0f;
+		minVal[2] = 999999.0f;
+		for (int j = i-1; j <= i+2; j++) {
+			float val = tdWall[j].z;
+			if (val < minVal[0]) {
+				minVal[2] = minVal[1];
+				minVal[1] = minVal[0];
+				minVal[0] = val;
+			} else if (val < minVal[1]) {
+				minVal[2] = minVal[1];
+				minVal[1] = val;
+			} else if (val < minVal[2]) {
+				minVal[2] = val;
+			}
+		}
+		tdWall[i-2].z = minVal[2];
+	}
+	return numTdWallPts-4;
+}
+
+void determineAxisLines(SlicePoint tdWall[], int numTdWallPts) {
+	int lineID[8];
 }
