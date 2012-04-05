@@ -2,6 +2,8 @@
 #include "globals.h"
 #include "basicShapes.h"
 
+float gAngle = 0.0f;
+
 void drawColorBackground(int viewWidth, int viewHeight, GLuint texID){
 	glColor3f(1.0f, 1.0f, 1.0f);
 	glEnable(GL_TEXTURE_2D);
@@ -48,7 +50,7 @@ void drawWallPoints(int wallIJ[], int numPoints) {
 }
 
 void drawAugmentedPoint(float x, float y, float z) {
-	// Get X,Y,Z Coordinates
+	// Get X,Y,Z Coordinates of camera in room
 	float transX = translationMatrix[0] - x;
 	float transY = translationMatrix[1] - y;
 	float transZ = translationMatrix[2] - z;
@@ -63,12 +65,27 @@ void drawAugmentedPoint(float x, float y, float z) {
 	float fy = (pitchRollMatrix[3]*yawTmpX) + (pitchRollMatrix[4]*yawTmpY) + (pitchRollMatrix[5]*yawTmpZ);
 	float fz = (pitchRollMatrix[6]*yawTmpX) + (pitchRollMatrix[7]*yawTmpY) + (pitchRollMatrix[8]*yawTmpZ);
 
+	// Switch to rgb camera view
 	if (fz >= 0) {
 		float fi = ((( fx - 1.8f) / 0.0023f)/ (-fz - 10)) + 320.0f - 1.0f;
 		float fj = (((-fy - 2.4f) / 0.0023f)/ (-fz - 10)) + 240.0f - 1.0f;
 
 		glVertex2f(fi*xViewFactor, fj*yViewFactor);
 	}
+}
+
+void drawAugmentedWireCube(float x, float y, float z) {
+	/*gAngle += 0.003f*PI;
+	GLfloat theMatrix[] = {cos(gAngle), 0.0f, -sin(gAngle), 0.0f,
+						   0.0f, 1.0f, 0.0f, 0.0f,
+						   sin(gAngle), 0.0f, cos(gAngle),  0.0f,
+						   0.0f, 0.0f, 0.0f, 1.0f};
+
+	//glLoadIdentity();
+	
+	glMultMatrixf(theMatrix);*/
+
+	 // Render the primitive
 }
 
 void drawTopDownViewPoint(float x, float y, float z) {
@@ -93,9 +110,9 @@ void drawAugmentedCube(float x, float y, float z, float yaw, float s) {
 	glBegin(GL_LINES);
 
 	float x1 = s*cos(yaw);
-	float z1 = s*sin(yaw);
+	float z1 = -s*sin(yaw);
 	float x2 = s*cos(yaw+PI/2);
-	float z2 = s*sin(yaw+PI/2);
+	float z2 = -s*sin(yaw+PI/2);
 
 	glColor3f(0.0f, 0.0f, 1.0f);
 	drawAugmentedPoint(x, y, z);

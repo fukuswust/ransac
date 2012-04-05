@@ -60,8 +60,8 @@ int closestLocal[NUM_SLICES];
 // Augmentations
 //local
 //global
-float augCubeX = -AUG_CUBE_SIZE/2.0f;
-float augCubeY = 0.0f;
+float augCubeX = 0.0f;
+float augCubeY = 50.0f;
 float augCubeZ = 0.0f;
 float augCubeYaw = 0.0f;
 // Top Down Map
