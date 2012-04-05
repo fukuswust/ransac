@@ -94,22 +94,25 @@ void TopDownMap::draw() {
 
 	//Draw Augmented Cube
 	float x1 = (AUG_CUBE_SIZE*cos(augCubeYaw))/(0.25*MAX_ALLOWED_DIS/radius);
-	float z1 = (AUG_CUBE_SIZE*sin(augCubeYaw))/(0.25*MAX_ALLOWED_DIS/radius);
+	float z1 = -(AUG_CUBE_SIZE*sin(augCubeYaw))/(0.25*MAX_ALLOWED_DIS/radius);
 	float x2 = (AUG_CUBE_SIZE*cos(augCubeYaw+PI/2))/(0.25*MAX_ALLOWED_DIS/radius);
-	float z2 = (AUG_CUBE_SIZE*sin(augCubeYaw+PI/2))/(0.25*MAX_ALLOWED_DIS/radius);
+	float z2 = -(AUG_CUBE_SIZE*sin(augCubeYaw+PI/2))/(0.25*MAX_ALLOWED_DIS/radius);
+	float acX = augCubeX - 50.0f;
+	float acZ = augCubeZ + 50.0f;
+
 	glLineWidth(3.0f);
 	glBegin(GL_LINES);
 	glColor4f(0.0f, 0.0f, 1.0f, 0.5f);
-	drawPoint(augCubeX,augCubeZ);
-	drawPoint(augCubeX+x1,augCubeZ+z1);
+	drawPoint(acX,acZ);
+	drawPoint(acX+x1,acZ+z1);
 	glColor4f(1.0f, 0.0f, 0.0f, 0.5f);
-	drawPoint(augCubeX,augCubeZ);
-	drawPoint(augCubeX+x2,augCubeZ+z2);
+	drawPoint(acX,acZ);
+	drawPoint(acX+x2,acZ+z2);
 	glColor4f(0.2f, 0.2f, 0.2f, 0.5f);
-	drawPoint(augCubeX+x1+x2,augCubeZ+z1+z2);
-	drawPoint(augCubeX+x1,augCubeZ+z1);
-	drawPoint(augCubeX+x1+x2,augCubeZ+z1+z2);
-	drawPoint(augCubeX+x2,augCubeZ+z2);
+	drawPoint(acX+x1+x2,acZ+z1+z2);
+	drawPoint(acX+x1,acZ+z1);
+	drawPoint(acX+x1+x2,acZ+z1+z2);
+	drawPoint(acX+x2,acZ+z2);
 	drawPoint(0.0f, 0.0f);
 	glEnd();
 	glLineWidth(1.0f);

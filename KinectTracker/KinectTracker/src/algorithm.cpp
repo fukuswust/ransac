@@ -310,6 +310,7 @@ void findRotationToUp(float xVect, float yVect, float zVect, float M[]) {
 void setPositionAndOrientation() {
 	// Camera Orientation
 	// Translation
+	heightValue -= 16.6f;
 	translationMatrix[0] = xValue; // x translation
 	translationMatrix[1] = heightValue; // height translation
 	translationMatrix[2] = zValue; // z translation

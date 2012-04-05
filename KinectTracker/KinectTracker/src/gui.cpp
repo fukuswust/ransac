@@ -45,6 +45,11 @@ void initRendering() {
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); //Set the blend function
 	// Enable antialiasing.  Do we want to do this?
 	glEnable(GL_LINE_SMOOTH);
+	// Enable Lighting
+	glEnable(GL_COLOR_MATERIAL);
+	glEnable (GL_DEPTH_TEST);
+    glEnable (GL_LIGHTING);
+    glEnable (GL_LIGHT0);
 }
 
 // Main Update Loop
@@ -86,28 +91,78 @@ void handleResize(int w, int h) {
 
 	//Set the camera perspective
 	glLoadIdentity(); //Reset the camera
-	gluPerspective(45.0,                  //The camera angle
+	gluPerspective(43.0,                  //The camera angle
 				   (double)viewWidth / (double)viewHeight, //The width-to-height ratio
 				   1.0,                   //The near z clipping coordinate
-				   200.0);                //The far z clipping coordinate
+				   2000.0);                //The far z clipping coordinate
 }
 
 void drawScene() {
-	//Clear information from last draw
+//Clear information from last draw
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	//Draw 2D Scene in Background
 	orthogonalStart (viewWidth, viewHeight);
-	// Draw RGB Camera in background (in 2D)
+	// Draw RGB Camera Output in background (in 2D)
 	drawColorBackground(viewWidth, viewHeight, texID);
 	orthogonalEnd();
 
-
 	//Draw 3D Scene
+	glEnable(GL_LIGHTING);
 	glMatrixMode(GL_MODELVIEW); //Switch to the drawing perspective
 	glLoadIdentity(); //Reset the drawing perspective
+
+	// Draw 3D object
+	//glRotatef(180.0f*(180/PI),1.0f,0.0f,0.0f);	// Rotate The cube around the Y axis
+	
+	//yawValue += 0.03f;
+	zValue = 200.f;
+	// Apply tranform from depth to rgb sensor - http://nicolas.burrus.name/index.php/Research/KinectCalibration
+	GLfloat drbpMatrx[] = { 0.99984628826577793f, -0.0014779096108364480f, 0.017470421412464927f, 0.0f,
+						    0.0012635359098409581f, 0.99992385683542895f, 0.012275341476520762f, 0.0f,
+						   -0.017487233004436643f, -0.012251380107679535f, 0.99977202419716948f, 0.0f,
+						   1.9985242312092553f, -0.074423738761617583f, -1.0916736334336222f, 1.0f}; // Column major form
+	//glMultMatrixf(drbpMatrx);
+
+	// Apply pictch / roll matrix
+	GLfloat prMatrix[] = { pitchRollMatrix[0], pitchRollMatrix[3], pitchRollMatrix[6], 0.0f,
+						   pitchRollMatrix[1], pitchRollMatrix[4], pitchRollMatrix[7], 0.0f,
+						   pitchRollMatrix[2], pitchRollMatrix[5], pitchRollMatrix[8], 0.0f,
+						   0.0f, 0.0f, 0.0f, 1.0f}; // Column major form
+	glMultMatrixf(prMatrix);
+
+	// Apply yMatrix
+	GLfloat yMatrix[] = { yawMatrix[0], yawMatrix[3], yawMatrix[6], 0.0f,
+						   yawMatrix[1], yawMatrix[4], yawMatrix[7], 0.0f,
+						   yawMatrix[2], yawMatrix[5], yawMatrix[8], 0.0f,
+						   0.0f, 0.0f, 0.0f, 1.0f}; // Column major form
+	//translationMatrix - in cm
+	glMultMatrixf(yMatrix);
+	
+	float s = 1.0f;
+	float sx = s;//529.21508098293293/10000.0f;
+	float sy = s;//525.56393630057437/10000.0f;
+	float sz = s;
+	GLfloat tsMatrix[] = { sx,						0.0f,					 0.0f,					  0.0f,
+						   0.0f,					sy,						 0.0f,					  0.0f,
+						   0.0f,					0.0f,					 sz,					  0.0f,
+						   -translationMatrix[0]*sx, -translationMatrix[1]*sy, -translationMatrix[2]*sz, 1.0f}; // Column major form
+	glMultMatrixf(tsMatrix);
+
+	glTranslatef(augCubeX, augCubeY, augCubeZ);
+	glRotatef(augCubeYaw*(180/PI),0.0f,1.0f,0.0f);
+	glLineWidth(10);
+	glutWireCube(100.0f);
+	glLineWidth(1);
+	glDisable(GL_COLOR_MATERIAL);
+	glDisable(GL_LIGHTING);
+	printf("height: %f\n", translationMatrix[1]*0.393700787);
+	//glTranslatef(0.0f, -1.0f, -5.0f);
+	glFlush(); // Flush the OpenGL buffers to the window - do we need to do this?
+
+
 	orthogonalStart(viewWidth, viewHeight);
-	drawAugmentedCube(augCubeX,augCubeY,augCubeZ,augCubeYaw,AUG_CUBE_SIZE);
+	//drawAugmentedCube(augCubeX,augCubeY,augCubeZ,augCubeYaw,AUG_CUBE_SIZE);
 	orthogonalEnd();
 
 	//Draw 2D Overlay
@@ -138,10 +193,10 @@ void drawScene() {
 
 void orthogonalStart (int viewWidth, int viewHeight) {
 	glPushMatrix();
-	glMatrixMode(GL_PROJECTION);
+	glMatrixMode(GL_PROJECTION);	// Sets the current stack to push and pop stuff onto
 	glPushMatrix();
 	glLoadIdentity();
-	gluOrtho2D(0, viewWidth, 0, viewHeight);
+	gluOrtho2D(0, viewWidth, 0, viewHeight);	// Sets the viewing region
 	glDisable(GL_DEPTH_TEST);
 	glScalef(1, -1, 1);
 	glTranslatef(0, -viewHeight, 0);

@@ -4,6 +4,7 @@ void drawColorBackground(int viewWidth, int viewHeight, GLuint texID);
 void drawFloorPoints(int floorIJ[], int numPoints);
 void drawWallPoints(int wallIJ[], int numPoints);
 void drawAugmentedPoint(float x, float y, float z);
+void drawAugmentedWireCube(float x, float y, float z);
 void drawTopDownViewPoint(float x,float y, float z);
 void drawAugmentedCube(float x, float y, float z, float yaw, float s);
 void drawAugmentedCorners();
