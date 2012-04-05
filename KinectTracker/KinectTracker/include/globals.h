@@ -21,7 +21,7 @@
 #define DEPTH_SCALE_FACTOR 16
 #define MAX_FLOOR_POINTS ((640*480)/(DEPTH_SCALE_FACTOR*DEPTH_SCALE_FACTOR))
 #define MAX_WALL_POINTS ((640*480)/(DEPTH_SCALE_FACTOR*DEPTH_SCALE_FACTOR))
-#define MAX_ALLOWED_DIS 500.0f
+#define MAX_ALLOWED_DIS 700.0f
 #define NUM_SLICES (640/DEPTH_SCALE_FACTOR)
 #define CLOUD_SIZE ((640*480)/(DEPTH_SCALE_FACTOR*DEPTH_SCALE_FACTOR))
 #define CLOUD_AVG_FACTOR 0.5f
@@ -45,6 +45,14 @@ struct Line {
 	float m;
 	float b;
 	float n;
+};
+
+struct LineSeg {
+	float dir;
+	float loc;
+	float start;
+	float end;
+	int   n;
 };
 
 struct GlobalMapPoint {

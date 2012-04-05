@@ -7,7 +7,7 @@ bool TopDownMap::drawPoint(float x, float z) {
 	float tmpZ = z - zValue;
 	float tmpDis = sqrt((tmpX*tmpX)+(tmpZ*tmpZ));
 	if (tmpDis < MAX_ALLOWED_DIS) {
-		float tmpDir = atan2(tmpZ,tmpX) - yawValue;
+		float tmpDir = atan2(tmpZ,tmpX) + yawValue;
 		tmpX = (tmpDis*cos(tmpDir))/(MAX_ALLOWED_DIS/radius);
 		tmpZ = (tmpDis*sin(tmpDir))/(MAX_ALLOWED_DIS/radius);
 		glVertex2f(cx+tmpX, cy+tmpZ);
@@ -40,7 +40,7 @@ void TopDownMap::draw() {
 	glPointSize(5.0f);
 	glColor3f(1.0f, 0.0f, 0.0f);
 	glBegin(GL_POINTS);
-	for (int i = 0; i < numTdWallPts && i < 2; i++) {
+	for (int i = 0; i < numTdWallPts; i++) {
 		if (abs(tdWall[i].x) != 999999.0) {
 			float tmpX = tdWall[i].x/(MAX_ALLOWED_DIS/radius);
 			float tmpZ = tdWall[i].z/(MAX_ALLOWED_DIS/radius);

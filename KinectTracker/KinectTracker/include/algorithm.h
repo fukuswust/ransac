@@ -27,3 +27,13 @@ void segmentFloor(float floorPoints[], int &numFloorPoints, int floorHist[], flo
 int  flattenWall(SlicePoint wallSlicePoints[], int wallHist[][20], SlicePoint tdWall[], int lineID[]);
 
 int  detectTdLines(SlicePoint tdWall[], int numTdWallPts, int lineID[40], Line tdLine[]);
+
+float estimateYaw(SlicePoint tdWall[], int numTdWallPts, float yawValue);
+
+float dirDiffAngle(float dir1, float dir2);
+
+float dirDiffAngleSign(float dir1, float dir2);
+
+float weighedAngleAvg(float dir1, float dir2, float w);
+
+int  xzMedianFilter(SlicePoint tdWall[], int numTdWallPts);
