@@ -73,6 +73,8 @@ int numTdLines = 0;
 float tdPrevDir = 999999.0f;
 float tdPrevX = 999999.0f;
 float tdPrevZ = 999999.0f;
+LineSeg tdLineSeg[16];
+int numLineSeg = 0;
 
 
 Kinect::Kinect *K;

@@ -37,3 +37,5 @@ float dirDiffAngleSign(float dir1, float dir2);
 float weighedAngleAvg(float dir1, float dir2, float w);
 
 int  xzMedianFilter(SlicePoint tdWall[], int numTdWallPts);
+
+int determineAxisLines(SlicePoint tdWall[], int numTdWallPts, LineSeg lineSeg[]);

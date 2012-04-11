@@ -3,8 +3,8 @@
 #include "basicShapes.h"
 
 bool TopDownMap::drawPoint(float x, float z) {
-	float tmpX = x - xValue;
-	float tmpZ = z - zValue;
+	float tmpX = x;// - xValue;
+	float tmpZ = z;// - zValue;
 	float tmpDis = sqrt((tmpX*tmpX)+(tmpZ*tmpZ));
 	if (tmpDis < MAX_ALLOWED_DIS) {
 		float tmpDir = atan2(tmpZ,tmpX) + yawValue;
@@ -15,6 +15,79 @@ bool TopDownMap::drawPoint(float x, float z) {
 	} else { // Point out of range
 		return false;
 	}
+}
+
+void TopDownMap::drawLineSeg(LineSeg lineSeg) {
+	float x1, x2, y1, y2;
+	if (lineSeg.isTypeX) {
+		x1 = lineSeg.start;
+		x2 = lineSeg.stop;
+		y1 = y2 = lineSeg.loc;
+	} else {
+		y1 = lineSeg.start;
+		y2 = lineSeg.stop;
+		x1 = x2 = lineSeg.loc;
+	}
+	x1 /= (MAX_ALLOWED_DIS/radius);
+	x2 /= (MAX_ALLOWED_DIS/radius);
+	y1 /= (MAX_ALLOWED_DIS/radius);
+	y2 /= (MAX_ALLOWED_DIS/radius);
+	glVertex2f(cx+x1, cy+y1);
+	glVertex2f(cx+x2, cy+y2);	
+}
+
+void TopDownMap::drawLineSegBounded(LineSeg lineSeg) {
+	float x1, x2, y1, y2;
+	if (lineSeg.isTypeX) {
+		x1 = lineSeg.start;
+		x2 = lineSeg.stop;
+		y1 = y2 = lineSeg.loc;
+	} else {
+		y1 = lineSeg.start;
+		y2 = lineSeg.stop;
+		x1 = x2 = lineSeg.loc;
+	}
+	x1 /= (MAX_ALLOWED_DIS/radius);
+	x2 /= (MAX_ALLOWED_DIS/radius);
+	y1 /= (MAX_ALLOWED_DIS/radius);
+	y2 /= (MAX_ALLOWED_DIS/radius);
+
+	float dx = x2-x1;
+	float dy = y2-y1;
+	float dr = sqrt((dx*dx)+(dy*dy));
+	float D = (x1*y2)-(x2*y1);
+	float sgn = 0;
+	float r = radius;
+		if (dy < 0) {sgn = -1;} else {sgn = 1;}
+	float ci1x = (((D*dy) + (sgn*dx*sqrt((r*r*dr*dr)-(D*D))))/(dr*dr));
+	float ci2x = (((D*dy) - (sgn*dx*sqrt((r*r*dr*dr)-(D*D))))/(dr*dr));
+	float ci1y = (((-D*dx) + (abs(dy)*sqrt((r*r*dr*dr)-(D*D))))/(dr*dr));
+	float ci2y = (((-D*dx) - (abs(dy)*sqrt((r*r*dr*dr)-(D*D))))/(dr*dr));
+
+	//glVertex2f(cx+pt1x, cy+pt1y);
+	//glVertex2f(cx+pt2x, cy+pt2y);	
+}
+
+void TopDownMap::drawLine(Line tdLine) {
+	float m = tdLine.m;
+	float b = tdLine.b/(MAX_ALLOWED_DIS/radius);
+	float x1 = 0;
+	float x2 = 1;
+	float y1 = b;
+	float y2 = m + b;
+	float dx = x2-x1;
+	float dy = y2-y1;
+	float dr = sqrt((dx*dx)+(dy*dy));
+	float D = (x1*y2)-(x2*y1);
+	float sgn = 0;
+	float r = radius;
+		if (dy < 0) {sgn = -1;} else {sgn = 1;}
+	float pt1x = (((D*dy) + (sgn*dx*sqrt((r*r*dr*dr)-(D*D))))/(dr*dr));
+	float pt2x = (((D*dy) - (sgn*dx*sqrt((r*r*dr*dr)-(D*D))))/(dr*dr));
+	float pt1y = (((-D*dx) + (abs(dy)*sqrt((r*r*dr*dr)-(D*D))))/(dr*dr));
+	float pt2y = (((-D*dx) - (abs(dy)*sqrt((r*r*dr*dr)-(D*D))))/(dr*dr));
+	glVertex2f(cx+pt1x, cy+pt1y);
+	glVertex2f(cx+pt2x, cy+pt2y);
 }
 
 void TopDownMap::draw() {
@@ -50,30 +123,20 @@ void TopDownMap::draw() {
 	glEnd();
 
 	// Draw Top Down Lines
-	float inSqrSize = 2*sqrt((float)radius);
 	glLineWidth(4.0f);
 	glColor3f(0.0f, 1.0f, 0.0f);
 	glBegin(GL_LINES);
 	for (int i = 0; i < numTdLines; i++) {
-		float m = tdLine[i].m;
-		float b = tdLine[i].b/(MAX_ALLOWED_DIS/radius);
-		float x1 = 0;
-		float x2 = 1;
-		float y1 = b;
-		float y2 = m + b;
-		float dx = x2-x1;
-		float dy = y2-y1;
-		float dr = sqrt((dx*dx)+(dy*dy));
-		float D = (x1*y2)-(x2*y1);
-		float sgn = 0;
-		float r = radius;
-		 if (dy < 0) {sgn = -1;} else {sgn = 1;}
-		float pt1x = (((D*dy) + (sgn*dx*sqrt((r*r*dr*dr)-(D*D))))/(dr*dr));
-		float pt2x = (((D*dy) - (sgn*dx*sqrt((r*r*dr*dr)-(D*D))))/(dr*dr));
-		float pt1y = (((-D*dx) + (abs(dy)*sqrt((r*r*dr*dr)-(D*D))))/(dr*dr));
-		float pt2y = (((-D*dx) - (abs(dy)*sqrt((r*r*dr*dr)-(D*D))))/(dr*dr));
-		glVertex2f(cx+pt1x, cy+pt1y);
-		glVertex2f(cx+pt2x, cy+pt2y);
+		drawLine(tdLine[i]);
+	}
+	glEnd();
+
+	// Draw Line Segments
+	glLineWidth(3.0f);
+	glColor3f(0.0f, 0.0f, 1.0f);
+	glBegin(GL_LINES);
+	for (int i = 0; i < numLineSeg; i++) {
+		drawLineSeg(tdLineSeg[i]);
 	}
 	glEnd();
 

@@ -51,6 +51,9 @@
     <ClInclude Include="include\topDownMap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\algorithm.cpp">
