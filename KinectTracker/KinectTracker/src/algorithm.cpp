@@ -231,6 +231,8 @@ void runAlgorithm() {
 	// Determine X and Z
 	performRotation(tdWall, -yawValue);
 	numTdWallPts = xzMedianFilter(tdWall, numTdWallPts);
+	numLineSeg = determineAxisLines(tdWall, numTdWallPts, tdLineSeg);
+	
 
 
 	#pragma region AVERAGING
@@ -756,6 +758,208 @@ int xzMedianFilter(SlicePoint tdWall[], int numTdWallPts) {
 	return numTdWallPts-4;
 }
 
-void determineAxisLines(SlicePoint tdWall[], int numTdWallPts) {
-	int lineID[8];
+int determineAxisLines(SlicePoint tdWall[], int numTdWallPts, LineSeg lineSeg[]) {
+	// Initialize IDs
+	int idX[40], idZ[40];
+	for (int i = 0; i < numTdWallPts; i++) {
+		idX[i] = i/5;
+		idZ[i] = i/5;
+	}
+
+	float avgX[8], avgZ[8];
+	int   nX[8], nZ[8];
+	for (int rep = 0; rep < 5; rep++) {
+		// Set n and avg to 0
+		for (int i = 0; i < 8; i++) {
+			nX[i] = nZ[i] = 0;
+			avgX[i] = avgZ[i] = 0.0f; 
+		}
+
+		// Increment counters and calculate averages
+		for (int i = 0; i < numTdWallPts; i++) {
+			int midX = idX[i];
+			int midZ = idZ[i];
+			nX[midX]++;
+			nZ[midZ]++;
+			avgX[midX] += tdWall[i].x;
+			avgZ[midZ] += tdWall[i].z;
+		}
+		for (int i = 0; i < 8; i++) {
+			avgX[i] /= nX[i];
+			avgZ[i] /= nZ[i];
+		}
+
+		// Join Similar Lines
+		if (rep >= 2)  {
+			for (int id1 = 0; id1 < 8; id1++) {
+				for (int id2 = id1+1; id2 < 8; id2++) {
+					if (abs(avgX[id1] - avgX[id2]) < 20) {
+						avgX[id2] = ((avgX[id1]*nX[id1])+(avgX[id2]*nX[id2]))/(nX[id1]+nX[id2]);
+						nX[id2] += nX[id1];
+						nX[id1] = 0;
+					}
+					if (abs(avgZ[id1] - avgZ[id2]) < 20) {
+						avgZ[id2] = ((avgZ[id1]*nZ[id1])+(avgZ[id2]*nZ[id2]))/(nZ[id1]+nZ[id2]);
+						nZ[id2] += nZ[id1];
+						nZ[id1] = 0;
+					}
+				}
+			}
+		}
+
+		// Reassign Points
+		for (int i = 0; i < numTdWallPts; i++) {
+			float minX = 999999.0f;
+			float minZ = 999999.0f;
+			int   minXi = 0;
+			int   minZi = 0;
+			for (int mid = 0; mid < 8; mid++) {
+				if (nX[mid] > 0) {
+					float tmpDiff = abs(avgX[mid] - tdWall[i].x);
+					if (tmpDiff < minX) {
+						minX = tmpDiff;
+						minXi = mid;
+					}
+				}
+				if (nZ[mid] > 0) {
+					float tmpDiff = abs(avgZ[mid] - tdWall[i].z);
+					if (tmpDiff < minZ) {
+						minZ = tmpDiff;
+						minZi = mid;
+					}
+				}
+			}
+			idX[i] = minXi;
+			idZ[i] = minZi;
+		}
+	}
+	// Set n and avg to 0
+	for (int i = 0; i < 8; i++) {
+		nX[i] = nZ[i] = 0;
+		avgX[i] = avgZ[i] = 0.0f; 
+	}
+	// Increment counters and calculate averages
+	for (int i = 0; i < numTdWallPts; i++) {
+		int midX = idX[i];
+		int midZ = idZ[i];
+		nX[midX]++;
+		nZ[midZ]++;
+		avgX[midX] += tdWall[i].x;
+		avgZ[midZ] += tdWall[i].z;
+	}
+	for (int i = 0; i < 8; i++) {
+		avgX[i] /= nX[i];
+		avgZ[i] /= nZ[i];
+	}
+
+	// Split lines based on spacing
+	float startX[8];
+	float prevX[8];
+	int   nPtsX[8] = {0};
+	float startZ[8];
+	float prevZ[8];
+	int   nPtsZ[8] = {0};
+	int numLineSeg = 0;
+	for (int i = 0; i < numTdWallPts; i++) {
+		int midX = idX[i];
+		int midZ = idZ[i];
+		float mX = tdWall[i].x;
+		float mZ = tdWall[i].z;
+
+		// X line
+		if (nPtsX[midZ] > 0) {
+			if (abs(mX-prevX[midZ]) > 40.0f) { // X line discontinuity
+				// Create previous line if at least 3 points and 50cm long
+				if (nPtsX[midZ] > 3 && abs(prevX[midZ]-startX[midZ]) > 50.0f) {
+					lineSeg[numLineSeg].isTypeX = true;
+					lineSeg[numLineSeg].loc = avgZ[midZ];
+					lineSeg[numLineSeg].n = nPtsX[midZ];
+					if (startX[midZ] < prevX[midZ]) {
+						lineSeg[numLineSeg].start = startX[midZ];
+						lineSeg[numLineSeg++].stop = prevX[midZ];
+					} else {
+						lineSeg[numLineSeg].start = prevX[midZ];
+						lineSeg[numLineSeg++].stop = startX[midZ];
+					}
+				}
+				// Add new point to next line
+				nPtsX[midZ] = 1;
+				startX[midZ] = mX;
+			} else {
+				nPtsX[midZ]++;
+			}
+		} else {
+			// Add new point to next line
+			nPtsX[midZ] = 1;
+			startX[midZ] = mX;
+		}
+		prevX[midZ] = mX;
+
+		// Z line
+		if (nPtsZ[midX] > 0) {
+			if (abs(mZ-prevZ[midX]) > 40.0f) { // Z line discontinuity
+				// Create previous line if at least 3 points and 50cm long
+				if (nPtsZ[midX] > 3 && abs(prevZ[midX]-startZ[midX]) > 50.0f) {
+					lineSeg[numLineSeg].isTypeX = false;
+					lineSeg[numLineSeg].loc = avgX[midX];
+					lineSeg[numLineSeg].n = nPtsZ[midX];
+					if (startZ[midX] < prevZ[midX]) {
+						lineSeg[numLineSeg].start = startZ[midX];
+						lineSeg[numLineSeg++].stop = prevZ[midX];
+					} else {
+						lineSeg[numLineSeg].start = prevZ[midX];
+						lineSeg[numLineSeg++].stop = startZ[midX];
+					}
+				}
+				// Add new point to next line
+				nPtsZ[midX] = 1;
+				startZ[midX] = mZ;
+			} else {
+				nPtsZ[midX]++;
+			}
+		} else {
+			// Add new point to next line
+			nPtsZ[midX] = 1;
+			startZ[midX] = mZ;
+		}
+		prevZ[midX] = mZ;
+	}
+
+	// Finish all lines
+	for (int mid = 0; mid < 8; mid++) {
+		int midX = mid;
+		int midZ = mid;
+
+		// X line
+		// Create previous line if at least 3 points and 50cm long
+		if (nPtsX[midZ] > 3 && abs(prevX[midZ]-startX[midZ]) > 50.0f) {
+			lineSeg[numLineSeg].isTypeX = true;
+			lineSeg[numLineSeg].loc = avgZ[midZ];
+			lineSeg[numLineSeg].n = nPtsX[midZ];
+			if (startX[midZ] < prevX[midZ]) {
+				lineSeg[numLineSeg].start = startX[midZ];
+				lineSeg[numLineSeg++].stop = prevX[midZ];
+			} else {
+				lineSeg[numLineSeg].start = prevX[midZ];
+				lineSeg[numLineSeg++].stop = startX[midZ];
+			}
+		}
+
+		// Z line
+		// Create previous line if at least 3 points and 50cm long
+		if (nPtsZ[midX] > 3 && abs(prevZ[midX]-startZ[midX]) > 50.0f) {
+			lineSeg[numLineSeg].isTypeX = false;
+			lineSeg[numLineSeg].loc = avgX[midX];
+			lineSeg[numLineSeg].n = nPtsZ[midX];
+			if (startZ[midX] < prevZ[midX]) {
+				lineSeg[numLineSeg].start = startZ[midX];
+				lineSeg[numLineSeg++].stop = prevZ[midX];
+			} else {
+				lineSeg[numLineSeg].start = prevZ[midX];
+				lineSeg[numLineSeg++].stop = startZ[midX];
+			}
+		}
+	}
+
+	return numLineSeg;
 }
