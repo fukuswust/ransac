@@ -6,6 +6,7 @@
 #include "Kinect-win32.h"
 #include "topDownMap.h"
 #include "types.h"
+#include "augModel.h"
 
 #include <stdlib.h>
 #ifdef __APPLE__
@@ -112,5 +113,8 @@ extern bool isFullscreen;
 extern bool showHud;
 extern bool showFloorPoints;
 extern bool showWallPoints;
+
+// Models
+extern AugModel* model;
 
 #endif

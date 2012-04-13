@@ -15,13 +15,16 @@
     <ClInclude Include="include\augment.h" />
     <ClInclude Include="include\augModel.h" />
     <ClInclude Include="include\basicShapes.h" />
+    <ClInclude Include="include\bmp.h" />
     <ClInclude Include="include\globals.h" />
+    <ClInclude Include="include\GLTexture.h" />
     <ClInclude Include="include\gui.h" />
     <ClInclude Include="include\hr_time.h" />
     <ClInclude Include="include\hud.h" />
     <ClInclude Include="include\input.h" />
     <ClInclude Include="include\Kinect-win32.h" />
     <ClInclude Include="include\listener.h" />
+    <ClInclude Include="include\Model_3DS.h" />
     <ClInclude Include="include\record.h" />
     <ClInclude Include="include\topDownMap.h" />
     <ClInclude Include="include\types.h" />
@@ -31,13 +34,16 @@
     <ClCompile Include="src\augment.cpp" />
     <ClCompile Include="src\augModel.cpp" />
     <ClCompile Include="src\basicShapes.cpp" />
+    <ClCompile Include="src\bmp.cpp" />
     <ClCompile Include="src\globals.cpp" />
+    <ClCompile Include="src\GLTexture.cpp" />
     <ClCompile Include="src\gui.cpp" />
     <ClCompile Include="src\hr_time.cpp" />
     <ClCompile Include="src\hud.cpp" />
     <ClCompile Include="src\input.cpp" />
     <ClCompile Include="src\listener.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\Model_3DS.cpp" />
     <ClCompile Include="src\record.cpp" />
     <ClCompile Include="src\topDownMap.cpp" />
   </ItemGroup>
