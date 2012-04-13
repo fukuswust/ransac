@@ -135,8 +135,24 @@ void TopDownMap::draw() {
 	glLineWidth(3.0f);
 	glColor3f(0.0f, 0.0f, 1.0f);
 	glBegin(GL_LINES);
-	for (int i = 0; i < numLineSeg; i++) {
-		drawLineSeg(tdLineSeg[i]);
+	for (int i = 0; i < numLineSegX; i++) {
+		drawLineSeg(tdLineSegX[i]);
+	}
+	for (int i = 0; i < numLineSegZ; i++) {
+		drawLineSeg(tdLineSegZ[i]);
+	}
+	glEnd();
+
+	// Draw Map Line Segments
+	glLineWidth(3.0f);
+	glColor3f(1.0f, 0.0f, 1.0f);
+	glBegin(GL_LINES);
+	for (int i = 0; i < numLineMapX; i++) {
+		drawLineSeg(lineMapX[i]);
+	}
+	glColor3f(1.0f, 1.0f, 1.0f);
+	for (int i = 0; i < numLineMapZ; i++) {
+		drawLineSeg(lineMapZ[i]);
 	}
 	glEnd();
 
@@ -156,27 +172,27 @@ void TopDownMap::draw() {
 	}
 
 	//Draw Augmented Cube
-	float x1 = (AUG_CUBE_SIZE*cos(augCubeYaw))/(0.25*MAX_ALLOWED_DIS/radius);
-	float z1 = -(AUG_CUBE_SIZE*sin(augCubeYaw))/(0.25*MAX_ALLOWED_DIS/radius);
-	float x2 = (AUG_CUBE_SIZE*cos(augCubeYaw+PI/2))/(0.25*MAX_ALLOWED_DIS/radius);
-	float z2 = -(AUG_CUBE_SIZE*sin(augCubeYaw+PI/2))/(0.25*MAX_ALLOWED_DIS/radius);
-	float acX = augCubeX - 50.0f;
-	float acZ = augCubeZ + 50.0f;
-
+	float x1 = (AUG_CUBE_SIZE*cos(augCubeYaw))/(MAX_ALLOWED_DIS/radius);
+	float z1 = -(AUG_CUBE_SIZE*sin(augCubeYaw))/(MAX_ALLOWED_DIS/radius);
+	float x2 = (AUG_CUBE_SIZE*cos(augCubeYaw+PI/2))/(MAX_ALLOWED_DIS/radius);
+	float z2 = -(AUG_CUBE_SIZE*sin(augCubeYaw+PI/2))/(MAX_ALLOWED_DIS/radius);
+	float acX = cx + ((augCubeX - xValue - 50.0f)/(MAX_ALLOWED_DIS/radius));
+	float acZ = cy + ((augCubeZ - zValue + 50.0f)/(MAX_ALLOWED_DIS/radius));
+	
 	glLineWidth(3.0f);
 	glBegin(GL_LINES);
 	glColor4f(0.0f, 0.0f, 1.0f, 0.5f);
-	drawPoint(acX,acZ);
-	drawPoint(acX+x1,acZ+z1);
+	glVertex2f(acX,acZ);
+	glVertex2f(acX+x1,acZ+z1);
 	glColor4f(1.0f, 0.0f, 0.0f, 0.5f);
-	drawPoint(acX,acZ);
-	drawPoint(acX+x2,acZ+z2);
+	glVertex2f(acX,acZ);
+	glVertex2f(acX+x2,acZ+z2);
 	glColor4f(0.2f, 0.2f, 0.2f, 0.5f);
-	drawPoint(acX+x1+x2,acZ+z1+z2);
-	drawPoint(acX+x1,acZ+z1);
-	drawPoint(acX+x1+x2,acZ+z1+z2);
-	drawPoint(acX+x2,acZ+z2);
-	drawPoint(0.0f, 0.0f);
+	glVertex2f(acX+x1+x2,acZ+z1+z2);
+	glVertex2f(acX+x1,acZ+z1);
+	glVertex2f(acX+x1+x2,acZ+z1+z2);
+	glVertex2f(acX+x2,acZ+z2);
+	glVertex2f(0.0f, 0.0f);
 	glEnd();
 	glLineWidth(1.0f);
 }

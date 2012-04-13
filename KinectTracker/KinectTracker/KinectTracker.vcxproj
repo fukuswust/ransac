@@ -13,6 +13,7 @@
   <ItemGroup>
     <ClInclude Include="include\algorithm.h" />
     <ClInclude Include="include\augment.h" />
+    <ClInclude Include="include\augModel.h" />
     <ClInclude Include="include\basicShapes.h" />
     <ClInclude Include="include\globals.h" />
     <ClInclude Include="include\gui.h" />
@@ -28,6 +29,7 @@
   <ItemGroup>
     <ClCompile Include="src\algorithm.cpp" />
     <ClCompile Include="src\augment.cpp" />
+    <ClCompile Include="src\augModel.cpp" />
     <ClCompile Include="src\basicShapes.cpp" />
     <ClCompile Include="src\globals.cpp" />
     <ClCompile Include="src\gui.cpp" />

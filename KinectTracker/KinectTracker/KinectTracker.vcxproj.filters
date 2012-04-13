@@ -54,6 +54,9 @@
     <ClInclude Include="include\types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\augModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\algorithm.cpp">
@@ -90,6 +93,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\topDownMap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\augModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

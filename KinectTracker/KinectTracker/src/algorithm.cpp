@@ -225,15 +225,15 @@ void runAlgorithm() {
 	float yawAvg = 1.0f - ((0.1f/5.0f)*degDiff);
 	yawValue = weighedAngleAvg(yawValue, estYaw, yawAvg);
 	numTdLines = 1;
-	tdLine[0].m = tan(yawValue);
+	tdLine[0].m = tan(-yawValue);
 	tdLine[0].b = 0;
 	
 	// Determine X and Z
 	performRotation(tdWall, -yawValue);
 	numTdWallPts = xzMedianFilter(tdWall, numTdWallPts);
-	numLineSeg = determineAxisLines(tdWall, numTdWallPts, tdLineSeg);
-	
-
+	determineAxisLines(tdWall, numTdWallPts, tdLineSegX, numLineSegX, tdLineSegZ, numLineSegZ);
+	zValue = -compareToMap(tdLineSegX, numLineSegX, lineMapX, numLineMapX, true);
+	xValue = -compareToMap(tdLineSegZ, numLineSegZ, lineMapZ, numLineMapZ, false);
 
 	#pragma region AVERAGING
 	// Determine new pitch and roll
@@ -758,7 +758,7 @@ int xzMedianFilter(SlicePoint tdWall[], int numTdWallPts) {
 	return numTdWallPts-4;
 }
 
-int determineAxisLines(SlicePoint tdWall[], int numTdWallPts, LineSeg lineSeg[]) {
+void determineAxisLines(SlicePoint tdWall[], int numTdWallPts, LineSeg lineSegX[], int &numLineSegX, LineSeg lineSegZ[], int &numLineSegZ) {
 	// Initialize IDs
 	int idX[40], idZ[40];
 	for (int i = 0; i < numTdWallPts; i++) {
@@ -859,7 +859,8 @@ int determineAxisLines(SlicePoint tdWall[], int numTdWallPts, LineSeg lineSeg[])
 	float startZ[8];
 	float prevZ[8];
 	int   nPtsZ[8] = {0};
-	int numLineSeg = 0;
+	numLineSegX = 0;
+	numLineSegZ = 0;
 	for (int i = 0; i < numTdWallPts; i++) {
 		int midX = idX[i];
 		int midZ = idZ[i];
@@ -871,15 +872,15 @@ int determineAxisLines(SlicePoint tdWall[], int numTdWallPts, LineSeg lineSeg[])
 			if (abs(mX-prevX[midZ]) > 40.0f) { // X line discontinuity
 				// Create previous line if at least 3 points and 50cm long
 				if (nPtsX[midZ] > 3 && abs(prevX[midZ]-startX[midZ]) > 50.0f) {
-					lineSeg[numLineSeg].isTypeX = true;
-					lineSeg[numLineSeg].loc = avgZ[midZ];
-					lineSeg[numLineSeg].n = nPtsX[midZ];
+					lineSegX[numLineSegX].isTypeX = true;
+					lineSegX[numLineSegX].loc = avgZ[midZ];
+					lineSegX[numLineSegX].n = nPtsX[midZ];
 					if (startX[midZ] < prevX[midZ]) {
-						lineSeg[numLineSeg].start = startX[midZ];
-						lineSeg[numLineSeg++].stop = prevX[midZ];
+						lineSegX[numLineSegX].start = startX[midZ];
+						lineSegX[numLineSegX++].stop = prevX[midZ];
 					} else {
-						lineSeg[numLineSeg].start = prevX[midZ];
-						lineSeg[numLineSeg++].stop = startX[midZ];
+						lineSegX[numLineSegX].start = prevX[midZ];
+						lineSegX[numLineSegX++].stop = startX[midZ];
 					}
 				}
 				// Add new point to next line
@@ -900,15 +901,15 @@ int determineAxisLines(SlicePoint tdWall[], int numTdWallPts, LineSeg lineSeg[])
 			if (abs(mZ-prevZ[midX]) > 40.0f) { // Z line discontinuity
 				// Create previous line if at least 3 points and 50cm long
 				if (nPtsZ[midX] > 3 && abs(prevZ[midX]-startZ[midX]) > 50.0f) {
-					lineSeg[numLineSeg].isTypeX = false;
-					lineSeg[numLineSeg].loc = avgX[midX];
-					lineSeg[numLineSeg].n = nPtsZ[midX];
+					lineSegZ[numLineSegZ].isTypeX = false;
+					lineSegZ[numLineSegZ].loc = avgX[midX];
+					lineSegZ[numLineSegZ].n = nPtsZ[midX];
 					if (startZ[midX] < prevZ[midX]) {
-						lineSeg[numLineSeg].start = startZ[midX];
-						lineSeg[numLineSeg++].stop = prevZ[midX];
+						lineSegZ[numLineSegZ].start = startZ[midX];
+						lineSegZ[numLineSegZ++].stop = prevZ[midX];
 					} else {
-						lineSeg[numLineSeg].start = prevZ[midX];
-						lineSeg[numLineSeg++].stop = startZ[midX];
+						lineSegZ[numLineSegZ].start = prevZ[midX];
+						lineSegZ[numLineSegZ++].stop = startZ[midX];
 					}
 				}
 				// Add new point to next line
@@ -933,33 +934,70 @@ int determineAxisLines(SlicePoint tdWall[], int numTdWallPts, LineSeg lineSeg[])
 		// X line
 		// Create previous line if at least 3 points and 50cm long
 		if (nPtsX[midZ] > 3 && abs(prevX[midZ]-startX[midZ]) > 50.0f) {
-			lineSeg[numLineSeg].isTypeX = true;
-			lineSeg[numLineSeg].loc = avgZ[midZ];
-			lineSeg[numLineSeg].n = nPtsX[midZ];
+			lineSegX[numLineSegX].isTypeX = true;
+			lineSegX[numLineSegX].loc = avgZ[midZ];
+			lineSegX[numLineSegX].n = nPtsX[midZ];
 			if (startX[midZ] < prevX[midZ]) {
-				lineSeg[numLineSeg].start = startX[midZ];
-				lineSeg[numLineSeg++].stop = prevX[midZ];
+				lineSegX[numLineSegX].start = startX[midZ];
+				lineSegX[numLineSegX++].stop = prevX[midZ];
 			} else {
-				lineSeg[numLineSeg].start = prevX[midZ];
-				lineSeg[numLineSeg++].stop = startX[midZ];
+				lineSegX[numLineSegX].start = prevX[midZ];
+				lineSegX[numLineSegX++].stop = startX[midZ];
 			}
 		}
 
 		// Z line
 		// Create previous line if at least 3 points and 50cm long
 		if (nPtsZ[midX] > 3 && abs(prevZ[midX]-startZ[midX]) > 50.0f) {
-			lineSeg[numLineSeg].isTypeX = false;
-			lineSeg[numLineSeg].loc = avgX[midX];
-			lineSeg[numLineSeg].n = nPtsZ[midX];
+			lineSegZ[numLineSegZ].isTypeX = false;
+			lineSegZ[numLineSegZ].loc = avgX[midX];
+			lineSegZ[numLineSegZ].n = nPtsZ[midX];
 			if (startZ[midX] < prevZ[midX]) {
-				lineSeg[numLineSeg].start = startZ[midX];
-				lineSeg[numLineSeg++].stop = prevZ[midX];
+				lineSegZ[numLineSegZ].start = startZ[midX];
+				lineSegZ[numLineSegZ++].stop = prevZ[midX];
 			} else {
-				lineSeg[numLineSeg].start = prevZ[midX];
-				lineSeg[numLineSeg++].stop = startZ[midX];
+				lineSegZ[numLineSegZ].start = prevZ[midX];
+				lineSegZ[numLineSegZ++].stop = startZ[midX];
 			}
 		}
 	}
+}
 
-	return numLineSeg;
+float compareToMap(LineSeg tdLineSeg[], int numLineSeg, LineSeg lineMap[], int &numLineMap, bool isTypeX) {
+	float diffTotal = 0.0;
+	int totalComp = 0;
+	for (int i = 0; i < numLineSeg; i++) {
+		float mLoc = tdLineSeg[i].loc;
+		float minDis = 999999.0;
+		int minJ = -1;
+		for (int j = 0; j < numLineMap; j++) {
+			float disDiff = abs(mLoc - lineMap[j].loc);
+			if (disDiff < minDis) {
+				minDis = disDiff;
+				minJ = j;
+			}
+		}
+		if (minDis < 100.0f) { // Can be associated with map line
+			diffTotal += mLoc - lineMap[minJ].loc;
+			totalComp++;
+			lineMap[minJ].loc = (lineMap[minJ].loc * 0.8) + (mLoc * 0.2);
+		} else { // New Line
+			lineMap[numLineMap].isTypeX = isTypeX;
+			lineMap[numLineMap].loc = mLoc;
+			lineMap[numLineMap].n = 10;
+			lineMap[numLineMap].start = -500;
+			lineMap[numLineMap].stop = 500;
+			numLineMap++;
+		}
+	}
+	if (totalComp > 0) {
+
+	} else {
+
+	}
+	if (numLineMap > 0) {
+		return lineMap[0].loc;
+	} else {
+		return 0.0f;
+	}
 }

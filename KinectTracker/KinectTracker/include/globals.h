@@ -88,9 +88,14 @@ extern int numTdLines;
 extern float tdPrevDir;
 extern float tdPrevX;
 extern float tdPrevZ;
-extern LineSeg tdLineSeg[16];
-extern int numLineSeg;
-
+extern LineSeg tdLineSegX[8];
+extern int numLineSegX;
+extern LineSeg tdLineSegZ[8];
+extern int numLineSegZ;
+extern LineSeg lineMapX[32];
+extern int numLineMapX;
+extern LineSeg lineMapZ[32];
+extern int numLineMapZ;
 
 extern int maxZi;
 extern int maxZj;
