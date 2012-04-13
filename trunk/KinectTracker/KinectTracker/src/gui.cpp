@@ -6,6 +6,7 @@
 #include "basicShapes.h"
 #include "hud.h"
 #include "augment.h"
+#include "augModel.h"
 
 void initGui(int argc, char **argv) {
 	//Initialize GLUT
@@ -50,6 +51,8 @@ void initRendering() {
 	glEnable (GL_DEPTH_TEST);
     glEnable (GL_LIGHTING);
     glEnable (GL_LIGHT0);
+
+	model = new AugModel("models/sofa2.3ds");
 }
 
 // Main Update Loop
@@ -94,7 +97,7 @@ void handleResize(int w, int h) {
 	gluPerspective(43.0,                  //The camera angle
 				   (double)viewWidth / (double)viewHeight, //The width-to-height ratio
 				   1.0,                   //The near z clipping coordinate
-				   2000.0);                //The far z clipping coordinate
+				   10000.0);                //The far z clipping coordinate
 }
 
 void drawScene() {
@@ -108,7 +111,6 @@ void drawScene() {
 	orthogonalEnd();
 
 	//Draw 3D Scene
-	glEnable(GL_LIGHTING);
 	glMatrixMode(GL_MODELVIEW); //Switch to the drawing perspective
 	glLoadIdentity(); //Reset the drawing perspective
 
@@ -136,6 +138,9 @@ void drawScene() {
 						   0.0f, 0.0f, 0.0f, 1.0f}; // Column major form
 	//translationMatrix - in cm
 	glMultMatrixf(yMatrix);
+
+	/// DRAW OBJECT
+	model->drawAugmentation();
 	
 	float s = 1.0f;
 	float sx = s;//529.21508098293293/10000.0f;
@@ -149,19 +154,12 @@ void drawScene() {
 
 	glTranslatef(augCubeX, augCubeY, augCubeZ);
 	glRotatef(augCubeYaw*(180/PI),0.0f,1.0f,0.0f);
-	glLineWidth(10);
-	glutWireCube(100.0f);
-	glLineWidth(1);
-	glDisable(GL_COLOR_MATERIAL);
-	glDisable(GL_LIGHTING);
 	printf("height: %f\n", translationMatrix[1]*0.393700787);
 	//glTranslatef(0.0f, -1.0f, -5.0f);
-	glFlush(); // Flush the OpenGL buffers to the window - do we need to do this?
-
-
-	orthogonalStart(viewWidth, viewHeight);
+	//glFlush(); // Flush the OpenGL buffers to the window - do we need to do this?
+	//orthogonalStart(viewWidth, viewHeight);
 	//drawAugmentedCube(augCubeX,augCubeY,augCubeZ,augCubeYaw,AUG_CUBE_SIZE);
-	orthogonalEnd();
+	//orthogonalEnd();
 
 	//Draw 2D Overlay
 	orthogonalStart(viewWidth, viewHeight);

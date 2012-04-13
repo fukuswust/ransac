@@ -94,3 +94,6 @@ bool isFullscreen = false;
 bool showHud = true;
 bool showFloorPoints = false;
 bool showWallPoints = false;
+
+// Models
+AugModel* model;
