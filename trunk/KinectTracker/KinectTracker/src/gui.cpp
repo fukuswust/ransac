@@ -114,9 +114,7 @@ void drawScene() {
 
 	// Draw 3D object
 	//glRotatef(180.0f*(180/PI),1.0f,0.0f,0.0f);	// Rotate The cube around the Y axis
-	
-	//yawValue += 0.03f;
-	zValue = 200.f;
+
 	// Apply tranform from depth to rgb sensor - http://nicolas.burrus.name/index.php/Research/KinectCalibration
 	GLfloat drbpMatrx[] = { 0.99984628826577793f, -0.0014779096108364480f, 0.017470421412464927f, 0.0f,
 						    0.0012635359098409581f, 0.99992385683542895f, 0.012275341476520762f, 0.0f,
