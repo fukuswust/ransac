@@ -41,6 +41,7 @@ void drawHud() {
 	topDownMap.setX(viewWidth-HUD_MAP_X);
 	topDownMap.setY(HUD_MAP_Y);
 	topDownMap.setRadius(HUD_MAP_RADIUS);
+	topDownMap.setMiniRadius(HUD_OBJECT_RADIUS);
 	topDownMap.draw();
 }
 

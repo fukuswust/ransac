@@ -154,4 +154,29 @@ void TopDownMap::draw() {
 	model->setY(augCubeY);
 	model->setZ(augCubeZ);
 	model->drawTopDown(cx,cy,radius);
+
+	// Draw small circles with mini models
+	drawMiniCircles();
+}
+
+void TopDownMap::drawMiniCircles() {
+	double theta = 2 * atan2((float)miniRadius, (float)(radius + miniRadius));
+	drawMiniCircle(0);
+	drawMiniCircle(theta);
+	drawMiniCircle(-theta);
+	drawMiniCircle(2*theta);
+	drawMiniCircle(-2*theta);
+	drawMiniCircle(3*theta);
+	drawMiniCircle(-3*theta);
+}
+
+// Draws a circle at a specified angle around the large circle (0 being at bottom of large circle)
+void TopDownMap::drawMiniCircle(float angle) {
+	float theta = angle + PI/2;
+	int miniX = cx + (radius + miniRadius)*cos(theta);
+	int miniY = cy + (radius + miniRadius)*sin(theta);
+	glColor4f(1.0f, 1.0f, 1.0f, 0.5f); // White
+	drawCircleSolid(miniX, miniY, miniRadius, 20);
+	glColor3f(0.0f, 0.0f, 0.0f); // Black
+	drawCircle(miniX, miniY, miniRadius, 20);
 }
