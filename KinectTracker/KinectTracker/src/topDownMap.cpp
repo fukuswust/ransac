@@ -97,16 +97,18 @@ void TopDownMap::draw() {
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
 	drawCircle(cx, cy, radius, 32);
 	//Draw Local Top Down Map 
-	float delX = 15.0f*cos((50.0f*PI)/180.0f);
-	float delY = 15.0f*sin((50.0f*PI)/180.0f);
+	float cam1X = 15.0f*cos(-yawValue - ((50.0f*PI)/180.0f) - (PI/2));
+	float cam1Y = 15.0f*sin(-yawValue - ((50.0f*PI)/180.0f) - (PI/2));
+	float cam2X = 15.0f*cos(-yawValue + ((50.0f*PI)/180.0f) - (PI/2));
+	float cam2Y = 15.0f*sin(-yawValue + ((50.0f*PI)/180.0f) - (PI/2));
 	//Draw Camera
 	glBegin(GL_TRIANGLES);
 	glColor3f(0.0f, 0.0f, 0.0f);
 	glVertex2f(cx, cy);
 	glColor3f(0.0f, 0.0f, 1.0f);
-	glVertex2f(cx+delX, cy-delY);
+	glVertex2f(cx+cam1X, cy+cam1Y);
 	glColor3f(0.0f, 0.0f, 1.0f);
-	glVertex2f(cx-delX, cy-delY);
+	glVertex2f(cx+cam2X, cy+cam2Y);
 	glEnd();
 
 	// Draw Top Down Wall
@@ -119,15 +121,6 @@ void TopDownMap::draw() {
 			float tmpZ = tdWall[i].z/(MAX_ALLOWED_DIS/radius);
 			glVertex2f(cx+tmpX, cy+tmpZ);
 		}
-	}
-	glEnd();
-
-	// Draw Top Down Lines
-	glLineWidth(4.0f);
-	glColor3f(0.0f, 1.0f, 0.0f);
-	glBegin(GL_LINES);
-	for (int i = 0; i < numTdLines; i++) {
-		drawLine(tdLine[i]);
 	}
 	glEnd();
 
@@ -156,43 +149,9 @@ void TopDownMap::draw() {
 	}
 	glEnd();
 
-	// Draw Wall Points
-	if (showWallPoints) {
-		glPointSize(5.0f);
-		glColor3f(0.0f, 0.0f, 1.0f);
-		glBegin(GL_POINTS);
-		int offset =  0;
-		for (int i = 0; i < numWallPoints; i++) {
-			float tmpX = wallPoints[offset++]/(MAX_ALLOWED_DIS/radius);
-			offset++;
-			float tmpZ = wallPoints[offset++]/(MAX_ALLOWED_DIS/radius);
-			glVertex2f(cx+tmpX, cy+tmpZ);
-		}
-		glEnd();
-	}
-
-	//Draw Augmented Cube
-	float x1 = (AUG_CUBE_SIZE*cos(augCubeYaw))/(MAX_ALLOWED_DIS/radius);
-	float z1 = -(AUG_CUBE_SIZE*sin(augCubeYaw))/(MAX_ALLOWED_DIS/radius);
-	float x2 = (AUG_CUBE_SIZE*cos(augCubeYaw+PI/2))/(MAX_ALLOWED_DIS/radius);
-	float z2 = -(AUG_CUBE_SIZE*sin(augCubeYaw+PI/2))/(MAX_ALLOWED_DIS/radius);
-	float acX = cx + ((augCubeX - xValue - 50.0f)/(MAX_ALLOWED_DIS/radius));
-	float acZ = cy + ((augCubeZ - zValue + 50.0f)/(MAX_ALLOWED_DIS/radius));
-	
-	glLineWidth(3.0f);
-	glBegin(GL_LINES);
-	glColor4f(0.0f, 0.0f, 1.0f, 0.5f);
-	glVertex2f(acX,acZ);
-	glVertex2f(acX+x1,acZ+z1);
-	glColor4f(1.0f, 0.0f, 0.0f, 0.5f);
-	glVertex2f(acX,acZ);
-	glVertex2f(acX+x2,acZ+z2);
-	glColor4f(0.2f, 0.2f, 0.2f, 0.5f);
-	glVertex2f(acX+x1+x2,acZ+z1+z2);
-	glVertex2f(acX+x1,acZ+z1);
-	glVertex2f(acX+x1+x2,acZ+z1+z2);
-	glVertex2f(acX+x2,acZ+z2);
-	glVertex2f(0.0f, 0.0f);
-	glEnd();
-	glLineWidth(1.0f);
+	// Draw Augmentations
+	model->setX(augCubeX);
+	model->setY(augCubeY);
+	model->setZ(augCubeZ);
+	model->drawTopDown(cx,cy,radius);
 }

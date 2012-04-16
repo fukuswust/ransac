@@ -24,9 +24,6 @@ void initGui(int argc, char **argv) {
 	glutReshapeFunc(handleResize);
 	glutTimerFunc(10, update, 0);
 
-	//Start FPS Timer
-	fpsStopWatch = new CStopWatch();
-	fpsStopWatch->startTimer(); 
 	update(0);
 	glutMainLoop(); //Start the main loop.  glutMainLoop doesn't return.
 }
@@ -52,7 +49,7 @@ void initRendering() {
     glEnable (GL_LIGHTING);
     glEnable (GL_LIGHT0);
 
-	model = new AugModel("models/sofa2.3ds");
+	model = new AugModel("models/shelf.3ds");
 }
 
 // Main Update Loop
@@ -113,53 +110,9 @@ void drawScene() {
 	//Draw 3D Scene
 	glMatrixMode(GL_MODELVIEW); //Switch to the drawing perspective
 	glLoadIdentity(); //Reset the drawing perspective
-
-	// Draw 3D object
-	//glRotatef(180.0f*(180/PI),1.0f,0.0f,0.0f);	// Rotate The cube around the Y axis
-
-	// Apply tranform from depth to rgb sensor - http://nicolas.burrus.name/index.php/Research/KinectCalibration
-	GLfloat drbpMatrx[] = { 0.99984628826577793f, -0.0014779096108364480f, 0.017470421412464927f, 0.0f,
-						    0.0012635359098409581f, 0.99992385683542895f, 0.012275341476520762f, 0.0f,
-						   -0.017487233004436643f, -0.012251380107679535f, 0.99977202419716948f, 0.0f,
-						   1.9985242312092553f, -0.074423738761617583f, -1.0916736334336222f, 1.0f}; // Column major form
-	//glMultMatrixf(drbpMatrx);
-
-	// Apply pictch / roll matrix
-	GLfloat prMatrix[] = { pitchRollMatrix[0], pitchRollMatrix[3], pitchRollMatrix[6], 0.0f,
-						   pitchRollMatrix[1], pitchRollMatrix[4], pitchRollMatrix[7], 0.0f,
-						   pitchRollMatrix[2], pitchRollMatrix[5], pitchRollMatrix[8], 0.0f,
-						   0.0f, 0.0f, 0.0f, 1.0f}; // Column major form
-	glMultMatrixf(prMatrix);
-
-	// Apply yMatrix
-	GLfloat yMatrix[] = { yawMatrix[0], yawMatrix[3], yawMatrix[6], 0.0f,
-						   yawMatrix[1], yawMatrix[4], yawMatrix[7], 0.0f,
-						   yawMatrix[2], yawMatrix[5], yawMatrix[8], 0.0f,
-						   0.0f, 0.0f, 0.0f, 1.0f}; // Column major form
-	//translationMatrix - in cm
-	glMultMatrixf(yMatrix);
-
-	/// DRAW OBJECT
-	model->drawAugmentation();
+	setGlTransformation(); //Transform all points for augmentation
 	
-	float s = 1.0f;
-	float sx = s;//529.21508098293293/10000.0f;
-	float sy = s;//525.56393630057437/10000.0f;
-	float sz = s;
-	GLfloat tsMatrix[] = { sx,						0.0f,					 0.0f,					  0.0f,
-						   0.0f,					sy,						 0.0f,					  0.0f,
-						   0.0f,					0.0f,					 sz,					  0.0f,
-						   -translationMatrix[0]*sx, -translationMatrix[1]*sy, -translationMatrix[2]*sz, 1.0f}; // Column major form
-	glMultMatrixf(tsMatrix);
-
-	glTranslatef(augCubeX, augCubeY, augCubeZ);
-	glRotatef(augCubeYaw*(180/PI),0.0f,1.0f,0.0f);
-	printf("height: %f\n", translationMatrix[1]*0.393700787);
-	//glTranslatef(0.0f, -1.0f, -5.0f);
-	//glFlush(); // Flush the OpenGL buffers to the window - do we need to do this?
-	//orthogonalStart(viewWidth, viewHeight);
-	//drawAugmentedCube(augCubeX,augCubeY,augCubeZ,augCubeYaw,AUG_CUBE_SIZE);
-	//orthogonalEnd();
+	model->drawAugmentation();
 
 	//Draw 2D Overlay
 	orthogonalStart(viewWidth, viewHeight);
@@ -208,3 +161,32 @@ void orthogonalEnd (void) {
 	glPopMatrix();
 }
 
+void setGlTransformation() {
+	// Apply tranform from depth to rgb sensor - http://nicolas.burrus.name/index.php/Research/KinectCalibration
+	GLfloat drbpMatrx[] = { 0.99984628826577793f, -0.0014779096108364480f, 0.017470421412464927f, 0.0f,
+						    0.0012635359098409581f, 0.99992385683542895f, 0.012275341476520762f, 0.0f,
+						   -0.017487233004436643f, -0.012251380107679535f, 0.99977202419716948f, 0.0f,
+						   1.9985242312092553f, -0.074423738761617583f, -1.0916736334336222f, 1.0f}; // Column major form
+	//glMultMatrixf(drbpMatrx);
+
+	// Apply pictch / roll matrix
+	GLfloat prMatrix[] = { pitchRollMatrix[0], pitchRollMatrix[3], pitchRollMatrix[6], 0.0f,
+						   pitchRollMatrix[1], pitchRollMatrix[4], pitchRollMatrix[7], 0.0f,
+						   pitchRollMatrix[2], pitchRollMatrix[5], pitchRollMatrix[8], 0.0f,
+						   0.0f, 0.0f, 0.0f, 1.0f}; // Column major form
+	glMultMatrixf(prMatrix);
+
+	// Apply yMatrix
+	GLfloat yMatrix[] = { yawMatrix[0], yawMatrix[3], yawMatrix[6], 0.0f,
+						   yawMatrix[1], yawMatrix[4], yawMatrix[7], 0.0f,
+						   yawMatrix[2], yawMatrix[5], yawMatrix[8], 0.0f,
+						   0.0f, 0.0f, 0.0f, 1.0f}; // Column major form
+	glMultMatrixf(yMatrix);
+
+	// Apply Translation Matrix
+	GLfloat tsMatrix[] = { 1.0f,					0.0f,					 0.0f,					  0.0f,
+						   0.0f,					1.0f,					 0.0f,					  0.0f,
+						   0.0f,					0.0f,					 1.0f,					  0.0f,
+						   -translationMatrix[0],	-translationMatrix[1],	 -translationMatrix[2],	  1.0f}; // Column major form
+	glMultMatrixf(tsMatrix);
+}

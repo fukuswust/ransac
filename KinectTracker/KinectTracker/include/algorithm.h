@@ -16,8 +16,6 @@ void setPositionAndOrientation();
 
 void performRotation(SlicePoint set[], float rot);
 
-void performTranslation(SlicePoint set[], float x, float z);
-
 void solveVector(float M[3][3], float R[3]);
 
 void normalizeVector(float R[3]);
@@ -25,8 +23,6 @@ void normalizeVector(float R[3]);
 void segmentFloor(float floorPoints[], int &numFloorPoints, int floorHist[], float currentMinHeight, float alignFloor[], float &floorHeight);
 
 int  flattenWall(SlicePoint wallSlicePoints[], int wallHist[][20], SlicePoint tdWall[], int lineID[]);
-
-int  detectTdLines(SlicePoint tdWall[], int numTdWallPts, int lineID[40], Line tdLine[]);
 
 float estimateYaw(SlicePoint tdWall[], int numTdWallPts, float yawValue);
 

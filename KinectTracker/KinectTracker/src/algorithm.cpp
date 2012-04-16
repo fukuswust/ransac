@@ -17,9 +17,13 @@ void initAlgorithm() {
 
 	// SET INITIAL HEIGHT TO 1.5m
 	heightValue = -150.0f;
+	yawValue = 0.0f;
+	xValue = 0.0f;
+	zValue = 0.0f;
 }
 
 void runAlgorithm() {
+	static bool algHasInit = false;
 	if (!algHasInit) {
 		initAlgorithm();
 		algHasInit = true;
@@ -53,13 +57,16 @@ void runAlgorithm() {
 	// SET UP MIN HEIGHT PLACEHOLDER
 	float currentMinHeight = 999999.0f;
 	// SET UP WALL SLICE
+	SlicePoint wallSlicePoints[NUM_SLICES];
 	for (int i = 0; i < NUM_SLICES; i++) {
 		wallSlicePoints[i].dis = -999999.0f;
 		wallSlicePoints[i].dir = -999999.0f;
 	}
 	int floorHist[25] = {0};
 	numFloorPoints = 0;
+	float floorPoints[MAX_FLOOR_POINTS*3];
 	numWallPoints = 0;
+	float wallPoints[MAX_WALL_POINTS*3];
 	#pragma endregion Initialize common variables
 
 	#pragma region FIRST PASS
@@ -76,18 +83,12 @@ void runAlgorithm() {
 			//Check Sensor Data for Error
 			if (tmpZ == 2047.0f) {
 				depthPointCloud[offset] = 999999.0f;
-				origZ[imOffset] = 0.0f;
 				offset += 3; // -> next
 				imOffset++;
 				ijOffset += 2;
 			} else {
 				// Depth to Z
-				if (origZ[imOffset] != 0.0f) {
-					origZ[imOffset] = tmpZ = (-100.0f/((-0.00307f * tmpZ) + 3.33f))*(1-CLOUD_AVG_FACTOR)
-						+ CLOUD_AVG_FACTOR*origZ[imOffset]; //z -> y
-				} else {
-					origZ[imOffset] = tmpZ = (-100.0f/((-0.00307f * tmpZ) + 3.33f)); //z -> y
-				}
+				tmpZ = (-100.0f/((-0.00307f * tmpZ) + 3.33f)); //z -> y
 				// Z to Point Cloud
 				tmpX = (float)(i - 320) * (tmpZ - 10.0f) * -0.0021f;
 				tmpY = (float)(j - 240) * (tmpZ - 10.0f) * 0.0021f ;
@@ -342,15 +343,6 @@ void performRotation(SlicePoint set[], float rot) {
 	}
 }
 
-void performTranslation(SlicePoint set[], float x, float z) {
-	for (int i = 0; i < NUM_SLICES; i++) {
-		if (set[i].x != -999999.0) {
-			set[i].x += x;
-			set[i].z += z;
-		}
-	}
-}
-
 void solveVector(float M[3][3], float R[3]) {
 	float r = -M[1][0]/M[0][0];
 	//M[1][0] = 0;
@@ -489,160 +481,6 @@ int  flattenWall(SlicePoint wallSlicePoints[], int wallHist[][20], SlicePoint td
 		}
 	}
 	return numTdWallPts;
-}
-
-int  detectTdLines(SlicePoint tdWall[], int numTdWallPts, int lineID[40], Line tdLine[]) {
-	int n[8] = {0};
-	float sX[8] = {0.0f};
-	float sZ[8] = {0.0f};
-	float sXX[8] = {0.0f};
-	float sZZ[8] = {0.0f};
-	float sXZ[8] = {0.0f};
-	float m[8] = {0.0f};
-	float b[8] = {0.0f};
-	float err[8] = {0.0f};
-
-	for (int rep = 0; rep < 5; rep++) {
-		// Initialize counters to 0
-		for (int i = 0; i < 8; i++) {
-			n[i] = 0;
-			sX[i] = 0.0f;
-			sZ[i] = 0.0f;
-			sXX[i] = 0.0f;
-			sZZ[i] = 0.0f;
-			sXZ[i] = 0.0f;
-		}
-
-		// Get sums for regession
-		for (int i = 0; i < numTdWallPts; i++) {
-			int lID = lineID[i];
-			float x = tdWall[i].x;
-			float z = tdWall[i].z;
-			n[lID]++;
-			sX[lID] += x;
-			sZ[lID] += z;
-			sXX[lID] += x*x;
-			sZZ[lID] += z*z;
-			sXZ[lID] += x*z;
-		}
-
-		// Solve regressions
-		for (int secOn = 0; secOn < 8; secOn++) {
-			if (n[secOn] > 1) {
-				m[secOn] = ( (float)n[secOn] * sXZ[secOn] - sZ[secOn] * sX[secOn] ) / 
-					( (float)n[secOn] * sXX[secOn] - sX[secOn] * sX[secOn] );
-				b[secOn] = ( sZ[secOn] - m[secOn] * sX[secOn] ) / (float)n[secOn];   
-				float ssx = m[secOn] * ( sXZ[secOn] - sX[secOn] * sZ[secOn] / (float)n[secOn] );
-				float ssz2 = sZZ[secOn] - sZ[secOn] * sZ[secOn] / (float)n[secOn];
-				float ssz = ssz2 - ssx;
-				if (n[secOn] == 2) {
-					err[secOn] = 0.0f;
-				} else {
-					err[secOn] = sqrt(ssz / ((float)n[secOn] - 2));
-				}
-			} else if (n[secOn] == 1) { 
-				m[secOn] = sZ[secOn]/sX[secOn];
-				b[secOn] = 0.0f;
-				err[secOn] = 0.0f;
-			} else {
-				m[secOn] = 999999.0f;
-				b[secOn] = 999999.0f;
-				err[secOn] = 999999.0f;
-			}
-		}
-
-		// Join Lines
-		if (rep > 2) {
-			for (int l1 = 0; l1 < 7; l1++) {
-				for (int l2 = l1+1; l2 < 7; l2++) {
-					if (n[l1] > 1 && n[l2] > 0) {
-						// Get Sums
-						int   jn   = n[l1] + n[l2];
-						float jsX  = sX[l1] + sX[l2];
-						float jsZ  = sZ[l1] + sZ[l2];
-						float jsXX = sXX[l1] + sXX[l2];
-						float jsZZ = sZZ[l1] + sZZ[l2];
-						float jsXZ = sXZ[l1] + sXZ[l2];
-						// Perform Regression
-						float jm = ((float)jn * jsXZ - jsZ * jsX ) / ( (float)jn * jsXX - jsX * jsX );
-						float jb = ( jsZ - jm * jsX ) / (float)jn;   
-						float jssx = jm * ( jsXZ - jsX * jsZ / (float)jn );
-						float jssz2 = jsZZ - jsZ * jsZ / (float)jn;
-						float jssz = jssz2 - jssx;
-						float jerr = sqrt(jssz / ((float)jn - 2));
-						// Check for joining lines
-						if (n[l2] > 1) {
-							if (jerr*(float)jn < err[l1]*(float)n[l1] + err[l2]*(float)n[l2] + (float)n[l2]*10.0f) {
-								n[l1] = 0;
-								n[l2] = jn;
-								sX[l2] = jsX;
-								sZ[l2] = jsZ;
-								sXX[l2] = jsXX;
-								sZZ[l2] = jsZZ;
-								sXZ[l2] = jsXZ;
-								m[l2] = jm;
-								b[l2] = jb;
-								err[l2] = jerr;
-							}
-						} else {
-							if (jerr < err[l1] + 0.5) {
-								n[l1] = 0;
-								n[l2] = jn;
-								sX[l2] = jsX;
-								sZ[l2] = jsZ;
-								sXX[l2] = jsXX;
-								sZZ[l2] = jsZZ;
-								sXZ[l2] = jsXZ;
-								m[l2] = jm;
-								b[l2] = jb;
-								err[l2] = jerr;
-							}
-						}
-					}
-				}
-			}
-		}
-
-		// Reassign points to nearest line
-		for (int i = 0; i < numTdWallPts; i++) {
-			float minV = 999999.0f;
-			int minI = 0;
-			for (int secOn = 0; secOn < 8; secOn++) {
-				if (n[secOn] > 0) {
-					float tmpDis = abs(m[secOn]*tdWall[i].x - tdWall[i].z + b[secOn])/ sqrt((m[secOn]*m[secOn]) + 1);
-					if (tmpDis < minV) {
-						minV = tmpDis;
-						minI = secOn;
-					}
-				}
-			}
-			lineID[i] = minI;
-		}
-
-	}
-
-	// Determine Final Lines
-	numTdLines = 0;
-	for (int itr = 0; itr < 8; itr++) {
-		int maxV = 0;
-		int maxI = -1;
-		for (int secOn = 0; secOn < 8; secOn++) {
-			if (n[secOn] > maxV) {
-				maxV = n[secOn];
-				maxI = secOn;
-			}
-		}
-		if (maxI != -1 && maxV > 3) {
-			tdLine[numTdLines].m = m[maxI];
-			tdLine[numTdLines].b = b[maxI];
-			tdLine[numTdLines].n = maxV;
-			n[maxI] = 0;
-			numTdLines++;
-		} else {
-			break;
-		}
-	}
-	return numTdLines;
 }
 
 float estimateYaw(SlicePoint tdWall[], int numTdWallPts, float yawValue) {
