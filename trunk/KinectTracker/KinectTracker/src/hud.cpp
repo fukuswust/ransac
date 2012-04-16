@@ -9,12 +9,7 @@ void drawHud() {
 	drawCrosshair(viewWidth, viewHeight);
 
 	//Draw Frame Count (in 2D)
-	glColor3f(1.0f, 1.0f, 1.0f);
-	fpsStopWatch->stopTimer();
-	avgFrameTime = (0.1*(float)(fpsStopWatch->getElapsedTime()))+(0.9f*avgFrameTime);
-	sprintf(printBuff, "FPS: %u", (unsigned int)(1.0f/avgFrameTime));
-	orthoPrint(HUD_FPS_X, viewHeight - HUD_FPS_Y, printBuff);
-	fpsStopWatch->startTimer();
+	drawFps(HUD_FPS_X, viewHeight - HUD_FPS_Y);
 
 	#ifdef HUD_DEBUG
 		//Yaw
@@ -123,4 +118,19 @@ void drawPitchHud(int cx, int cy, int r, float pitch) {
 	// Draw center point
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
 	drawCircleSolid(cx, cy, 3.5, 8);
+}
+
+void drawFps(int cx, int cy) {
+	static float avgFrameTime = 0.0f;
+	static CStopWatch fpsStopWatch;
+	char printBuff[256];
+	glColor3f(1.0f, 1.0f, 1.0f);
+	if (avgFrameTime == 0.0f) {
+		fpsStopWatch.startTimer();
+	}
+	fpsStopWatch.stopTimer();
+	avgFrameTime = (0.1*(float)(fpsStopWatch.getElapsedTime()))+(0.9f*avgFrameTime);
+	sprintf(printBuff, "FPS: %u", (unsigned int)(1.0f/avgFrameTime));
+	orthoPrint(cx, cy, printBuff);
+	fpsStopWatch.startTimer();
 }

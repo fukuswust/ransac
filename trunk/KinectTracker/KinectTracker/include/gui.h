@@ -18,5 +18,6 @@ void handleResize(int w, int h);
 void drawScene();
 void orthogonalStart (int viewWidth, int viewHeight);
 void orthogonalEnd (void);
+void setGlTransformation();
 
 #endif
