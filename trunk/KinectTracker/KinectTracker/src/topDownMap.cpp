@@ -181,11 +181,10 @@ void TopDownMap::draw() {
 	}
 	glEnd();
 
-	// Draw Augmentations
-	model->setX(augCubeX);
-	model->setY(augCubeY);
-	model->setZ(augCubeZ);
-	model->drawTopDown(cx,cy,radius);
+	// Draw All Augmentation Top Down Views
+	if (modelHead != NULL) {
+		modelHead->drawTopDown(cx,cy,radius);
+	}
 
 	// Set Button Locations and Draw
 	if (editMode) {

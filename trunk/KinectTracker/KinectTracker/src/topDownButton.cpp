@@ -1,10 +1,10 @@
 #include "topDownButton.h"
 #include "globals.h"
 #include "basicShapes.h"
+#include "augModel.h"
 
 TopDownButton::TopDownButton() {
 	state = 0;
-	selected = false;
 }
 
 void TopDownButton::draw() {
@@ -68,7 +68,13 @@ void TopDownButton::mouseLeftRelease() {
 				} else {
 					topDownMap.setSelected(id);
 					state = 2;
-					selected = true;
+					// Create new model to be placed
+					if (modelHead == NULL) {
+						modelHead = new AugModel("models/storage/nightstand3.3ds");
+						modelTail = modelHead;
+					} else {
+						modelTail->addNewModel("models/storage/nightstand3.3ds");
+					}
 				}
 			}
 		} else {

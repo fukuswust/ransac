@@ -51,8 +51,6 @@ void initRendering() {
 	glEnable (GL_DEPTH_TEST);
     glEnable (GL_LIGHTING);
     glEnable (GL_LIGHT0);
-
-	model = new AugModel("models/storage/nightstand3.3ds");
 }
 
 // Main Update Loop
@@ -114,8 +112,9 @@ void drawScene() {
 	glMatrixMode(GL_MODELVIEW); //Switch to the drawing perspective
 	glLoadIdentity(); //Reset the drawing perspective
 	setGlTransformation(); //Transform all points for augmentation
-	
-	model->drawAugmentation();
+	if (modelHead != NULL) {
+		modelHead->drawAugmentation();
+	}
 
 	//Draw 2D Overlay
 	orthogonalStart(viewWidth, viewHeight);
