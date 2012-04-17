@@ -60,6 +60,10 @@ void TopDownButton::mouseLeftRelease() {
 				if (levelOn == 0) {
 					topDownMap.gotoLevel(-1);
 				} else {
+					if (modelTail != NULL) {
+						editPlacing = false;
+						modelHead->cancelMovement();
+					}
 					topDownMap.gotoLevel(0);
 				}
 			} else { // Other button
@@ -75,6 +79,7 @@ void TopDownButton::mouseLeftRelease() {
 					} else {
 						modelTail->addNewModel("models/storage/nightstand3.3ds");
 					}
+					editPlacing = true;
 				}
 			}
 		} else {

@@ -1,5 +1,5 @@
 %% Initial Constants
-frameName = '000025';
+frameName = '000027';
 
 %% Loop
 lastFile = 33;
@@ -147,50 +147,329 @@ axis equal
 %tdView{fileOn+1} = maxDisList;
 
 %% Segment Walls
-wPointCloud = segmentWalls(pPointCloud, maxDisListPolar);
+[wPointCloud outScanP] = segmentWalls(pPointCloud, maxDisListPolar);
 tmp = printImage(wPointCloud(:,:,3));
 axis equal
 imwrite(tmp,[dataPath '/MATLAB_output/4_' frameName '.bmp']);
 
-%% Segment Mesh
-% Polar to Cartesian
-wCPC = polarToCartesian(wPointCloud);
-% Split
-totWall = 0;
-for i = 1:30
-    for j = 1:40
-        if ~isnan(wCPC(i,j,1))
-            totWall = totWall + 1;
-            wallPoints(totWall,1:3) = permute(wCPC(i,j,1:3),[1 3 2]);
+%% Top-Down 
+outScan = polarToCartesian2D(outScanP);
+outScan(:,2) = -outScan(:,2);
+scatter(outScan(:,1),outScan(:,2));
+axis([-200 200 0 500]);
+axis equal 
+
+%% Initialize
+param = zeros(8,3);
+id = kron([1 2 3 4 5 6 7 8],ones(1,5));
+numSec = 8;
+
+%% Regress Sections
+for rep = 1:5
+scatter(outScan(:,1),outScan(:,2));
+axis([-300 300 0 600]);
+% Create Sums
+n = zeros(1,numSec);
+sumX = zeros(1,numSec);
+sumY = zeros(1,numSec);
+sumXsquared = zeros(1,numSec);
+sumYsquared = zeros(1,numSec);
+sumXY = zeros(1,numSec);
+for i = 1:40
+    if ~isnan(outScan(i,1))
+        n(id(i)) = n(id(i)) + 1;
+        sumX(id(i)) = sumX(id(i)) + outScan(i,1);
+        sumY(id(i)) = sumY(id(i)) + outScan(i,2);
+        sumXsquared(id(i)) = sumXsquared(id(i)) + outScan(i,1) * outScan(i,1);
+        sumYsquared(id(i)) = sumYsquared(id(i)) + outScan(i,2) * outScan(i,2);
+        sumXY(id(i)) = sumXY(id(i)) + outScan(i,1) * outScan(i,2);
+    end
+end
+
+% Regress
+for secOn = 1:8
+    if n(secOn) > 1
+        param(secOn,1) = ( n(secOn) * sumXY(secOn) - ...
+            sumY(secOn) * sumX(secOn)) / ( n(secOn) * ...
+            sumXsquared(secOn) - sumX(secOn) * sumX(secOn));
+        param(secOn,2) = (sumY(secOn) - param(secOn,1) * sumX(secOn)) / ...
+            n(secOn);   
+        sx = param(secOn,1) * ( sumXY(secOn) - sumX(secOn) * ...
+            sumY(secOn) / n(secOn) );
+        sy2 = sumYsquared(secOn) - sumY(secOn) * sumY(secOn) / n(secOn);
+        sy = sy2 - sx;
+        if n(secOn) == 2
+            param(secOn,3) = 0;
+        else
+            param(secOn,3) = sqrt(sy / (n(secOn) - 2));
+        end
+        pt1x = -300;
+        pt1y = pt1x*param(secOn,1) + param(secOn,2);
+        pt2x = 300;
+        pt2y = pt2x*param(secOn,1) + param(secOn,2);
+        line([pt1x pt2x], [pt1y pt2y]);
+    elseif n(secOn) == 1
+        param(secOn,1) = sumY(secOn)./sumX(secOn);
+        param(secOn,2) = 0;
+        param(secOn,3) = 0;
+    else 
+        param(secOn,1) = NaN;
+        param(secOn,2) = NaN;
+        param(secOn,3) = NaN;
+    end
+end
+
+% Join Lines
+if rep > 1
+    for l1 = 1:8
+        for l2 = l1+1:8
+            if n(l1) > 1 && n(l2) > 0
+                jn = n(l1) + n(l2);
+                jsumX = sumX(l1) + sumX(l2);
+                jsumY = sumY(l1) + sumY(l2);
+                jsumXsquared = sumXsquared(l1) + sumXsquared(l2);
+                jsumYsquared = sumYsquared(l1) + sumYsquared(l2);
+                jsumXY = sumXY(l1) + sumXY(l2);
+                jm = ( jn * jsumXY - ...
+                    jsumY * jsumX) / ( jn * ...
+                    jsumXsquared - jsumX * jsumX);
+                jb = (jsumY - jm * jsumX) / ...
+                    jn;   
+                jsx = jm * ( jsumXY - jsumX * ...
+                    jsumY / jn );
+                jsy2 = jsumYsquared - jsumY * jsumY / jn;
+                jsy = jsy2 - jsx;
+                jerr = sqrt(jsy / (jn - 2));
+                if n(l2) > 1
+                    if jerr*jn < param(l1,3)*n(l1) + param(l2,3)*n(l2) + n(l2)*10
+                        id = replaceValue(id,l1,l2);
+                        n(l1) = 0;
+                        param(l1,:) = [NaN NaN NaN];
+                        n(l2) = jn;
+                        sumX(l2) = jsumX;
+                        sumY(l2) = jsumY;
+                        sumXsquared(l2) = jsumXsquared;
+                        sumYsquared(l2) = jsumYsquared;
+                        sumXY(l2) = jsumXY;
+                        param(l2,:) = [jm jb jerr];
+                    end
+                else
+                    if jerr < param(l1,3) + 0.5
+                        id = replaceValue(id,l1,l2);
+                        n(l1) = 0;
+                        param(l1,:) = [NaN NaN NaN];
+                        n(l2) = jn;
+                        sumX(l2) = jsumX;
+                        sumY(l2) = jsumY;
+                        sumXsquared(l2) = jsumXsquared;
+                        sumYsquared(l2) = jsumYsquared;
+                        sumXY(l2) = jsumXY;
+                        param(l2,:) = [jm jb jerr];
+                    end
+                end
+            end
         end
     end
 end
-% Draw Top-Down
-scatter(wallPoints(:,1),-wallPoints(:,3));
+
+% Draw Intermediate
+% scatter(outScan(:,1),outScan(:,2));
+% axis([-300 300 0 600]);
+% for secOn = 1:8
+%     if n(secOn) > 1
+%         pt1x = -300;
+%         pt1y = pt1x*param(secOn,1) + param(secOn,2);
+%         pt2x = 300;
+%         pt2y = pt2x*param(secOn,1) + param(secOn,2);
+%         line([pt1x pt2x], [pt1y pt2y]);
+%     end
+% end
+
+% Distance to line
+%y = mx + b   --->   Ax+By+C=0
+for i = 1:40
+    if ~isnan(outScan(i,1))
+        dist = nan(1,8);
+        for secOn = 1:8
+            if n(secOn) > 0
+                A = param(secOn,1);
+                B = -1;
+                C = param(secOn,2);
+                dist(secOn) = abs(A*outScan(i,1) + B*outScan(i,2) + C)/ ...
+                    sqrt(A.^2 + B.^2);
+            else
+                dist(secOn) = inf;
+            end
+        end
+        [minV minI] = min(dist);
+        id(i) = minI;
+    end
+end
+
+end
+
+for secOn = 1:8
+    if n(secOn) < 4
+        param(secOn,:) = [NaN NaN NaN];
+    end
+end
+%saveas(gcf,[dataPath '/MATLAB_output/reg_' frameName '.bmp']) 
+
+%% Rotate Data
+[mv mi] = min(param(:,3));
+estYaw = atan(param(mi,1));
+rotDataP(:,:) = [outScanP(:,1)+estYaw outScanP(:,2)];
+rotData = polarToCartesian2D(rotDataP);
+scatter(rotData(:,1),rotData(:,2),'filled');
 axis equal
 
-%% Determine Wall Normal
-rep = 574;
-norm = zeros(rep,3);
-for i = 1:rep
-    r1 = mod(i,totWall)+1;
-    r2 = randi(totWall);
-    while (r1 == r2)
-        r2 = randi(totWall);
+%% Find Yaw
+clear dir;
+clear b;
+numVals = 0;
+for li = 1:40
+    for lj = li-5:li+5
+        if li~=lj && lj > 0 && lj <= 40
+        if ~isnan(outScan(li,1)) && ~isnan(outScan(lj,1))
+            numVals = numVals + 1;
+            m = (outScan(li,2)-outScan(lj,2))/ ...
+                (outScan(li,1)-outScan(lj,1));
+            dir(numVals) = mod(atan(m),pi()/2);
+            b(numVals) = outScan(li,2) - (m*outScan(li,1));
+        end
+        end
     end
-    r3 = randi(totWall);
-    while (r3 == r1 || r3 == r2)
-        r3 = randi(totWall);
-    end
-    
-    p1 = wallPoints(r1,:);
-    p2 = wallPoints(r2,:);
-    p3 = wallPoints(r3,:);
-    norm(i,1:3) = cross(p1-p2,p1-p3);
-    norm(i,1:3) = norm(i,1:3)/(sqrt(sum(norm(i,1:3).^2)));
 end
-temp = norm(:,1);
-hist(temp(:));
+hist(dir,45);
+axis([0 pi()/2 0 40])
+[histAm histLoc] = hist(dir,45);
+[mv mi] = max(histAm);
+newYaw = histLoc(mi);
+
+%% Rotate Data
+rotDataP(:,:) = [outScanP(:,1)+newYaw outScanP(:,2)];
+rotData = polarToCartesian2D(rotDataP);
+scatter(rotData(:,1),rotData(:,2),'filled');
+axis equal
+%saveas(gcf,[dataPath '/MATLAB_output/rot_' frameName '.bmp']) 
+
+%% Determine X,Z Histograms
+hist(rotData(:,2),16)
+
+%% Use Median Filter
+clear xzPts;
+numPts = 0;
+for i = 1:40
+    if ~isnan(rotData(i,1))
+        numPts = numPts+1;
+        xzPts(numPts,:) = rotData(i,:);
+    end
+end
+avgPts = zeros(numPts-4,2);
+for i = 3:numPts-2
+    subset = xzPts(i-2:i+2,:);
+    subsetX = sortrows(subset,1);
+    subsetZ = sortrows(subset,2);
+    avgPts(i-2,:) = [subsetX(3,1) subsetZ(3,2)];
+end
+numPts = numPts-4;
+scatter(avgPts(:,1), avgPts(:,2));
+axis equal;
+saveas(gcf,[dataPath '/MATLAB_output/rotAvg_' frameName '.bmp']) 
+
+%% Detect Lines Init
+id = zeros(numPts,1);
+for i = 1:numPts
+    id(i) = floor((i-1)/5)+1;
+end
+
+%% Detect Lines
+for rep = 1:5
+
+avgZ = zeros(8,1);
+n = zeros(8,1);
+for i = 1:numPts
+    mID = id(i);
+    n(mID) = n(mID) + 1;
+    avgZ(mID) = avgZ(mID) + avgPts(i,2);
+end
+for mID = 1:8
+    avgZ(mID) = avgZ(mID) / n(mID);
+end
+
+if (rep > 2) 
+    for l1 = 1:8
+        for l2 = l1+1:8
+            if (abs(avgZ(l1) - avgZ(l2)) < 10)
+                n(l2) = n(l1) + n(l2);
+                n(l1) = 0;
+            end
+        end
+    end
+end
+
+for i = 1:numPts
+    minV = 999999;
+    minI = -1;
+    for mID = 1:8
+        if n(mID) > 0
+            if abs(avgZ(mID) - avgPts(i,2)) < minV
+                minV = abs(avgZ(mID) - avgPts(i,2));
+                minI = mID;
+            end
+        end
+    end
+    id(i) = minI;
+end
+
+end
+
+minX = ones(8,1).*999999;
+maxX = ones(8,1).*-999999;
+for i = 1:numPts
+    mID = id(i);
+    if avgPts(i,1) > maxX(mID)
+        maxX(mID) = avgPts(i,1);
+    end
+    if avgPts(i,1) < minX(mID)
+        minX(mID) = avgPts(i,1);
+    end
+end
+
+for mID = 1:8
+     if maxX(mID) - minX(mID) < 50
+         n(mID) = 0;
+     end
+end
+
+minX = ones(8,1).*999999;
+maxX = ones(8,1).*-999999;
+for i = 1:numPts
+    mID = id(i);
+    if avgPts(i,1) > maxX(mID)
+        maxX(mID) = avgPts(i,1);
+    end
+    if avgPts(i,1) < minX(mID)
+        minX(mID) = avgPts(i,1);
+    end
+end
+
+%%
+
+for mID = 1:8
+     if maxX(mID) - minX(mID) < 50
+         n(mID) = 0;
+     end
+end
+
+scatter(avgPts(:,1), avgPts(:,2));
+axis equal;
+for l1 = 1:8
+    if n(l1) > 3
+        line([-100 150],[avgZ(l1) avgZ(l1)]);
+    end
+end
+saveas(gcf,[dataPath '/MATLAB_output/z_' frameName '.bmp']) 
 
 %%
 end

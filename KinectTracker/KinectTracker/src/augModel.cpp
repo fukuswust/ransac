@@ -2,6 +2,7 @@
 #include "globals.h"
 
 AugModel::AugModel(char file[]) {
+	path = file;
 	next = NULL;
 	prev = NULL;
 	placing = true;
@@ -10,6 +11,26 @@ AugModel::AugModel(char file[]) {
 	x = 0.0f;
 	y = 0.0f;
 	z = 0.0f;
+}
+
+AugModel::~AugModel() {
+	if (prev == NULL) {
+		if (next == NULL) { //Only one
+			modelHead = NULL;
+			modelTail = NULL;
+		} else { //Some after but none before
+			next->prev = NULL;
+			modelHead = next;
+		}
+	} else {
+		if (next == NULL) { //Some before but none after
+			prev->next = NULL;
+			modelTail = prev;
+		} else { //Some in both directions
+			next->prev = prev;
+			prev->next = next;
+		}
+	}
 }
 
 void AugModel::autoScaleModel(float amount) {
@@ -50,43 +71,90 @@ void AugModel::drawTopDown(float cx, float cy, float r) {
 		z = (mouseY-cy-viewYOffset)*(MAX_ALLOWED_DIS/r);
 	}
 
-	float pt1X = cx + ((x - xValue + minX)/(MAX_ALLOWED_DIS/r));
-	float pt1Z = cy + ((z - zValue + minZ)/(MAX_ALLOWED_DIS/r));
-	float pt2X = cx + ((x - xValue + maxX)/(MAX_ALLOWED_DIS/r));
-	float pt2Z = cy + ((z - zValue + maxZ)/(MAX_ALLOWED_DIS/r));
-	glColor3f(0.0f, 0.0f, 0.0f);
-    glBegin(GL_QUADS);				
-	glVertex2f(pt1X, pt1Z);		
-	glVertex2f(pt1X, pt2Z);		
-	glVertex2f(pt2X, pt2Z);		
-	glVertex2f(pt2X, pt1Z);		
-    glEnd();
+	// Determine if visible
+	float pt1X = x - xValue + minX;
+	float pt1Z = z - zValue + minZ;
+	float pt2X = x - xValue + maxX;
+	float pt2Z = z - zValue + maxZ;
+	if        (sqrt(pow(pt1X,2)+pow(pt1Z,2)) > MAX_ALLOWED_DIS) {
+		tdVisible = false;
+	} else if (sqrt(pow(pt1X,2)+pow(pt2Z,2)) > MAX_ALLOWED_DIS) {
+		tdVisible = false;
+	} else if (sqrt(pow(pt2X,2)+pow(pt2Z,2)) > MAX_ALLOWED_DIS) {
+		tdVisible = false;
+	} else if (sqrt(pow(pt2X,2)+pow(pt1Z,2)) > MAX_ALLOWED_DIS) {
+		tdVisible = false;
+	} else {
+		tdVisible = true;
+	}
+
+	// Draw Top Down View
+	if (tdVisible) {
+		float pt1Xtd = cx + (pt1X/(MAX_ALLOWED_DIS/r));
+		float pt1Ztd = cy + (pt1Z/(MAX_ALLOWED_DIS/r));
+		float pt2Xtd = cx + (pt2X/(MAX_ALLOWED_DIS/r));
+		float pt2Ztd = cy + (pt2Z/(MAX_ALLOWED_DIS/r));
+		glColor3f(0.0f, 0.0f, 0.0f);
+		glBegin(GL_QUADS);				
+		glVertex2f(pt1Xtd, pt1Ztd);		
+		glVertex2f(pt1Xtd, pt2Ztd);		
+		glVertex2f(pt2Xtd, pt2Ztd);		
+		glVertex2f(pt2Xtd, pt1Ztd);		
+		glEnd();
+	}
+	if (next != NULL) {
+		next->drawTopDown(cx, cy, r);
+	}
 }
 
 void AugModel::drawAugmentation() {
-	glEnable(GL_LIGHTING);
-	m.scale = scale;
-	m.pos.x = x;
-	m.pos.y = y-minY;
-	m.pos.z = z;
-	m.Draw();
-	//glDisable(GL_COLOR_MATERIAL);
-	glDisable(GL_LIGHTING);
-	glDisable(GL_TEXTURE_2D); // Disable texturing so the colors don't bleed into the osd
+	if (!placing || (showHud && tdVisible)) {
+		glEnable(GL_LIGHTING);
+		m.scale = scale;
+		m.pos.x = x;
+		m.pos.y = y-minY;
+		m.pos.z = z;
+		m.Draw();
+		//glDisable(GL_COLOR_MATERIAL);
+		glDisable(GL_LIGHTING);
+		glDisable(GL_TEXTURE_2D); // Disable texturing so the colors don't bleed into the osd
+	}
+	if (next != NULL) {
+		next->drawAugmentation();
+	}
 }
 
 void AugModel::addNewModel(char file[]) {
-	modelTail = new AugModel(file);
-	if (placing) { // Replace self
-		if (prev == NULL) { // Only entry
-			modelHead = modelTail;
-			delete this;
-		} else {
-			prev->next = modelTail;
+	next = new AugModel(file);
+	modelTail = next;
+	if (placing) {
+		delete this;
+	}
+}
+
+void AugModel::cancelMovement() {
+	if (next == NULL) {
+		if (placing) {
 			delete this;
 		}
 	} else {
-		next = modelTail;
-		next->prev = this;
+		next->cancelMovement();
+	}
+}
+
+void AugModel::mouseLeftPress() {
+	// Goto tail first
+	if (next != NULL) {
+		next->mouseLeftPress();
+	}
+	if (!editPlacing) {
+
+	} else if (placing) { // This model is being placed
+		if (tdVisible) {
+			placing = false; //Place in the room
+			next = new AugModel(path);
+			next->prev = this;
+			modelTail = next;
+		}
 	}
 }
