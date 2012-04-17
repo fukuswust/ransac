@@ -12,7 +12,6 @@ private:
 		// 0 - not clicked
 		// 1 - pressed
 		// 2 - down
-	bool selected;
 
 public:
 	TopDownButton();
@@ -20,7 +19,7 @@ public:
 	void setY(float cy) {y = cy;}
 	void setRadius(float cr) {radius = cr;}
 	void setId(int cId) {id = cId;}
-	void setLevelOn(int lo) {levelOn = lo; selected = false; state = 0;}
+	void setLevelOn(int lo) {levelOn = lo; state = 0;}
 	void draw();
 	bool mouseIsInside();
 	void mouseLeftPress();

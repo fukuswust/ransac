@@ -27,11 +27,6 @@ int numFloorPoints = 0;
 // Wall Points
 int wallIJ[MAX_WALL_POINTS*2];
 int numWallPoints;
-// Augmentations
-float augCubeX = 0.0f;
-float augCubeY = 0.0f;
-float augCubeZ = 0.0f;
-float augCubeYaw = 0.0f;
 // Top Down Map
 TopDownMap topDownMap;
 SlicePoint tdWall[40];
@@ -66,14 +61,15 @@ bool showFloorPoints = false;
 bool showWallPoints = false;
 
 // Models
-AugModel* model;
+AugModel* modelHead = NULL;
+AugModel* modelTail = NULL;
 
 //Button Colors
-float btnColors[8][3] = {{0.50f, 0.50f, 0.50f},
-						 {1.00f, 1.00f, 1.00f},
-						 {1.00f, 0.00f, 0.00f},
-						 {0.00f, 1.00f, 0.00f},
-						 {0.00f, 0.00f, 1.00f},
-						 {1.00f, 1.00f, 0.00f},
-						 {0.00f, 1.00f, 1.00f},
-						 {1.00f, 0.00f, 1.00f}};
+float btnColors[8][3] = {{0.50f, 0.50f, 0.50f}, // Cancel
+						 {1.00f, 1.00f, 1.00f}, // Beds
+						 {1.00f, 0.00f, 0.00f}, // Storage
+						 {0.00f, 1.00f, 0.00f}, // Chairs
+						 {0.00f, 0.00f, 1.00f}, // Tables
+						 {1.00f, 1.00f, 0.00f}, // Lights
+						 {0.00f, 1.00f, 1.00f}, // Electronics
+						 {1.00f, 0.00f, 1.00f}}; // Misc

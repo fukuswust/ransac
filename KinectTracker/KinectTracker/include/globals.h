@@ -46,12 +46,6 @@ extern int numFloorPoints;
 // Wall Points
 extern int wallIJ[MAX_WALL_POINTS*2];
 extern int numWallPoints;
-// Augmentations
-#define AUG_CUBE_SIZE 100.0f
-extern float augCubeX;
-extern float augCubeY;
-extern float augCubeZ;
-extern float augCubeYaw;
 // Top Down Map
 extern TopDownMap topDownMap;
 extern SlicePoint tdWall[40];
@@ -86,7 +80,8 @@ extern bool showFloorPoints;
 extern bool showWallPoints;
 
 // Models
-extern AugModel* model;
+extern AugModel* modelHead;
+extern AugModel* modelTail;
 
 //Button Colors
 extern float btnColors[8][3];

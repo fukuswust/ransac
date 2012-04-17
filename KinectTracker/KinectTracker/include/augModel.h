@@ -10,13 +10,15 @@ private:
 	float x,y,z;
 	float minX, maxX, minY, maxY, minZ, maxZ;
 	float scale;
+	bool placing;
+	AugModel* next;
+	AugModel* prev;
+	void autoScaleModel(float amount);
 public:
 	AugModel(char file[]);
 	void drawTopDown(float cx, float cy, float r);
 	void drawAugmentation();
-	void setX(float cx) {x = cx;}
-	void setY(float cy) {y = cy;}
-	void setZ(float cz) {z = cz;}
+	void addNewModel(char file[]);
 };
 
 #endif

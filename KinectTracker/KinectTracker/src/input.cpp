@@ -54,35 +54,6 @@ void handleKeypress(unsigned char key, //The key that was pressed
 			showWallPoints = !showWallPoints;
 			break;
 		}
-
-		case 'w': {
-			augCubeZ -= 10.0f;
-			break;
-		}
-		case 's': {
-			augCubeZ += 10.0f;
-			break;
-		}
-		case 'a': {
-			augCubeX -= 10.0f;
-			break;
-		}
-		case 'd': {
-			augCubeX += 10.0f;
-			break;
-		}
-		case 'q': {
-			augCubeYaw -= PI/45.0f;
-			break;
-		}
-		case 'e': {
-			augCubeYaw += PI/45.0f;
-			break;
-		}
-		case 'r': {
-			augCubeYaw = 0.0f;
-			break;
-		}
 	}
 }
 
