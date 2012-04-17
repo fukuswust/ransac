@@ -12,7 +12,7 @@ void drawHud() {
 	drawFps(HUD_FPS_X, viewHeight - HUD_FPS_Y);
 
 	#ifdef HUD_DEBUG
-		//Yaw
+		/*//Yaw
 		glColor3f(1.0f, 1.0f, 1.0f);
 		sprintf(printBuff, "Yaw: %f", (yawValue/PI)*180.0f);
 		orthoPrint(150, viewHeight - HUD_FPS_Y, printBuff);
@@ -25,7 +25,7 @@ void drawHud() {
 		//Z
 		glColor3f(1.0f, 1.0f, 1.0f);
 		sprintf(printBuff, "Z: %f", zValue);
-		orthoPrint(450, viewHeight - HUD_FPS_Y, printBuff);
+		orthoPrint(450, viewHeight - HUD_FPS_Y, printBuff);*/
 	#endif
 
 	// Draw Height Measurement Bar
@@ -38,10 +38,6 @@ void drawHud() {
 	drawPitchHud(HUD_PITCH_X, HUD_PITCH_Y, HUD_PITCH_RADIUS, pitchValue);
 
 	// Draw Top Down Map
-	topDownMap.setX(viewWidth-HUD_MAP_X);
-	topDownMap.setY(HUD_MAP_Y);
-	topDownMap.setRadius(HUD_MAP_RADIUS);
-	topDownMap.setMiniRadius(HUD_OBJECT_RADIUS);
 	topDownMap.draw();
 }
 

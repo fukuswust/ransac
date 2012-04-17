@@ -85,3 +85,28 @@ void handleKeypress(unsigned char key, //The key that was pressed
 		}
 	}
 }
+
+//Called when the mouse is moved
+void handleMouseMove(int x, int y) {
+	mouseX = x;
+	mouseY = y;
+}
+
+//Called when mouse button pressed or released
+void handleMouseButtons(int button, int state, int x, int y) {
+	if (showHud) {
+		if (button == GLUT_LEFT_BUTTON) { // Left Button
+			if (state == GLUT_DOWN) {
+				topDownMap.mouseLeftPress();
+			} else {
+				topDownMap.mouseLeftRelease();
+			}
+		} else if (button == GLUT_RIGHT_BUTTON) { // Right Button
+			if (state == GLUT_DOWN) {
+				topDownMap.mouseRightPress();
+			} else  {
+				topDownMap.mouseRightRelease();
+			}
+		}
+	}
+}

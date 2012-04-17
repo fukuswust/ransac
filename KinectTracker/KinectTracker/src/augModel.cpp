@@ -18,10 +18,19 @@ AugModel::AugModel(char file[]) {
 			if (zVal > maxZ) {maxZ = zVal;}
 		}
 	}
-	minX /= 10.0f;
-	maxX /= 10.0f;
-	minZ /= 10.0f;
-	maxZ /= 10.0f;
+	float sX = maxX-minX;
+	float sZ = maxZ-minZ;
+	if (sX > sZ) {
+		scale = 200.0f/sX;
+	} else {
+		scale = 200.0f/sZ;
+	}
+	minX *= scale;
+	maxX *= scale;
+	minY *= scale;
+	maxY *= scale;
+	minZ *= scale;
+	maxZ *= scale;
 }
 
 void AugModel::drawTopDown(float cx, float cy, float r) {
@@ -40,9 +49,9 @@ void AugModel::drawTopDown(float cx, float cy, float r) {
 
 void AugModel::drawAugmentation() {
 	glEnable(GL_LIGHTING);
-	m.scale = 0.1f;
+	m.scale = scale;
 	m.pos.x = x;
-	m.pos.y = y;
+	m.pos.y = y-minY;
 	m.pos.z = z;
 	m.Draw();
 	//glDisable(GL_COLOR_MATERIAL);
