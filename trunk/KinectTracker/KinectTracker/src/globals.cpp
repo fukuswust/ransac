@@ -73,3 +73,4 @@ float btnColors[8][3] = {{0.50f, 0.50f, 0.50f}, // Cancel
 						 {1.00f, 1.00f, 0.00f}, // Lights
 						 {0.00f, 1.00f, 1.00f}, // Electronics
 						 {1.00f, 0.00f, 1.00f}}; // Misc
+bool editPlacing = false;

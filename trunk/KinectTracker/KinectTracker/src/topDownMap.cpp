@@ -211,6 +211,9 @@ void TopDownMap::mouseLeftPress() {
 		for (int i = 0; i < 8; i++) {
 			topDownButton[i].mouseLeftPress();
 		}
+		if (modelHead != NULL) {
+			modelHead->mouseLeftPress();
+		}
 	}
 }
 
@@ -218,6 +221,7 @@ void TopDownMap::mouseLeftRelease() {
 	if (!editMode) {
 		if (mouseIsInside()) {
 			editMode = true;
+			editPlacing = false;
 		}
 	} else {
 		for (int i = 0; i < 8; i++) {

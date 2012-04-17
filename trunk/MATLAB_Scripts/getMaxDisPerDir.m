@@ -16,29 +16,15 @@ function [ maxDistList ] = getMaxDisPerDir( inPolarPC, numOut )
     minHeight = min(min(inPolarPC(:,:,1)));
     factor = numOut/(maxDir - minDir + 0.00001);
     sliceSize = 1/factor;
-    maxDistList = NaN(numOut,2); %Make more general
+    maxDistList = zeros(numOut,2); %Make more general
     
-    for i = 2:size(inPolarPC,1)-1
-        for j = 2:size(inPolarPC,2)-1
+    for i = 1:size(inPolarPC,1)
+        for j = 1:size(inPolarPC,2)
             if (~isnan(inPolarPC(i,j,2)))
                 if (inPolarPC(i,j,1) > minHeight+100)
                     dirOn = floor((inPolarPC(i,j,2)-minDir).*factor)+1;
-                    if (isnan(maxDistList(dirOn,1)))
-                        maxDistList(dirOn,1) = ...
-                            minDir+(sliceSize*(dirOn-1))+(sliceSize/2);
-                        maxDistList(dirOn,2) = (inPolarPC(i,j,3) ...
-                            + inPolarPC(i-1,j-1,3) + inPolarPC(i,j-1,3) ...
-                            + inPolarPC(i+1,j-1,3) + inPolarPC(i+1,j,3) ...
-                            + inPolarPC(i+1,j+1,3) + inPolarPC(i,j+1,3) ...
-                            + inPolarPC(i-1,j+1,3) + inPolarPC(i-1,j,3))/9;
-                    elseif (inPolarPC(i,j,3) > maxDistList(dirOn,2))
-                        maxDistList(dirOn,1) = ...
-                            minDir+(sliceSize*(dirOn-1))+(sliceSize/2);
-                        maxDistList(dirOn,2) = (inPolarPC(i,j,3) ...
-                            + inPolarPC(i-1,j-1,3) + inPolarPC(i,j-1,3) ...
-                            + inPolarPC(i+1,j-1,3) + inPolarPC(i+1,j,3) ...
-                            + inPolarPC(i+1,j+1,3) + inPolarPC(i,j+1,3) ...
-                            + inPolarPC(i-1,j+1,3) + inPolarPC(i-1,j,3))/9;
+                    if (inPolarPC(i,j,3) > maxDistList(dirOn,2))
+                        maxDistList(dirOn,1:2) = inPolarPC(i,j,2:3);
                     end
                 end
             end

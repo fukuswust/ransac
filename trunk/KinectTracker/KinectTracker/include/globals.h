@@ -85,5 +85,6 @@ extern AugModel* modelTail;
 
 //Button Colors
 extern float btnColors[8][3];
+extern bool editPlacing;
 
 #endif
