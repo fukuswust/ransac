@@ -1,5 +1,8 @@
 #include "globals.h"
 
+// Mouse Location
+int mouseX = 0;
+int mouseY = 0;
 // Recording file counter
 int outFileOn = 0;
 // View size and offset
@@ -26,7 +29,7 @@ int wallIJ[MAX_WALL_POINTS*2];
 int numWallPoints;
 // Augmentations
 float augCubeX = 0.0f;
-float augCubeY = 50.0f;
+float augCubeY = 0.0f;
 float augCubeZ = 0.0f;
 float augCubeYaw = 0.0f;
 // Top Down Map
@@ -64,3 +67,13 @@ bool showWallPoints = false;
 
 // Models
 AugModel* model;
+
+//Button Colors
+float btnColors[8][3] = {{0.50f, 0.50f, 0.50f},
+						 {1.00f, 1.00f, 1.00f},
+						 {1.00f, 0.00f, 0.00f},
+						 {0.00f, 1.00f, 0.00f},
+						 {0.00f, 0.00f, 1.00f},
+						 {1.00f, 1.00f, 0.00f},
+						 {0.00f, 1.00f, 1.00f},
+						 {1.00f, 0.00f, 1.00f}};

@@ -19,6 +19,9 @@
 
 //#define RECORD_RAW
 
+// Mouse Location
+extern int mouseX;
+extern int mouseY;
 // Recording file counter
 extern int outFileOn;
 // View size and offset
@@ -84,5 +87,8 @@ extern bool showWallPoints;
 
 // Models
 extern AugModel* model;
+
+//Button Colors
+extern float btnColors[8][3];
 
 #endif

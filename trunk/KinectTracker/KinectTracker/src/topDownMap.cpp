@@ -1,6 +1,17 @@
 #include "topDownMap.h"
 #include "globals.h"
 #include "basicShapes.h"
+#include "topDownButton.h"
+
+TopDownMap::TopDownMap() {
+	editMode = false;
+	btnRadius = HUD_MAP_BTN_RADIUS;
+	for (int i = 0; i < 8; i++) {
+		topDownButton[i].setRadius(btnRadius);
+		topDownButton[i].setId(i);
+		topDownButton[i].setLevelOn(0);
+	}
+}
 
 bool TopDownMap::drawPoint(float x, float z) {
 	float tmpX = x;// - xValue;
@@ -91,8 +102,29 @@ void TopDownMap::drawLine(Line tdLine) {
 }
 
 void TopDownMap::draw() {
+	//Set Location
+	if (editMode) {
+		cx = viewWidth/2;
+		cy = viewHeight/2;
+		if (viewWidth > viewHeight) {
+			radius = (viewHeight/2)-(2*btnRadius)-30;
+		} else {
+			radius = (viewWidth/2)-(2*btnRadius)-30;
+		}
+		btnRadius = HUD_MAP_BTN_RADIUS;
+	} else {
+		cx = viewWidth-HUD_MAP_X;
+		cy = HUD_MAP_Y;
+		radius = HUD_MAP_RADIUS;
+		btnRadius = HUD_MAP_BTN_RADIUS;
+	}
+
 	//Draw Local Top Down Map Background
-	glColor4f(1.0f, 1.0f, 1.0f, 0.5f); // White
+	if ((mouseIsInside() || mousePressed) && !editMode) {
+		glColor4f(1.0f, 1.0f, 1.0f, 0.9f); // White
+	} else {
+		glColor4f(1.0f, 1.0f, 1.0f, 0.5f); // Clear White
+	}
 	drawCircleSolid(cx, cy, radius, 32);
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
 	drawCircle(cx, cy, radius, 32);
@@ -155,28 +187,71 @@ void TopDownMap::draw() {
 	model->setZ(augCubeZ);
 	model->drawTopDown(cx,cy,radius);
 
-	// Draw small circles with mini models
-	drawMiniCircles();
+	// Set Button Locations and Draw
+	if (editMode) {
+		float dTheta = 2 * atan2((float)btnRadius, (float)(radius + btnRadius));
+		for (int i = 0; i < 8; i++) {
+			float theta = (i-3.5f)*dTheta;
+			topDownButton[i].setX(cx + (radius + btnRadius)*cos(theta));
+			topDownButton[i].setY(cy + (radius + btnRadius)*sin(theta));
+			topDownButton[i].draw();
+		}	
+	}
 }
 
-void TopDownMap::drawMiniCircles() {
-	double theta = 2 * atan2((float)miniRadius, (float)(radius + miniRadius));
-	drawMiniCircle(0);
-	drawMiniCircle(theta);
-	drawMiniCircle(-theta);
-	drawMiniCircle(2*theta);
-	drawMiniCircle(-2*theta);
-	drawMiniCircle(3*theta);
-	drawMiniCircle(-3*theta);
+bool TopDownMap::mouseIsInside() {
+	return (sqrt(pow((float)cx-mouseX+viewXOffset,2)+pow((float)cy-mouseY+viewYOffset,2))<radius);
 }
 
-// Draws a circle at a specified angle around the large circle (0 being at bottom of large circle)
-void TopDownMap::drawMiniCircle(float angle) {
-	float theta = angle + PI/2;
-	int miniX = cx + (radius + miniRadius)*cos(theta);
-	int miniY = cy + (radius + miniRadius)*sin(theta);
-	glColor4f(1.0f, 1.0f, 1.0f, 0.5f); // White
-	drawCircleSolid(miniX, miniY, miniRadius, 20);
-	glColor3f(0.0f, 0.0f, 0.0f); // Black
-	drawCircle(miniX, miniY, miniRadius, 20);
+void TopDownMap::mouseLeftPress() {
+	if (!editMode) {
+		if (mouseIsInside()) {
+			mousePressed = true;
+		}
+	} else {
+		for (int i = 0; i < 8; i++) {
+			topDownButton[i].mouseLeftPress();
+		}
+	}
+}
+
+void TopDownMap::mouseLeftRelease() {
+	if (!editMode) {
+		if (mouseIsInside()) {
+			editMode = true;
+		}
+	} else {
+		for (int i = 0; i < 8; i++) {
+			topDownButton[i].mouseLeftRelease();
+		}
+	}
+	mousePressed = false;
+}
+
+void TopDownMap::mouseRightPress() {
+
+}
+
+void TopDownMap::mouseRightRelease() {
+
+}
+
+void TopDownMap::gotoLevel(int level) {
+	for (int i = 0; i < 8; i++) {
+		if (level == -1) {
+			topDownButton[i].setLevelOn(0);
+			editMode = false;
+			levelOn = level;
+		} else {
+			topDownButton[i].setLevelOn(level);
+			levelOn = level;
+		}
+	}
+}
+
+void TopDownMap::setSelected(int value) {
+	for (int i = 0; i < 8; i++) {
+		topDownButton[i].setLevelOn(levelOn);
+		selected = value;
+	}
 }

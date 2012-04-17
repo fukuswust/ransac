@@ -21,6 +21,9 @@ void initGui(int argc, char **argv) {
 	//Set handler functions for drawing, keypresses, and window resizes
 	glutDisplayFunc(drawScene);
 	glutKeyboardFunc(handleKeypress);
+	glutPassiveMotionFunc(handleMouseMove);
+	glutMotionFunc(handleMouseMove);
+	glutMouseFunc(handleMouseButtons);
 	glutReshapeFunc(handleResize);
 	glutTimerFunc(10, update, 0);
 
@@ -49,7 +52,7 @@ void initRendering() {
     glEnable (GL_LIGHTING);
     glEnable (GL_LIGHT0);
 
-	model = new AugModel("models/shelf.3ds");
+	model = new AugModel("models/storage/nightstand3.3ds");
 }
 
 // Main Update Loop
@@ -94,7 +97,7 @@ void handleResize(int w, int h) {
 	gluPerspective(43.0,                  //The camera angle
 				   (double)viewWidth / (double)viewHeight, //The width-to-height ratio
 				   1.0,                   //The near z clipping coordinate
-				   10000.0);                //The far z clipping coordinate
+				   1000.0);                //The far z clipping coordinate
 }
 
 void drawScene() {
@@ -131,7 +134,7 @@ void drawScene() {
 	//Draw Warnings
 	if (numFloorPoints <= MIN_FLOOR_POINTS) {
 		glColor3f(1.0f, 0.0f, 0.0f);
-		orthoPrint(200, viewHeight - 40.0f, "WARNING: CANNOT SEE FLOOR");
+		orthoPrint(200, viewHeight - 7.0f, "WARNING: CANNOT SEE FLOOR");
 		glColor3f(0.0f, 0.0f, 0.0f);
 	}
 	orthogonalEnd();
