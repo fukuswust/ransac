@@ -7,6 +7,7 @@
 #include "topDownMap.h"
 #include "types.h"
 #include "augModel.h"
+#include "NeheTGATexture.h"
 
 #include <stdlib.h>
 #ifdef __APPLE__
@@ -84,11 +85,14 @@ extern bool showWallPoints;
 // Models
 extern AugModel* modelHead;
 extern AugModel* modelTail;
+extern string** modelPaths;
 
 //Button Colors
 extern float btnColors[8][3];
 extern bool editPlacing;
+extern float editModelHeight;
 
-extern string** modelPaths;
+// Icons
+extern NeHe::imageTGA editIcon[6];
 
 #endif

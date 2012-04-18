@@ -180,6 +180,7 @@ void TopDownMap::draw() {
 		drawLineSeg(lineMapZ[i]);
 	}
 	glEnd();
+	glLineWidth(1.0f);
 
 	// Draw All Augmentation Top Down Views
 	if (modelHead != NULL) {

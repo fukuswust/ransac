@@ -65,6 +65,7 @@ bool showWallPoints = false;
 // Models
 AugModel* modelHead = NULL;
 AugModel* modelTail = NULL;
+string** modelPaths;
 
 //Button Colors
 float btnColors[8][3] = {{0.25f, 0.25f, 0.25f}, // Cancel
@@ -76,5 +77,7 @@ float btnColors[8][3] = {{0.25f, 0.25f, 0.25f}, // Cancel
 						 {0.00f, 1.00f, 1.00f}, // Electronics
 						 {1.00f, 0.00f, 1.00f}}; // Misc
 bool editPlacing = false;
+float editModelHeight = 0.0f;
 
-string** modelPaths;
+// Icons
+NeHe::imageTGA editIcon[6];

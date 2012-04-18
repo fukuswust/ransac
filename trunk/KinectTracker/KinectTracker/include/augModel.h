@@ -24,7 +24,7 @@ private:
 	bool mouseIsInside();
 	void AugModel::scaleMultiplier(float mult);
 public:
-	AugModel(char file[], float cScale, float cRot);
+	AugModel(char file[], float cScale, float cRot, float cHeight);
 	~AugModel();
 	void drawTopDown(float cx, float cy, float r);
 	void drawAugmentation();
@@ -37,6 +37,8 @@ public:
 	void keyPressA();
 	void keyPressS();
 	void keyPressD();
+	void keyPressQ();
+	void keyPressE();
 };
 
 #endif

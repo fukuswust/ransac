@@ -56,8 +56,28 @@ void TopDownButton::draw() {
 			glColor3f(0.75f, 0.0f, 0.0f); // Red
 			orthoPrintLarge(x-8,y+7,"X");
 			glColor3f(0.0f, 0.0f, 0.0f); // Black
-		} else if (levelOn == 0) { // Icon
-
+		} else if (levelOn == 0) {
+			if (id == 7) {
+				orthoPrintLarge(x-5,y+8,"?");
+			} else {// Icon
+				float diag = radius/sqrt(2.0f);
+				glColor3f(col[0], col[1], col[2]);
+				glEnable(GL_TEXTURE_2D);
+				glBindTexture(GL_TEXTURE_2D,editIcon[id-1].getId());
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glBegin(GL_QUADS);
+				glTexCoord2f(0.0f, 0.0f);
+				glVertex2f(x-diag, y+diag);
+				glTexCoord2f(0.0f, 1.0f);
+				glVertex2f(x-diag, y-diag);
+				glTexCoord2f(1.0f, 1.0f);
+				glVertex2f(x+diag, y-diag);
+				glTexCoord2f(1.0f, 0.0f);
+				glVertex2f(x+diag, y+diag);
+				glEnd();
+				glDisable(GL_TEXTURE_2D);
+			}
 		} else { // Number
 			char tmp[2];
 			sprintf(tmp,"%i",id);
@@ -104,7 +124,7 @@ void TopDownButton::mouseLeftRelease() {
 					}
 
 					if (modelHead == NULL) {
-						modelHead = new AugModel((char*)modelPaths[levelOn-1][id-1].c_str(),-1.0f,0.0f);
+						modelHead = new AugModel((char*)modelPaths[levelOn-1][id-1].c_str(),-1.0f,0.0f,0.0f);
 						modelTail = modelHead;
 					} else {
 						modelTail->addNewModel((char*)modelPaths[levelOn-1][id-1].c_str());
