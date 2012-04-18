@@ -67,8 +67,8 @@ AugModel* modelHead = NULL;
 AugModel* modelTail = NULL;
 
 //Button Colors
-float btnColors[8][3] = {{0.50f, 0.50f, 0.50f}, // Cancel
-						 {1.00f, 1.00f, 1.00f}, // Beds
+float btnColors[8][3] = {{0.25f, 0.25f, 0.25f}, // Cancel
+						 {0.58f, 0.29f, 0.00f}, // Beds
 						 {1.00f, 0.00f, 0.00f}, // Storage
 						 {0.00f, 1.00f, 0.00f}, // Chairs
 						 {0.00f, 0.00f, 1.00f}, // Tables
@@ -76,3 +76,5 @@ float btnColors[8][3] = {{0.50f, 0.50f, 0.50f}, // Cancel
 						 {0.00f, 1.00f, 1.00f}, // Electronics
 						 {1.00f, 0.00f, 1.00f}}; // Misc
 bool editPlacing = false;
+
+string** modelPaths;

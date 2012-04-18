@@ -42,7 +42,9 @@ void handleKeypress(unsigned char key, //The key that was pressed
 		}
 		case 'o': {
 			// Toggle onscreen display
-			showHud = !showHud;
+			if (!editPlacing) {
+				showHud = !showHud;
+			}
 			// The rest of this is handled in gui.cpp
 			break;
 		}
@@ -52,6 +54,23 @@ void handleKeypress(unsigned char key, //The key that was pressed
 		}
 		case '2': {
 			showWallPoints = !showWallPoints;
+			break;
+		}
+
+		case 'w': {
+			if (modelHead != NULL) {modelHead->keyPressW();}
+			break;
+		}
+		case 'a': {
+			if (modelHead != NULL) {modelHead->keyPressA();}
+			break;
+		}
+		case 's': {
+			if (modelHead != NULL) {modelHead->keyPressS();}
+			break;
+		}
+		case 'd': {
+			if (modelHead != NULL) {modelHead->keyPressD();}
 			break;
 		}
 	}

@@ -125,9 +125,9 @@ void TopDownMap::draw() {
 	} else {
 		glColor4f(1.0f, 1.0f, 1.0f, 0.5f); // Clear White
 	}
-	drawCircleSolid(cx, cy, radius, 32);
+	drawCircleSolid(cx, cy, radius, 64);
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
-	drawCircle(cx, cy, radius, 32);
+	drawCircle(cx, cy, radius, 64);
 	//Draw Local Top Down Map 
 	float cam1X = 15.0f*cos(-yawValue - ((50.0f*PI)/180.0f) - (PI/2));
 	float cam1Y = 15.0f*sin(-yawValue - ((50.0f*PI)/180.0f) - (PI/2));
@@ -211,8 +211,8 @@ void TopDownMap::mouseLeftPress() {
 		for (int i = 0; i < 8; i++) {
 			topDownButton[i].mouseLeftPress();
 		}
-		if (modelHead != NULL) {
-			modelHead->mouseLeftPress();
+		if (modelTail != NULL) {
+			modelTail->mouseLeftPress();
 		}
 	}
 }
@@ -227,12 +227,21 @@ void TopDownMap::mouseLeftRelease() {
 		for (int i = 0; i < 8; i++) {
 			topDownButton[i].mouseLeftRelease();
 		}
+		if (modelTail != NULL) {
+			modelTail->mouseLeftRelease();
+		}
 	}
 	mousePressed = false;
 }
 
 void TopDownMap::mouseRightPress() {
-
+	if (editPlacing) {
+		topDownMap.gotoLevel(levelOn);
+		modelHead->cancelMovement();
+		editPlacing = false;
+	} else {
+		modelTail->mouseRightPress();
+	}
 }
 
 void TopDownMap::mouseRightRelease() {

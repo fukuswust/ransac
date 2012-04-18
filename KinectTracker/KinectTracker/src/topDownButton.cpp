@@ -8,41 +8,66 @@ TopDownButton::TopDownButton() {
 }
 
 void TopDownButton::draw() {
-	float col[3];
-	if (id!=0) {
-		if (levelOn == 0) {
-			col[0] = btnColors[id][0];
-			col[1] = btnColors[id][1];
-			col[2] = btnColors[id][2];
+	if (levelOn == 0) {
+		visible = true;
+	} else {
+		if (id != 0) {
+			visible = (modelPaths[levelOn-1][id-1] != "");
 		} else {
-			col[0] = btnColors[levelOn][0];
-			col[1] = btnColors[levelOn][1];
-			col[2] = btnColors[levelOn][2];
+			visible = true;
 		}
-	} else {
-		col[0] = btnColors[0][0];
-		col[1] = btnColors[0][1];
-		col[2] = btnColors[0][2];
 	}
 
-	float alpha;
-	if (state == 2) {
-		alpha = 0.95f;
-	} else if (mouseIsInside() || state == 1) {
-		alpha = 0.8f;
-	} else {
-		alpha = 0.5f;
+	if (visible) {
+		float col[3];
+		if (id!=0) {
+			if (levelOn == 0) {
+				col[0] = btnColors[id][0];
+				col[1] = btnColors[id][1];
+				col[2] = btnColors[id][2];
+			} else {
+				col[0] = btnColors[levelOn][0];
+				col[1] = btnColors[levelOn][1];
+				col[2] = btnColors[levelOn][2];
+			}
+		} else {
+			col[0] = btnColors[0][0];
+			col[1] = btnColors[0][1];
+			col[2] = btnColors[0][2];
+		}
+
+		float alpha;
+		if (state == 2) {
+			alpha = 0.95f;
+		} else if (mouseIsInside() || state == 1) {
+			alpha = 0.8f;
+		} else {
+			alpha = 0.5f;
+		}
+
+		glColor4f(col[0], col[1], col[2], alpha);
+		drawCircleSolid(x, y, radius, 20);
+
+		glColor3f(0.0f, 0.0f, 0.0f); // Black
+		drawCircle(x, y, radius, 20);
+
+		// Draw Number/Icon in middle
+		if (id == 0) { // X
+			glColor3f(0.75f, 0.0f, 0.0f); // Red
+			orthoPrintLarge(x-8,y+7,"X");
+			glColor3f(0.0f, 0.0f, 0.0f); // Black
+		} else if (levelOn == 0) { // Icon
+
+		} else { // Number
+			char tmp[2];
+			sprintf(tmp,"%i",id);
+			orthoPrintLarge(x-4,y+7,tmp);
+		}
 	}
-
-	glColor4f(col[0], col[1], col[2], alpha);
-	drawCircleSolid(x, y, radius, 20);
-
-	glColor3f(0.0f, 0.0f, 0.0f); // Black
-	drawCircle(x, y, radius, 20);
 }
 
 bool TopDownButton::mouseIsInside() {
-	return (sqrt(pow((float)x-mouseX+viewXOffset,2)+pow((float)y-mouseY+viewYOffset,2))<radius);
+	return (sqrt(pow((float)x-mouseX+viewXOffset,2)+pow((float)y-mouseY+viewYOffset,2))<radius && visible);
 }
 
 void TopDownButton::mouseLeftPress() {
@@ -60,7 +85,7 @@ void TopDownButton::mouseLeftRelease() {
 				if (levelOn == 0) {
 					topDownMap.gotoLevel(-1);
 				} else {
-					if (modelTail != NULL) {
+					if (modelHead != NULL) {
 						editPlacing = false;
 						modelHead->cancelMovement();
 					}
@@ -73,11 +98,16 @@ void TopDownButton::mouseLeftRelease() {
 					topDownMap.setSelected(id);
 					state = 2;
 					// Create new model to be placed
+					if (modelHead != NULL) {
+						editPlacing = false;
+						modelHead->cancelMovement();
+					}
+
 					if (modelHead == NULL) {
-						modelHead = new AugModel("models/storage/nightstand3.3ds");
+						modelHead = new AugModel((char*)modelPaths[levelOn-1][id-1].c_str(),-1.0f,0.0f);
 						modelTail = modelHead;
 					} else {
-						modelTail->addNewModel("models/storage/nightstand3.3ds");
+						modelTail->addNewModel((char*)modelPaths[levelOn-1][id-1].c_str());
 					}
 					editPlacing = true;
 				}

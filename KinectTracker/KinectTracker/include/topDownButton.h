@@ -8,6 +8,7 @@ private:
 	float x,y,radius;
 	int id;
 	int levelOn;
+	bool visible;
 	int state;
 		// 0 - not clicked
 		// 1 - pressed
