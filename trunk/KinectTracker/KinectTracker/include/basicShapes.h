@@ -1,4 +1,5 @@
 void orthoPrint(int x, int y, char *string);
+void orthoPrintLarge(int x, int y, char *string);
 void drawRectBorder(int x1, int y1, int x2, int y2);
 void drawCrosshair(int viewWidth, int viewHeight);
 void drawCircle(float cx, float cy, float r, int num_segments);

@@ -34,14 +34,7 @@ void initGui(int argc, char **argv) {
 	glutReshapeFunc(handleResize);
 	glutTimerFunc(10, update, 0);
 
-	// Load files /////////////////////////
-	files = getAllFiles("models/", "*.3ds");
-	for (int i=0; i<7; i++) {
-		for (int j=0; j<7; j++) {
-			cout << files[i][j] + "\n";
-		}
-	}
-	//////////////////////////////////////////////////////////
+	modelPaths = getAllFiles("models/", "*.3ds");
 
 	update(0);
 	glutMainLoop(); //Start the main loop.  glutMainLoop doesn't return.

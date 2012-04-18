@@ -14,6 +14,17 @@ void orthoPrint(int x, int y, char *string)
   }
 }
 
+void orthoPrintLarge(int x, int y, char *string)
+{
+  int len, i;
+  glRasterPos2f(x, y);
+  len = (int) strlen(string);
+  for (i = 0; i < len; i++)
+  {
+    glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, string[i]);
+  }
+}
+
 void drawRectBorder(int x1, int y1, int x2, int y2){
 	// Draws the border for a rectangle with the four corners, similar to glRectd
 	glBegin(GL_LINE_LOOP);

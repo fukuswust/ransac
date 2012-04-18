@@ -89,6 +89,6 @@ extern AugModel* modelTail;
 extern float btnColors[8][3];
 extern bool editPlacing;
 
-extern string** files;
+extern string** modelPaths;
 
 #endif
