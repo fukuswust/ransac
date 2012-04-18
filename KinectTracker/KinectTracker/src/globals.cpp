@@ -1,4 +1,6 @@
 #include "globals.h"
+#include <string>
+using namespace std;
 
 // Mouse Location
 int mouseX = 0;

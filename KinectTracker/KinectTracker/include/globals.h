@@ -16,6 +16,8 @@
 #include <GL/glut.h>
 #endif
 #include <math.h>
+#include <string>
+using namespace std;
 
 //#define RECORD_RAW
 
@@ -86,5 +88,7 @@ extern AugModel* modelTail;
 //Button Colors
 extern float btnColors[8][3];
 extern bool editPlacing;
+
+extern string** files;
 
 #endif
