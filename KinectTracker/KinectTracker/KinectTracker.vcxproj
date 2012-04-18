@@ -25,6 +25,7 @@
     <ClInclude Include="include\Kinect-win32.h" />
     <ClInclude Include="include\listener.h" />
     <ClInclude Include="include\Model_3DS.h" />
+    <ClInclude Include="include\NeheTGATexture.h" />
     <ClInclude Include="include\record.h" />
     <ClInclude Include="include\topDownButton.h" />
     <ClInclude Include="include\topDownMap.h" />
@@ -45,6 +46,7 @@
     <ClCompile Include="src\listener.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Model_3DS.cpp" />
+    <ClCompile Include="src\NeheTGATexture.cpp" />
     <ClCompile Include="src\record.cpp" />
     <ClCompile Include="src\topDownButton.cpp" />
     <ClCompile Include="src\topDownMap.cpp" />

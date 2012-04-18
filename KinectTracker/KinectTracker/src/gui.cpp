@@ -7,6 +7,7 @@
 #include "hud.h"
 #include "augment.h"
 #include "augModel.h"
+#include "NeheTGATexture.h"
 
 // For finding filenames for files
 #include <windows.h>
@@ -22,7 +23,7 @@ void initGui(int argc, char **argv) {
 	glutInitWindowSize(640, 480); //Set the window size
 
 	//Create the window
-	glutCreateWindow("New Algorithm");
+	glutCreateWindow("Kinect Tracker");
 	initRendering(); //Initialize rendering
 
 	//Set handler functions for drawing, keypresses, and window resizes
@@ -34,8 +35,20 @@ void initGui(int argc, char **argv) {
 	glutReshapeFunc(handleResize);
 	glutTimerFunc(10, update, 0);
 
+	// Determine all models in directories
 	modelPaths = getAllFiles("models/", "*.3ds");
 
+	// Load Icon Textures
+	NeHe::imageSampler g_textureSampler;
+	g_textureSampler = NeHe::imageSampler(GL_LINEAR, GL_LINEAR_MIPMAP_LINEAR, GL_REPEAT, GL_REPEAT);
+	editIcon[0] = NeHe::imageTGA("icons/bed.tga",g_textureSampler);
+	editIcon[1] = NeHe::imageTGA("icons/storage.tga",g_textureSampler);
+	editIcon[2] = NeHe::imageTGA("icons/chair.tga",g_textureSampler);
+	editIcon[3] = NeHe::imageTGA("icons/table.tga",g_textureSampler);
+	editIcon[4] = NeHe::imageTGA("icons/light.tga",g_textureSampler);
+	editIcon[5] = NeHe::imageTGA("icons/tv.tga",g_textureSampler);
+
+	// Start loop
 	update(0);
 	glutMainLoop(); //Start the main loop.  glutMainLoop doesn't return.
 }

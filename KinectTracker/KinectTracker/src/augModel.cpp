@@ -1,7 +1,7 @@
 #include "augModel.h"
 #include "globals.h"
 
-AugModel::AugModel(char file[], float cScale = -1.0f, float cRot = 0.0f) {
+AugModel::AugModel(char file[], float cScale = -1.0f, float cRot = 0.0f, float cHeight = 0.0f) {
 	path = file;
 	next = NULL;
 	prev = NULL;
@@ -10,7 +10,7 @@ AugModel::AugModel(char file[], float cScale = -1.0f, float cRot = 0.0f) {
 	m.Load(file);
 	autoScaleModel(100.0f, cScale);
 	x = 0.0f;
-	y = 0.0f;
+	y = cHeight;
 	z = 0.0f;
 	tdVisible = false;
 	rot = cRot;
@@ -53,9 +53,12 @@ void AugModel::autoScaleModel(float amount, float cScale) {
 		}
 	}
 	float sX = maxX-minX;
+	float sY = maxY-minY;
 	float sZ = maxZ-minZ;
 	if (cScale == -1) {
-		if (sX > sZ) {
+		if (sY/1.5f > sX && sY/1.5f > sZ) {
+			scale = amount*1.5f/sY;
+		} else if (sX > sZ) {
 			scale = amount/sX;
 		} else {
 			scale = amount/sZ;
@@ -98,6 +101,7 @@ void AugModel::drawTopDown(float cx, float cy, float r) {
 	if (placing || moving) {
 		x = ((mouseX-cx-viewXOffset)*(MAX_ALLOWED_DIS/r))+xValue;
 		z = ((mouseY-cy-viewYOffset)*(MAX_ALLOWED_DIS/r))+zValue;
+		editModelHeight = y;
 	}
 
 	// Determine if visible
@@ -193,7 +197,7 @@ void AugModel::mouseLeftPress() {
 	} else if (placing) { // This model is being placed
 		if (tdVisible) {
 			placing = false; //Place in the room
-			next = new AugModel(path, scale, rot);
+			next = new AugModel(path, scale, rot, y);
 			next->prev = this;
 			modelTail = next;
 		}
@@ -229,7 +233,7 @@ void AugModel::mouseRightPress() {
 
 void AugModel::keyPressW() {
 	if (moving || placing) {
-		scaleMultiplier(1.1f);
+		y += EDIT_DEL_HEIGHT;
 	} else if (next != NULL) {
 		next->keyPressW();
 	}
@@ -248,7 +252,7 @@ void AugModel::keyPressA() {
 
 void AugModel::keyPressS() {
 	if (moving || placing) {
-		scaleMultiplier(1.0f/1.1f);
+		y -= EDIT_DEL_HEIGHT;
 	} else if (next != NULL) {
 		next->keyPressS();
 	}
@@ -262,5 +266,21 @@ void AugModel::keyPressD() {
 		}
 	} else if (next != NULL) {
 		next->keyPressD();
+	}
+}
+
+void AugModel::keyPressQ() {
+	if (moving || placing) {
+		scaleMultiplier(1.0f/1.1f);
+	} else if (next != NULL) {
+		next->keyPressQ();
+	}
+}
+
+void AugModel::keyPressE() {
+	if (moving || placing) {
+		scaleMultiplier(1.1f);
+	} else if (next != NULL) {
+		next->keyPressE();
 	}
 }

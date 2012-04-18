@@ -21,10 +21,6 @@ void handleKeypress(unsigned char key, //The key that was pressed
 			exit(0); //Exit the program
 			break;
 		}
-		case 'c': {
-			yawValue = 0.0f;
-			break;
-		}
 		case 'f': {
 			// Toggle Fullscreen
 			isFullscreen = !isFullscreen;
@@ -40,8 +36,8 @@ void handleKeypress(unsigned char key, //The key that was pressed
 			K->SetMotorPosition(1);
 			break;
 		}
-		case 'o': {
-			// Toggle onscreen display
+		case 'h': {
+			// Toggle HUD
 			if (!editPlacing) {
 				showHud = !showHud;
 			}
@@ -71,6 +67,14 @@ void handleKeypress(unsigned char key, //The key that was pressed
 		}
 		case 'd': {
 			if (modelHead != NULL) {modelHead->keyPressD();}
+			break;
+		}
+		case 'q': {
+			if (modelHead != NULL) {modelHead->keyPressQ();}
+			break;
+		}
+		case 'e': {
+			if (modelHead != NULL) {modelHead->keyPressE();}
 			break;
 		}
 	}
