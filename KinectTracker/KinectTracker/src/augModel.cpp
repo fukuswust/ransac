@@ -1,7 +1,8 @@
 #include "augModel.h"
 #include "globals.h"
+#include "basicShapes.h"
 
-AugModel::AugModel(char file[], float cScale = -1.0f, float cRot = 0.0f, float cHeight = 0.0f) {
+AugModel::AugModel(char file[], float cScale, float cRot, float cHeight, int cId, float cCol[3]) {
 	path = file;
 	next = NULL;
 	prev = NULL;
@@ -14,6 +15,10 @@ AugModel::AugModel(char file[], float cScale = -1.0f, float cRot = 0.0f, float c
 	z = 0.0f;
 	tdVisible = false;
 	rot = cRot;
+	id = cId;
+	col[0] = cCol[0];
+	col[1] = cCol[1];
+	col[2] = cCol[2];
 }
 
 AugModel::~AugModel() {
@@ -131,17 +136,33 @@ void AugModel::drawTopDown(float cx, float cy, float r) {
 
 	// Draw Top Down View
 	if (tdVisible) {
+		// Calculate points
 		tdPt1X = cx + (pt1X/(MAX_ALLOWED_DIS/r));
 		tdPt1Z = cy + (pt1Z/(MAX_ALLOWED_DIS/r));
 		tdPt2X = cx + (pt2X/(MAX_ALLOWED_DIS/r));
 		tdPt2Z = cy + (pt2Z/(MAX_ALLOWED_DIS/r));
-		glColor3f(0.0f, 0.0f, 0.0f);
+		// Draw solid rectangle
+		glColor3f(col[0], col[1], col[2]);
 		glBegin(GL_QUADS);				
 		glVertex2f(tdPt1X, tdPt1Z);		
 		glVertex2f(tdPt1X, tdPt2Z);		
 		glVertex2f(tdPt2X, tdPt2Z);		
 		glVertex2f(tdPt2X, tdPt1Z);		
 		glEnd();
+		// Draw outline
+		glColor3f(0.0f, 0.0f, 0.0f);
+		glBegin(GL_LINE_LOOP);				
+		glVertex2f(tdPt1X, tdPt1Z);		
+		glVertex2f(tdPt1X, tdPt2Z);		
+		glVertex2f(tdPt2X, tdPt2Z);		
+		glVertex2f(tdPt2X, tdPt1Z);		
+		glEnd();
+		// Draw number
+		float midX = tdPt1X+((tdPt2X-tdPt1X)/2.0f);
+		float midZ = tdPt1Z+((tdPt2Z-tdPt1Z)/2.0f);
+		char tmp[2];
+		sprintf(tmp, "%i", id);
+		orthoPrint(midX-3,midZ+4,tmp);
 	}
 	if (next != NULL) {
 		next->drawTopDown(cx, cy, r);
@@ -166,8 +187,8 @@ void AugModel::drawAugmentation() {
 	}
 }
 
-void AugModel::addNewModel(char file[]) {
-	next = new AugModel(file);
+void AugModel::addNewModel(char file[], float cScale, float cRot, float cHeight, int cId, float cCol[3]) {
+	next = new AugModel(file, cScale, cRot, cHeight, cId, cCol);
 	modelTail = next;
 	modelTail->prev = this;
 	if (placing) {
@@ -197,7 +218,7 @@ void AugModel::mouseLeftPress() {
 	} else if (placing) { // This model is being placed
 		if (tdVisible) {
 			placing = false; //Place in the room
-			next = new AugModel(path, scale, rot, y);
+			next = new AugModel(path, scale, rot, y, id, col);
 			next->prev = this;
 			modelTail = next;
 		}
@@ -241,9 +262,9 @@ void AugModel::keyPressW() {
 
 void AugModel::keyPressA() {
 	if (moving || placing) {
-		rot -= 90.0f;
-		if (rot < 0.0f) {
-			rot += 360.0f;
+		rot += 90.0f;
+		if (rot >= 360.0f) {
+			rot -= 360.0f;
 		}
 	} else if (next != NULL) {
 		next->keyPressA();
@@ -260,9 +281,9 @@ void AugModel::keyPressS() {
 
 void AugModel::keyPressD() {
 	if (moving || placing) {
-		rot += 90.0f;
-		if (rot >= 360.0f) {
-			rot -= 360.0f;
+		rot -= 90.0f;
+		if (rot < 0.0f) {
+			rot += 360.0f;
 		}
 	} else if (next != NULL) {
 		next->keyPressD();

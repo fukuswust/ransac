@@ -19,7 +19,6 @@ void TopDownButton::draw() {
 	}
 
 	if (visible) {
-		float col[3];
 		if (id!=0) {
 			if (levelOn == 0) {
 				col[0] = btnColors[id][0];
@@ -53,9 +52,7 @@ void TopDownButton::draw() {
 
 		// Draw Number/Icon in middle
 		if (id == 0) { // X
-			glColor3f(0.75f, 0.0f, 0.0f); // Red
 			orthoPrintLarge(x-8,y+7,"X");
-			glColor3f(0.0f, 0.0f, 0.0f); // Black
 		} else if (levelOn == 0) {
 			if (id == 7) {
 				orthoPrintLarge(x-5,y+8,"?");
@@ -124,10 +121,10 @@ void TopDownButton::mouseLeftRelease() {
 					}
 
 					if (modelHead == NULL) {
-						modelHead = new AugModel((char*)modelPaths[levelOn-1][id-1].c_str(),-1.0f,0.0f,0.0f);
+						modelHead = new AugModel((char*)modelPaths[levelOn-1][id-1].c_str(),-1.0f,0.0f,0.0f,id,col);
 						modelTail = modelHead;
 					} else {
-						modelTail->addNewModel((char*)modelPaths[levelOn-1][id-1].c_str());
+						modelTail->addNewModel((char*)modelPaths[levelOn-1][id-1].c_str(),-1.0f,0.0f,0.0f,id,col);
 					}
 					editPlacing = true;
 				}

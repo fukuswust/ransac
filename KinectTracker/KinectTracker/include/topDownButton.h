@@ -9,6 +9,7 @@ private:
 	int id;
 	int levelOn;
 	bool visible;
+	float col[3];
 	int state;
 		// 0 - not clicked
 		// 1 - pressed
