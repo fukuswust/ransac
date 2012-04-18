@@ -7,6 +7,8 @@
 #include <GL/glut.h>
 #endif
 #include <math.h>
+#include <string>
+using namespace std;
 
 #ifndef GUI_H
 #define GUI_H
@@ -19,5 +21,6 @@ void drawScene();
 void orthogonalStart (int viewWidth, int viewHeight);
 void orthogonalEnd (void);
 void setGlTransformation();
+string** getAllFiles(string path, string searchPattern);
 
 #endif

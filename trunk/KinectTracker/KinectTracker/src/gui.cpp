@@ -1,5 +1,5 @@
 #include "gui.h"
-#include <string.h>
+#include <string>
 #include "globals.h"
 #include "input.h"
 #include "algorithm.h"
@@ -7,6 +7,13 @@
 #include "hud.h"
 #include "augment.h"
 #include "augModel.h"
+
+// For finding filenames for files
+#include <windows.h>
+#include <iostream>
+#include <fstream>
+#include <cstdlib>
+using namespace std;
 
 void initGui(int argc, char **argv) {
 	//Initialize GLUT
@@ -27,8 +34,48 @@ void initGui(int argc, char **argv) {
 	glutReshapeFunc(handleResize);
 	glutTimerFunc(10, update, 0);
 
+	// Load files /////////////////////////
+	files = getAllFiles("models/", "*.3ds");
+	for (int i=0; i<7; i++) {
+		for (int j=0; j<7; j++) {
+			cout << files[i][j] + "\n";
+		}
+	}
+	//////////////////////////////////////////////////////////
+
 	update(0);
 	glutMainLoop(); //Start the main loop.  glutMainLoop doesn't return.
+}
+
+// Returns all files (first seven) in the given directory in an array
+string** getAllFiles(string path, string searchPattern) {
+#define numFolders 7
+#define maxFiles 7
+	string folders[numFolders] = {"beds/", "storage/", "chairs/", "tables/", "lights/", "electronics/", "misc/"};
+	string** files = 0;
+	files = new string*[numFolders];
+
+	string filePath;
+	for (int i=0; i<numFolders; i++) {
+		files[i] = new string[maxFiles];
+		int iterator = 0;
+		string fullSearchPath = path + folders[i] + searchPattern;
+		WIN32_FIND_DATA FindData;
+		HANDLE hFind;
+		hFind = FindFirstFile( fullSearchPath.c_str(), &FindData );
+
+		if( hFind == INVALID_HANDLE_VALUE ) {
+			//cout << "Error searching directory - Most likely and empty directory\n";
+			// Set to blank string if occurs - otherwise weird things happen...
+		} else {
+			do {
+				filePath = path + folders[i] + FindData.cFileName;
+				files[i][iterator] = filePath;
+				iterator++;
+			} while( (FindNextFile(hFind, &FindData) > 0) && (iterator < maxFiles) );
+		}
+	}
+	return files;
 }
 
 //Initializes 3D rendering
