@@ -20,15 +20,17 @@ private:
 	AugModel* prev;
 	bool tdVisible;
 	bool augVisible;
+	int id;
+	float col[3];
 	void autoScaleModel(float amount, float cScale);
 	bool mouseIsInside();
 	void AugModel::scaleMultiplier(float mult);
 public:
-	AugModel(char file[], float cScale, float cRot, float cHeight);
+	AugModel(char file[], float cScale, float cRot, float cHeight, int cId, float cCol[3]);
 	~AugModel();
 	void drawTopDown(float cx, float cy, float r);
 	void drawAugmentation();
-	void addNewModel(char file[]);
+	void addNewModel(char file[], float cScale, float cRot, float cHeight, int cId, float cCol[3]);
 	void cancelMovement();
 	void mouseLeftPress();
 	void mouseLeftRelease();
