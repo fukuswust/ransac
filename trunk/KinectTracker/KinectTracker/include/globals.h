@@ -91,6 +91,8 @@ extern string** modelPaths;
 extern float btnColors[8][3];
 extern bool editPlacing;
 extern float editModelHeight;
+extern float editModelWidth;
+extern float editModelLength;
 
 // Icons
 extern NeHe::imageTGA editIcon[6];

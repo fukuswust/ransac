@@ -107,6 +107,8 @@ void AugModel::drawTopDown(float cx, float cy, float r) {
 		x = ((mouseX-cx-viewXOffset)*(MAX_ALLOWED_DIS/r))+xValue;
 		z = ((mouseY-cy-viewYOffset)*(MAX_ALLOWED_DIS/r))+zValue;
 		editModelHeight = y;
+		editModelWidth = width;
+		editModelLength = depth;
 	}
 
 	// Determine if visible

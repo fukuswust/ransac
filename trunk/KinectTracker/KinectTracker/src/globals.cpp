@@ -78,6 +78,8 @@ float btnColors[8][3] = {{0.25f, 0.25f, 0.25f}, // Cancel
 						 {1.00f, 0.00f, 1.00f}}; // Misc
 bool editPlacing = false;
 float editModelHeight = 0.0f;
+float editModelWidth = 0.0f;
+float editModelLength = 0.0f;
 
 // Icons
 NeHe::imageTGA editIcon[6];

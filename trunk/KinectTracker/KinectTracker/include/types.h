@@ -13,6 +13,7 @@
 #define MIN_FLOOR_POINTS 25
 #define AVG_STRENGTH 0.1f
 #define EDIT_DEL_HEIGHT 5.0f
+#define MAX_ACCEL_ERROR 0.3f
 
 #define PI 3.14159265
 
