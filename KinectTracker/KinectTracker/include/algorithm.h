@@ -18,7 +18,7 @@ void performRotation(SlicePoint set[], float rot);
 
 void solveVector(float M[3][3], float R[3]);
 
-void normalizeVector(float R[3]);
+float normalizeVector(float R[3]);
 
 void segmentFloor(float floorPoints[], int &numFloorPoints, int floorHist[], float currentMinHeight, float alignFloor[], float &floorHeight);
 

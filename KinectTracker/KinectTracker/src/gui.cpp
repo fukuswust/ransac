@@ -186,7 +186,11 @@ void drawScene() {
 	//Draw Warnings
 	if (numFloorPoints <= MIN_FLOOR_POINTS) {
 		glColor3f(1.0f, 0.0f, 0.0f);
-		orthoPrint(200, viewHeight - 7.0f, "WARNING: CANNOT SEE FLOOR");
+		#ifdef HUD_DEBUG
+			orthoPrint(200, viewHeight - 30.0f, "WARNING: CANNOT SEE FLOOR");
+		#else
+			orthoPrint(200, viewHeight - 7.0f, "WARNING: CANNOT SEE FLOOR");
+		#endif
 		glColor3f(0.0f, 0.0f, 0.0f);
 	}
 	orthogonalEnd();

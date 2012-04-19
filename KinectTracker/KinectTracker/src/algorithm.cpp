@@ -9,11 +9,9 @@ using namespace std;
 
 void initAlgorithm() {
 	// SET INITIAL ROLL AND PITCH VALUES TO GRAVITY
-	curUpVector[0] = accelVector[0];
-	curUpVector[1] = accelVector[1];
-	curUpVector[2] = accelVector[2];
-	normalizeVector(curUpVector);
-	findRotationToUp(curUpVector[0], curUpVector[1], curUpVector[2], pitchRollMatrix);
+	curUpVector[0] = 0.0f;
+	curUpVector[1] = 1.0f;
+	curUpVector[2] = 0.0f;
 
 	// SET INITIAL HEIGHT TO 1.5m
 	heightValue = -150.0f;
@@ -238,29 +236,32 @@ void runAlgorithm() {
 
 	#pragma region AVERAGING
 	// Determine new pitch and roll
-	float avgRate = 0.0f;
-	for (int i = 0; i < 3; i++) {
-		avgRate += curUpVector[i]*accelVector[i];
+	float accelError = normalizeVector(accelVector);
+	if (accelError < MAX_ACCEL_ERROR) {
+		float avgRate = 0.0f;
+		for (int i = 0; i < 3; i++) {
+			avgRate += curUpVector[i]*accelVector[i];
+		}
+		float degVal = acos(avgRate)*180.0f/PI;
+		avgRate = degVal*(AVG_STRENGTH/2.5f);
+		if (avgRate > 1.0f) {
+			avgRate = 1.0f;
+		}
+		avgRate = 1 - abs(avgRate);
+		for (int i = 0; i < 3; i++) {
+			//if (numFloorPoints > MIN_FLOOR_POINTS) {
+			//	curUpVector[i] = (curUpVector[i]*(1.0f-avgRate)) + (alignFloor[i]*avgRate);
+			//} else {
+				curUpVector[i] = (curUpVector[i]*avgRate) + (accelVector[i]*(1.0f-avgRate));
+			//}
+		}
+		normalizeVector(curUpVector);
 	}
-	float degVal = acos(avgRate)*180.0f/PI;
-	avgRate = degVal*(AVG_STRENGTH/2.5f);
-	if (avgRate > 1.0f) {
-		avgRate = 1.0f;
-	}
-	avgRate = 1 - abs(avgRate);
-	for (int i = 0; i < 3; i++) {
-		//if (numFloorPoints > MIN_FLOOR_POINTS) {
-		//	curUpVector[i] = (curUpVector[i]*(1.0f-avgRate)) + (alignFloor[i]*avgRate);
-		//} else {
-			curUpVector[i] = (curUpVector[i]*avgRate) + (accelVector[i]*(1.0f-avgRate));
-		//}
-	}
-	normalizeVector(curUpVector);
 
 	// Determine new height
 	floorHeight -= 16.4f;
 	if (numFloorPoints > MIN_FLOOR_POINTS) {
-		avgRate = abs(heightValue-floorHeight)*(AVG_STRENGTH/1.5f);
+		float avgRate = abs(heightValue-floorHeight)*(AVG_STRENGTH/1.5f);
 		if (avgRate > 1.0f) {
 			avgRate = 1.0f;
 		}
@@ -277,6 +278,7 @@ void runAlgorithm() {
 void findRotationToUp(float xVect, float yVect, float zVect, float M[]) {
 	//Get unit vector and magnitude of gravity
 	float gravMag = sqrt((xVect*xVect)+(yVect*yVect)+(zVect*zVect)); //Quality = diff from 819/512
+	if (gravMag == 0.0f) {return;}
 	float uGravX = xVect/gravMag;
 	float uGravY = yVect/gravMag;
 	float uGravZ = zVect/gravMag;
@@ -288,22 +290,34 @@ void findRotationToUp(float xVect, float yVect, float zVect, float M[]) {
 	float RotAxisZ = uGravX;
 	//Determine the unit rotational axis
 	float magRotAxis = sqrt((RotAxisX*RotAxisX)+(RotAxisZ*RotAxisZ));
-	float uX = RotAxisX/magRotAxis;
-	float uZ = RotAxisZ/magRotAxis;
-	//Solve multiplications in advance that occur more than once
-	float xz = uX*uZ;
-	float sx = s*uX;
-	float sz = s*uZ;
-	//Calculate Individual Matrix Elements
-	M[0] = uGravY + (t*uX*uX);
-	M[1] = -sz;
-	M[2] = t*xz;
-	M[3] = sz;
-	M[4] = uGravY;
-	M[5] = -sx;
-	M[6] = t*xz;
-	M[7] = sx;
-	M[8] = uGravY + (t*uZ*uZ);
+	if (magRotAxis == 0.0f) { // Already perfect
+		M[0] = 1.0f;
+		M[1] = 0.0f;
+		M[2] = 0.0f;
+		M[3] = 0.0f;
+		M[4] = 1.0f;
+		M[5] = 0.0f;
+		M[6] = 0.0f;
+		M[7] = 0.0f;
+		M[8] = 1.0f;
+	} else {
+		float uX = RotAxisX/magRotAxis;
+		float uZ = RotAxisZ/magRotAxis;
+		//Solve multiplications in advance that occur more than once
+		float xz = uX*uZ;
+		float sx = s*uX;
+		float sz = s*uZ;
+		//Calculate Individual Matrix Elements
+		M[0] = uGravY + (t*uX*uX);
+		M[1] = -sz;
+		M[2] = t*xz;
+		M[3] = sz;
+		M[4] = uGravY;
+		M[5] = -sx;
+		M[6] = t*xz;
+		M[7] = sx;
+		M[8] = uGravY + (t*uZ*uZ);
+	}
 }
 
 void setPositionAndOrientation() {
@@ -379,11 +393,12 @@ void solveVector(float M[3][3], float R[3]) {
 	R[2] /= M[2][2];
 }
 
-void normalizeVector(float R[3]) {
+float normalizeVector(float R[3]) {
 	float mag = sqrt((R[0]*R[0])+(R[1]*R[1])+(R[2]*R[2]));
 	R[0] /= mag;
 	R[1] /= mag;
 	R[2] /= mag;
+	return abs(mag-(819.0f/512.0f)); //error
 }
 
 void segmentFloor(float floorPoints[], int &numFloorPoints, int floorHist[], float currentMinHeight, float alignFloor[], float &floorHeight) {
