@@ -39,6 +39,55 @@ void drawHud() {
 
 	// Draw Top Down Map
 	topDownMap.draw();
+
+	if (editPlacing) {
+		drawPlacingHelp(viewWidth-10,10);
+		drawModelInfo(viewWidth-10, viewHeight-30);
+	}
+}
+
+void drawPlacingHelp(int topRx, int topRy) {
+	int dPHHeight = 70;
+	int dPHWidth = 100;
+	// Draw Big White Background
+	glColor4f(1.0f, 1.0f, 1.0f, 0.7f); // White
+	glRectf(topRx-dPHWidth, topRy, topRx, topRy+dPHHeight);
+	// Draw Big White Background Border
+	glColor3f(0.0f, 0.0f, 0.0f); // Black
+	drawRectBorder(topRx-dPHWidth, topRy, topRx, topRy+dPHHeight);
+	
+	// Header
+	orthoPrint(topRx-dPHWidth+7, topRy+15, "-     Keys     +");
+	glColor3f(0.0f, 0.0f, 0.0f);
+	glBegin(GL_LINES);
+	glVertex2f(topRx-dPHWidth, topRy+20);
+	glVertex2f(topRx, topRy+20);
+	glEnd();
+
+	// Text
+	orthoPrint(topRx-dPHWidth+7, topRy+34, "Q    Size       E");
+	orthoPrint(topRx-dPHWidth+7, topRy+49, "S    Height    W");
+	orthoPrint(topRx-dPHWidth+7, topRy+64, "A    Rotation  D");
+}
+
+void drawModelInfo(int botRx, int botRy) {
+	int dMIHeight = 50;
+	int dMIWidth = 100;
+	// Draw Big White Background
+	glColor4f(1.0f, 1.0f, 1.0f, 0.7f); // White
+	glRectf(botRx-dMIWidth, botRy-dMIHeight, botRx, botRy);
+	// Draw Big White Background Border
+	glColor3f(0.0f, 0.0f, 0.0f); // Black
+	drawRectBorder(botRx-dMIWidth, botRy-dMIHeight, botRx, botRy);
+	char buffer[20];
+	sprintf(buffer, "Height:  %icm", int(editModelHeight));
+	orthoPrint(botRx-dMIWidth+7, botRy-dMIHeight+15, buffer);
+
+	sprintf(buffer, "Width:   %icm", int(editModelWidth));
+	orthoPrint(botRx-dMIWidth+7, botRy-dMIHeight+30, buffer);
+
+	sprintf(buffer, "Length:  %icm", int(editModelLength));
+	orthoPrint(botRx-dMIWidth+7, botRy-dMIHeight+45, buffer);
 }
 
 void drawHeightHud(int topx, int topy, float height) {
