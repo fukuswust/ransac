@@ -217,6 +217,7 @@ void runAlgorithm() {
 	float floorHeight;
 	segmentFloor(floorPoints, numFloorPoints, floorHist, currentMinHeight, alignFloor, floorHeight);
 
+	#pragma region Yaw
 	// Estimate new yaw
 	int lineID[40];
 	numTdWallPts = flattenWall(wallSlicePoints, wallHist, tdWall, lineID);
@@ -224,11 +225,28 @@ void runAlgorithm() {
 
 	// Average new yaw
 	float degDiff = dirDiffAngle(yawValue, estYaw)*180.0f/PI;
-	printf("%f\n",degDiff*dirDiffAngleSign(yawValue, estYaw));
-	float yawAvg = 1.0f - ((0.1f/5.0f)*degDiff);
-	yawValue = weighedAngleAvg(yawValue, estYaw, yawAvg);
+	float yawAvg = ((0.1f/5.0f)*degDiff);
+	if (yawAvg > 1.0f) {
+		yawAvg = 1.0f;
+	}
+	static float lastLargeDiffYaw = 0.0f;
+	if (lastLargeDiffYaw != 0.0f && degDiff < 4.0f) {
+		yawAvg /= lastLargeDiffYaw;
+	}
+	float nyawValue = weighedAngleAvg(yawValue, estYaw, 1.0f - yawAvg);
+	float yawDiff = dirDiffAngle(yawValue, nyawValue);
+	if (yawDiff < 0.05f) {
+		lastLargeDiffYaw += 1.0f;
+	} else {
+		lastLargeDiffYaw = 0.0f;
+	}
+	yawValue = nyawValue;
+	printf("%f\n",degDiff);
+
+	#pragma endregion Determine yaw from top down view and dynamically average
 	
-	// Determine X and Z
+	#pragma region X,Z
+	// Determine delX and delZ
 	performRotation(tdWall, -yawValue);
 	drawNumTdWallPts = numTdWallPts;
 	for (int i = 0; i < numTdWallPts; i++) {
@@ -236,15 +254,53 @@ void runAlgorithm() {
 	}
 	numTdWallPts = xzMedianFilter(tdWall, numTdWallPts);
 	determineAxisLines(tdWall, numTdWallPts, tdLineSegX, numLineSegX, tdLineSegZ, numLineSegZ);
-	if (mapRecord) {
+	if (mapRecord) { // Recording new map
 		addToMap(tdLineSegX, numLineSegX, lineMapX, numLineMapX, true);
 		addToMap(tdLineSegZ, numLineSegZ, lineMapZ, numLineMapZ, false);
-	} else {
-		zValue += compareToMap(tdLineSegX, numLineSegX, lineMapX, numLineMapX, true);
-		xValue += compareToMap(tdLineSegZ, numLineSegZ, lineMapZ, numLineMapZ, false);
-	}
+	} else { // Compare to recorded map
+		float delX, delZ;
+		delZ = compareToMap(tdLineSegX, numLineSegX, lineMapX, numLineMapX, true);
+		delX = compareToMap(tdLineSegZ, numLineSegZ, lineMapZ, numLineMapZ, false);
 
-	#pragma region AVERAGING
+		// Determine new x with dynamic averaging
+		float avgRateX = abs(delX)*(AVG_STRENGTH/1.5f);
+		if (avgRateX > 1.0f) {
+			avgRateX = 1.0f;
+		}
+		static float lastLargeDiffX = 0.0f;
+		if (lastLargeDiffX != 0.0f && abs(delX) < 5.0f) {
+			avgRateX /= lastLargeDiffX;
+		}
+		float nxValue = (xValue*(1.0f-avgRateX)) + ((delX+xValue)*avgRateX);
+		float xDiff = abs(nxValue - xValue);
+		if (xDiff < 1.0f) {
+			lastLargeDiffX += 1.0f;
+		} else {
+			lastLargeDiffX = 0.0f;
+		}
+		xValue = nxValue;
+
+		// Determine new z with dynamic averaging
+		float avgRateZ = abs(delZ)*(AVG_STRENGTH/1.5f);
+		if (avgRateZ > 1.0f) {
+			avgRateZ = 1.0f;
+		}
+		static float lastLargeDiffZ = 0.0f;
+		if (lastLargeDiffZ != 0.0f && abs(delZ) < 5.0f) {
+			avgRateZ /= lastLargeDiffZ;
+		}
+		float nzValue = (zValue*(1.0f-avgRateZ)) + ((delZ+zValue)*avgRateZ);
+		float zDiff = abs(nzValue - zValue);
+		if (zDiff < 1.0f) {
+			lastLargeDiffZ += 1.0f;
+		} else {
+			lastLargeDiffZ = 0.0f;
+		}
+		zValue = nzValue;
+	}
+	#pragma endregion Determine X,Z from top down view and dynamically average
+	
+	#pragma region PITCH AND ROLL
 	// Determine new pitch and roll
 	float accelError = normalizeVector(accelVector);
 	if (accelError < MAX_ACCEL_ERROR) {
@@ -271,17 +327,30 @@ void runAlgorithm() {
 		}
 		normalizeVector(curUpVector);
 	}
+	#pragma endregion Dynamically average in new pitch and roll values 
 
+	#pragma region HEIGHT
 	// Determine new height
 	if (numFloorPoints > MIN_FLOOR_POINTS) {
 		//floorHeight -= 16.4f;
-		float avgRate = abs(heightValue-floorHeight)*(AVG_STRENGTH/1.5f);
-		if (avgRate > 1.0f) {
-			avgRate = 1.0f;
+		float avgRateY = abs(heightValue-floorHeight)*(AVG_STRENGTH/1.5f);
+		if (avgRateY > 1.0f) {
+			avgRateY = 1.0f;
 		}
-		heightValue = (heightValue*(1.0f-avgRate)) + (floorHeight*avgRate);
+		static float lastLargeDiffY = 0.0f;
+		if (lastLargeDiffY != 0.0f && abs(heightValue-floorHeight) < 5.0f) {
+			avgRateY /= lastLargeDiffY;
+		}
+		float nheightValue = (heightValue*(1.0f-avgRateY)) + (floorHeight*avgRateY);
+		float heightDiff = abs(nheightValue - heightValue);
+		if (heightDiff < 1.0f) {
+			lastLargeDiffY += 1.0f;
+		} else {
+			lastLargeDiffY = 0.0f;
+		}
+		heightValue = nheightValue;
 	}
-	#pragma endregion Dynamically average in new position and orientation values 
+	#pragma endregion Dynamically average in new height value
 
 	// Set augmentation transformation variables
 	rollValue = atan2(curUpVector[0], curUpVector[1]);
@@ -889,7 +958,7 @@ float compareToMap(LineSeg tdLineSeg[], int numLineSeg, LineSeg lineMap[], int &
 				minJ = j;
 			}
 		}
-		if (minDis < 100.0f) { // Can be associated with map line
+		if (minDis < 200.0f) { // Can be associated with map line
 			if (mN > nMax) {
 				nMax = mN;
 				diffTotal = lineMap[minJ].loc - mLoc;
