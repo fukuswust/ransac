@@ -9,6 +9,10 @@
 #include "gui.h"
 #include "input.h"
 
+#define _WIN32_WINNT 0x0500
+#include <windows.h>
+#include <iostream>
+
 int initKinect() {
 	if (KF.GetKinectCount() < 1)
 	{
@@ -48,6 +52,11 @@ int initKinect() {
 }
 
 int main(int argc, char **argv) {
+	if (!SHOW_COMMAND_LINE) {
+		HWND hWnd = GetConsoleWindow();
+		ShowWindow( hWnd, SW_HIDE );
+	}
+
 	if (USE_KINECT) {
 		int ret = initKinect();
 		if (ret != -1) {return ret;}
