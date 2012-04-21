@@ -20,13 +20,10 @@
 #include <string>
 using namespace std;
 
-//#define RECORD_RAW
-
 // Mouse Location
 extern int mouseX;
 extern int mouseY;
-// Recording file counter
-extern int outFileOn;
+
 // View size and offset
 extern int viewWidth;
 extern int viewHeight;
@@ -34,29 +31,32 @@ extern int viewXOffset;
 extern int viewYOffset;
 extern float xViewFactor;
 extern float yViewFactor;
+
 // Sensor Orientation and Position
 extern float heightValue, xValue, zValue;
 extern float yawValue, rollValue, pitchValue;
 extern float accelVector[3];
 extern float curUpVector[3];
+
 // Camera Orientation
 extern float yawMatrix[9];
 extern float pitchRollMatrix[9];
 extern float translationMatrix[3];
+
 // Floor Points
 extern int floorIJ[MAX_FLOOR_POINTS*2];
 extern int numFloorPoints;
+
 // Wall Points
 extern int wallIJ[MAX_WALL_POINTS*2];
 extern int numWallPoints;
+
 // Top Down Map
 extern TopDownMap topDownMap;
-extern SlicePoint tdWall[40];
-extern int numTdWallPts;
-extern float tdPrevDir;
-extern float tdPrevX;
-extern float tdPrevZ;
+extern SlicePoint drawTdWall[40];
+extern int drawNumTdWallPts;
 
+// Top Down Lines
 extern LineSeg tdLineSegX[8];
 extern int numLineSegX;
 extern LineSeg tdLineSegZ[8];
@@ -79,13 +79,16 @@ extern bool isFullscreen;
 extern bool showHud;
 extern bool showFloorPoints;
 extern bool showWallPoints;
+extern bool mapRecord;
+extern bool tdDisplayTracking;
+extern bool showHelp;
 
 // Models
 extern AugModel* modelHead;
 extern AugModel* modelTail;
 extern string** modelPaths;
 
-//Button Colors
+// Edit Mode
 extern float btnColors[8][3];
 extern bool editPlacing;
 extern float editModelHeight;
@@ -94,8 +97,5 @@ extern float editModelLength;
 
 // Icons
 extern NeHe::imageTGA editIcon[6];
-
-extern bool mapRecord;
-extern bool tdDisplayTracking;
 
 #endif

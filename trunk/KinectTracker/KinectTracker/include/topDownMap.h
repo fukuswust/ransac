@@ -35,6 +35,7 @@ public:
 	void mouseRightRelease();
 	void gotoLevel(int level);
 	void setSelected(int value);
+	bool inEditMode() {return editMode;}
 
 };
 

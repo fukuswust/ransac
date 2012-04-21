@@ -1,6 +1,5 @@
 #include "algorithm.h"
 #include "globals.h"
-#include "record.h"
 #include <math.h>
 
 #include <iostream>
@@ -60,6 +59,10 @@ void runAlgorithm() {
 		wallSlicePoints[i].dis = -999999.0f;
 		wallSlicePoints[i].dir = -999999.0f;
 	}
+	// SET UP TD WALL
+	SlicePoint tdWall[40];
+	int numTdWallPts = 0;
+	// FLLOR AND WALL POINTS
 	int floorHist[25] = {0};
 	numFloorPoints = 0;
 	float floorPoints[MAX_FLOOR_POINTS*3];
@@ -218,6 +221,7 @@ void runAlgorithm() {
 	int lineID[40];
 	numTdWallPts = flattenWall(wallSlicePoints, wallHist, tdWall, lineID);
 	float estYaw = estimateYaw(tdWall, numTdWallPts, yawValue);
+
 	// Average new yaw
 	float degDiff = dirDiffAngle(yawValue, estYaw)*180.0f/PI;
 	printf("%f\n",degDiff*dirDiffAngleSign(yawValue, estYaw));
@@ -226,6 +230,10 @@ void runAlgorithm() {
 	
 	// Determine X and Z
 	performRotation(tdWall, -yawValue);
+	drawNumTdWallPts = numTdWallPts;
+	for (int i = 0; i < numTdWallPts; i++) {
+		drawTdWall[i] = tdWall[i];
+	}
 	numTdWallPts = xzMedianFilter(tdWall, numTdWallPts);
 	determineAxisLines(tdWall, numTdWallPts, tdLineSegX, numLineSegX, tdLineSegZ, numLineSegZ);
 	if (mapRecord) {
