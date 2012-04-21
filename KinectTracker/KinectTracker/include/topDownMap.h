@@ -24,7 +24,6 @@ private:
 
 	bool drawPoint(float x, float z);
 	void drawLineSeg(LineSeg lineSeg, bool offset);
-	void drawLineSegBounded(LineSeg lineSeg);
 	bool mouseIsInside();
 
 public:
