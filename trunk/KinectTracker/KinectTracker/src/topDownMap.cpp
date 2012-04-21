@@ -30,74 +30,41 @@ bool TopDownMap::drawPoint(float x, float z) {
 
 void TopDownMap::drawLineSeg(LineSeg lineSeg, bool offset) {
 	float x1, x2, y1, y2;
-	if (offset) {
-		if (lineSeg.isTypeX) {
-			x1 = lineSeg.start - xValue;
-			x2 = lineSeg.stop - xValue;
-			y1 = y2 = lineSeg.loc - zValue;
-		} else {
-			y1 = lineSeg.start - zValue;
-			y2 = lineSeg.stop - zValue;
-			x1 = x2 = lineSeg.loc - xValue;
-		}
-	} else {
-		if (lineSeg.isTypeX) {
-			x1 = lineSeg.start;
-			x2 = lineSeg.stop;
-			y1 = y2 = lineSeg.loc;
-		} else {
-			y1 = lineSeg.start;
-			y2 = lineSeg.stop;
-			x1 = x2 = lineSeg.loc;
-		}
-	}
-	x1 /= (MAX_ALLOWED_DIS/radius);
-	x2 /= (MAX_ALLOWED_DIS/radius);
-	y1 /= (MAX_ALLOWED_DIS/radius);
-	y2 /= (MAX_ALLOWED_DIS/radius);
-
-	glVertex2f(x1, y1);
-	glVertex2f(x2, y2);	
-}
-
-void TopDownMap::drawLineSegBounded(LineSeg lineSeg) {
-	float x1, x2, y1, y2;
 	// Get x and y coordinates
 	if (lineSeg.isTypeX) {
-		if (lineSeg.start > lineSeg.stop) { // Switch start and stop so lower value is to the left.
-			x1 = lineSeg.stop;
-			x2 = lineSeg.start;
-		} else {
-			x1 = lineSeg.start;
-			x2 = lineSeg.stop;
-		}
+		x1 = lineSeg.start;
+		x2 = lineSeg.stop;
 		y1 = y2 = lineSeg.loc;
 	} else {
-		if (lineSeg.start > lineSeg.stop) { // Switch so lower value is on bottom.
-			y1 = lineSeg.stop;
-			y2 = lineSeg.start;
-		} else {
-			y1 = lineSeg.start;
-			y2 = lineSeg.stop;
-		}
+		y1 = lineSeg.start;
+		y2 = lineSeg.stop;
 		x1 = x2 = lineSeg.loc;
 	}
+
+	// Some values need to be offset - Ask John
+	if (offset) {
+		if (lineSeg.isTypeX) {
+			x1 = x1 - xValue;
+			x2 = x2 - xValue;
+			y1 = y2 = y1 - zValue;
+		} else {
+			y1 = y1 - zValue;
+			y2 = y2 - zValue;
+			x1 = x2 = x1 - xValue;
+		}
+	}
+
 	// Transferring into proper coordinates to plot in hud
 	x1 /= (MAX_ALLOWED_DIS/radius);
 	x2 /= (MAX_ALLOWED_DIS/radius);
 	y1 /= (MAX_ALLOWED_DIS/radius);
 	y2 /= (MAX_ALLOWED_DIS/radius);
 
-	x1 = x1 + cx;
-	x2 = x2 + cx;
-	y1 = y1 + cy;
-	y2 = y2 + cy;
-
-	// Make sure lines are within circle
+	// Make sure lines are within bounding box of circle
 	if (lineSeg.isTypeX) {
-		if ( fabs(y2-y1) >= radius ) { return; }
+		if ( fabs(y1) >= radius ) { return; }
 	} else {
-		if ( fabs(x2-x1) >= radius ) { return; }
+		if ( fabs(x1) >= radius ) { return; }
 	}
 	
 	float radiusSqd = pow(radius, 2.0f);
@@ -105,26 +72,31 @@ void TopDownMap::drawLineSegBounded(LineSeg lineSeg) {
 	// Determine if line intersects the circle.
 	if (lineSeg.isTypeX) {
 		// Get distance to circle edge from that point.
-		float distC = pow(y1-float(cy), 2);
-		float mod = sqrt(radiusSqd - distC);
-		float xLeft = cx - mod;
-		float xRight = cx + mod;
-		if ( x1 <= xLeft ) { // Draw on circle if outside
-			x1 = xLeft;
+		float edge = sqrt(radiusSqd - pow(y1, 2));
+		// Check if line is outside circle, but within bounding box
+		if ( x2 <= -edge ) { return; } 
+		if ( x1 >= edge ) { return; }
+
+		// Set point to edge of circle if outside
+		if ( x1 <= -edge ) {
+			x1 = -edge;
 		}
-		if ( x2 >= xRight ) { // Draw on circle if outside
-			x2 = xRight;
+		if ( x2 >= edge ) {
+			x2 = edge;
 		}
 	} else {
-		float distC = pow(x1-float(cx), 2);
-		float mod = sqrt(radiusSqd - distC);
-		float yBot = cy - mod;
-		float yTop = cy + mod;
-		if ( y1 <= yBot ) { // Draw on circle if outside
-			y1 = yBot;
+		// Get distance to circle edge from that point.
+		float edge = sqrt(radiusSqd - pow(x1, 2));
+		// Check if line is outside circle, but within bounding box
+		if ( y2 <= -edge ) { return; }
+		if ( y1 >= edge ) { return; }
+
+		// Set point to edge of circle if outside
+		if ( y1 <= -edge ) {
+			y1 = -edge;
 		}
-		if ( y2 >= yTop ) { // Draw on circle if outside
-			y2 = yTop;
+		if ( y2 >= edge ) {
+			y2 = edge;
 		}
 	}
 	glVertex2f(x1, y1);
@@ -204,14 +176,14 @@ void TopDownMap::draw() {
 	// MANUALLY ADDED LINE FOR DEBUGGING ////
 	//numLineSegX = 1;
 	//tdLineSegX[0].isTypeX = true;
-	//tdLineSegX[0].loc = 200.0f;
-	//tdLineSegX[0].start = -10.0f;
-	//tdLineSegX[0].stop = 10090.0f;
+	//tdLineSegX[0].loc = 650.0f;
+	//tdLineSegX[0].start = -649.0f;
+	//tdLineSegX[0].stop = -300.0f;
 	for (int i = 0; i < numLineSegX; i++) {
-		drawLineSegBounded(tdLineSegX[i]);
+		drawLineSeg(tdLineSegX[i], false);
 	}
 	for (int i = 0; i < numLineSegZ; i++) {
-		drawLineSegBounded(tdLineSegZ[i]);
+		drawLineSeg(tdLineSegZ[i], false);
 	}
 	glEnd();
 
@@ -220,11 +192,11 @@ void TopDownMap::draw() {
 	glColor3f(1.0f, 0.0f, 0.0f);
 	glBegin(GL_LINES);
 	for (int i = 0; i < numLineMapX; i++) {
-		drawLineSegBounded(lineMapX[i]);
+		drawLineSeg(lineMapX[i], true);
 	}
 	glColor3f(0.0f, 0.0f, 1.0f);
 	for (int i = 0; i < numLineMapZ; i++) {
-		drawLineSegBounded(lineMapZ[i]);
+		drawLineSeg(lineMapZ[i], true);
 	}
 	glEnd();
 	glLineWidth(1.0f);
