@@ -25,3 +25,4 @@ void drawTopDownMap(int cx, int cy, int r);
 void drawFps(int cx, int cy);
 void drawPlacingHelp(int topRx, int topRy);
 void drawModelInfo(int botRx, int botRy);
+void drawKeyboardHelp(int botLx, int botLy);
