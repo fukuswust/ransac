@@ -37,6 +37,11 @@ void drawHud() {
 	// Draw Pitch
 	drawPitchHud(HUD_PITCH_X, HUD_PITCH_Y, HUD_PITCH_RADIUS, pitchValue);
 
+	// Draw helper window
+	if (showHelp) {
+		drawKeyboardHelp(10, viewHeight-30);
+	}
+
 	// Draw Top Down Map
 	topDownMap.draw();
 
@@ -70,9 +75,56 @@ void drawPlacingHelp(int topRx, int topRy) {
 	orthoPrint(topRx-dPHWidth+7, topRy+64, "A    Rotation  D");
 }
 
+void drawKeyboardHelp(int botLx, int botLy) {
+	int dKHeight = 160;
+	int dKWidth = 210;
+	int col1X = botLx + 7;
+	int col2X = botLx + 60;
+	// Draw Big White Background
+	glColor4f(1.0f, 1.0f, 1.0f, 0.7f); // White
+	glRectf(botLx, botLy-dKHeight, botLx+dKWidth, botLy);
+	// Draw Big White Background Border
+	glColor3f(0.0f, 0.0f, 0.0f); // Black
+	drawRectBorder(botLx, botLy-dKHeight, botLx+dKWidth, botLy);
+	
+	// Header
+	glColor3f(0.0f, 0.0f, 0.0f);
+	glBegin(GL_LINES);
+	glVertex2f(botLx, botLy-dKHeight+20);
+	glVertex2f(botLx+dKWidth, botLy-dKHeight+20);
+	glEnd();
+
+	// Text - Column 1
+	orthoPrint(col1X, botLy-dKHeight+15, "Key");
+	orthoPrint(col1X, botLy-dKHeight+34, "ESC");
+	orthoPrint(col1X, botLy-dKHeight+49, "SPACE");
+	orthoPrint(col1X, botLy-dKHeight+64, "1");
+	orthoPrint(col1X, botLy-dKHeight+79, "2");
+	orthoPrint(col1X, botLy-dKHeight+94, "F");
+	orthoPrint(col1X, botLy-dKHeight+109, "H");
+	orthoPrint(col1X, botLy-dKHeight+124, "M");
+	orthoPrint(col1X, botLy-dKHeight+139, "O");
+	orthoPrint(col1X, botLy-dKHeight+154, "T");
+
+	// Text - Column 2
+	orthoPrint(col2X, botLy-dKHeight+15, "Action");
+	orthoPrint(col2X, botLy-dKHeight+34, "Close Program");
+	orthoPrint(col2X, botLy-dKHeight+49, "Toggle Recording");
+	orthoPrint(col2X, botLy-dKHeight+64, "Toggle Show Floor Points");
+	orthoPrint(col2X, botLy-dKHeight+79, "Toggle Show Wall Points");
+	orthoPrint(col2X, botLy-dKHeight+94, "Toggle Fullscreen");
+	orthoPrint(col2X, botLy-dKHeight+109, "Toggle Help");
+	orthoPrint(col2X, botLy-dKHeight+124, "Level Motor Position");
+	orthoPrint(col2X, botLy-dKHeight+139, "Toggle Overhead Display");
+	orthoPrint(col2X, botLy-dKHeight+154, "Toggle Top Down Mode");
+}
+
 void drawModelInfo(int botRx, int botRy) {
 	int dMIHeight = 50;
 	int dMIWidth = 100;
+	int col1X = botRx - dMIWidth + 7;
+	int col2X = botRx - dMIWidth + 55;
+
 	// Draw Big White Background
 	glColor4f(1.0f, 1.0f, 1.0f, 0.7f); // White
 	glRectf(botRx-dMIWidth, botRy-dMIHeight, botRx, botRy);
@@ -80,14 +132,17 @@ void drawModelInfo(int botRx, int botRy) {
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
 	drawRectBorder(botRx-dMIWidth, botRy-dMIHeight, botRx, botRy);
 	char buffer[20];
-	sprintf(buffer, "Height:  %icm", int(editModelHeight));
-	orthoPrint(botRx-dMIWidth+7, botRy-dMIHeight+15, buffer);
+	orthoPrint(col1X, botRy-dMIHeight+15, "Height:");
+	sprintf(buffer, "%icm", int(editModelHeight));
+	orthoPrint(col2X, botRy-dMIHeight+15, buffer);
+	
+	orthoPrint(col1X, botRy-dMIHeight+30, "Width:");
+	sprintf(buffer, "%icm", int(editModelWidth));
+	orthoPrint(col2X, botRy-dMIHeight+30, buffer);
 
-	sprintf(buffer, "Width:   %icm", int(editModelWidth));
-	orthoPrint(botRx-dMIWidth+7, botRy-dMIHeight+30, buffer);
-
-	sprintf(buffer, "Length:  %icm", int(editModelLength));
-	orthoPrint(botRx-dMIWidth+7, botRy-dMIHeight+45, buffer);
+	orthoPrint(col1X, botRy-dMIHeight+45, "Length:");
+	sprintf(buffer, "%icm", int(editModelLength));
+	orthoPrint(col2X, botRy-dMIHeight+45, buffer);
 }
 
 void drawHeightHud(int topx, int topy, float height) {
