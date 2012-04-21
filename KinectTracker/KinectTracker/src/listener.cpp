@@ -1,6 +1,5 @@
 #include "listener.h"
 #include "globals.h"
-#include "record.h"
 #include "algorithm.h"
 
 void Listener::KinectDisconnected(Kinect::Kinect *K) 
@@ -17,14 +16,6 @@ void Listener::DepthReceived(Kinect::Kinect *K)
 
 	// GET ACCEL DATA
 	K->GetAcceleroData(&accelVector[0], &accelVector[1], &accelVector[2]);
-
-	// RECORD DATA if recording and if at least one RGB camera frame has been captured
-	#ifdef RECORD_RAW
-	recordColor(K->mColorBuffer, outFileOn);
-	recordDepth(K->mDepthBuffer, outFileOn);
-	recordAccel(accelVector[0], accelVector[1], accelVector[2], outFileOn);
-	#endif
-	outFileOn++;
 
 	runAlgorithm();
 };

@@ -126,7 +126,7 @@ void TopDownMap::draw() {
 	glTranslatef(cx,cy,0.0f);
 
 	//Draw Local Top Down Map Background
-	if ((mouseIsInside() || mousePressed) && !editMode) {
+	if ((mouseIsInside() || mousePressed) && !editMode && !mapRecord) {
 		glColor4f(1.0f, 1.0f, 1.0f, 0.9f); // White
 	} else {
 		glColor4f(1.0f, 1.0f, 1.0f, 0.5f); // Clear White
@@ -159,10 +159,10 @@ void TopDownMap::draw() {
 	glPointSize(5.0f);
 	glColor3f(0.0f, 0.0f, 0.0f);
 	glBegin(GL_POINTS);
-	for (int i = 0; i < numTdWallPts; i++) {
-		if (abs(tdWall[i].x) != 999999.0) {
-			float tmpX = tdWall[i].x/(MAX_ALLOWED_DIS/radius);
-			float tmpZ = tdWall[i].z/(MAX_ALLOWED_DIS/radius);
+	for (int i = 0; i < drawNumTdWallPts; i++) {
+		if (abs(drawTdWall[i].x) != 999999.0) {
+			float tmpX = drawTdWall[i].x/(MAX_ALLOWED_DIS/radius);
+			float tmpZ = drawTdWall[i].z/(MAX_ALLOWED_DIS/radius);
 			glVertex2f(tmpX, tmpZ);
 		}
 	}
@@ -172,13 +172,6 @@ void TopDownMap::draw() {
 	glLineWidth(3.0f);
 	glColor4f(0.0f, 1.0f, 0.0f, 0.5f);
 	glBegin(GL_LINES);
-
-	// MANUALLY ADDED LINE FOR DEBUGGING ////
-	//numLineSegX = 1;
-	//tdLineSegX[0].isTypeX = true;
-	//tdLineSegX[0].loc = 650.0f;
-	//tdLineSegX[0].start = -649.0f;
-	//tdLineSegX[0].stop = -300.0f;
 	for (int i = 0; i < numLineSegX; i++) {
 		drawLineSeg(tdLineSegX[i], false);
 	}
@@ -225,7 +218,7 @@ bool TopDownMap::mouseIsInside() {
 
 void TopDownMap::mouseLeftPress() {
 	if (!editMode) {
-		if (mouseIsInside()) {
+		if (mouseIsInside() && !mapRecord) {
 			mousePressed = true;
 		}
 	} else {
@@ -240,7 +233,7 @@ void TopDownMap::mouseLeftPress() {
 
 void TopDownMap::mouseLeftRelease() {
 	if (!editMode) {
-		if (mouseIsInside()) {
+		if (mouseIsInside() && mousePressed) {
 			editMode = true;
 			editPlacing = false;
 		}

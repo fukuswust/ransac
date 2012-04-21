@@ -30,9 +30,6 @@
     <ClInclude Include="include\listener.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\record.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\Kinect-win32.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -90,9 +87,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\record.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\input.cpp">

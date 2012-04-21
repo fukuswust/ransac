@@ -21,6 +21,13 @@ void handleKeypress(unsigned char key, //The key that was pressed
 			exit(0); //Exit the program
 			break;
 		}
+		case ' ': {
+			// Toggle Recording
+			if (!topDownMap.inEditMode()) {
+				mapRecord = !mapRecord;
+			}
+			break;
+		}
 		case 'f': {
 			// Toggle Fullscreen
 			isFullscreen = !isFullscreen;
@@ -33,30 +40,41 @@ void handleKeypress(unsigned char key, //The key that was pressed
 			break;
 		}
 		case 'm': {
+			// Level motor position
 			K->SetMotorPosition(1);
 			break;
 		}
 		case 'h': {
-			// Toggle HUD
-			if (!editPlacing) {
+			// Toggle Help
+			showHelp = !showHelp;
+			break;
+		}
+		case 'o': {
+			// Toggle overhead display
+			if (!topDownMap.inEditMode()) {
 				showHud = !showHud;
 			}
-			// The rest of this is handled in gui.cpp
 			break;
 		}
 		case 't': {
-			tdDisplayTracking = !tdDisplayTracking;
+			// Toggle td display rotation
+			if (!topDownMap.inEditMode()) {
+				tdDisplayTracking = !tdDisplayTracking;
+			}
 			break;
 		}
 		case '1': {
+			// Toggle floor points
 			showFloorPoints = !showFloorPoints;
 			break;
 		}
 		case '2': {
+			// Toggle wall points
 			showWallPoints = !showWallPoints;
 			break;
 		}
 
+		// Aug model movement
 		case 'w': {
 			if (modelHead != NULL) {modelHead->keyPressW();}
 			break;
@@ -79,11 +97,6 @@ void handleKeypress(unsigned char key, //The key that was pressed
 		}
 		case 'e': {
 			if (modelHead != NULL) {modelHead->keyPressE();}
-			break;
-		}
-
-		case ' ': {
-			mapRecord = !mapRecord;
 			break;
 		}
 	}

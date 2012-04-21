@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <conio.h> // for _kbhit and _getch 
 #include <fstream>
-#include "record.h"
 #include "gui.h"
 #include "input.h"
 
