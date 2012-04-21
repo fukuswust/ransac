@@ -108,10 +108,10 @@ void initRendering() {
 
 // Main Update Loop
 void update(int value) {
-	if (USE_KINECT) {
+	#ifdef USE_KINECT
 		glBindTexture( GL_TEXTURE_2D, texID );
 		glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 640, 480, GL_RGB, GL_UNSIGNED_BYTE, K->mColorBuffer );
-	}
+    #endif
 	glutPostRedisplay();
 	glutTimerFunc(0, update, 0);
 }

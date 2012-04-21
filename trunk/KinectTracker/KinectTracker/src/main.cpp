@@ -56,9 +56,9 @@ int main(int argc, char **argv) {
 		ShowWindow( hWnd, SW_HIDE );
 	}
 
-	if (USE_KINECT) {
+	#ifdef USE_KINECT
 		int ret = initKinect();
 		if (ret != -1) {return ret;}
-	}
+	#endif
 	initGui(argc, argv); // Contains GUI loop
 };
