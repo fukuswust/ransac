@@ -53,8 +53,6 @@ extern int numWallPoints;
 extern TopDownMap topDownMap;
 extern SlicePoint tdWall[40];
 extern int numTdWallPts;
-extern Line tdLine[8];
-extern int numTdLines;
 extern float tdPrevDir;
 extern float tdPrevX;
 extern float tdPrevZ;
@@ -96,5 +94,8 @@ extern float editModelLength;
 
 // Icons
 extern NeHe::imageTGA editIcon[6];
+
+extern bool mapRecord;
+extern bool tdDisplayTracking;
 
 #endif

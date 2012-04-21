@@ -28,12 +28,6 @@ union SlicePoint {
 	};
 };
 
-struct Line {
-	float m;
-	float b;
-	float n;
-};
-
 struct LineSeg {
 	bool  isTypeX;
 	float loc;

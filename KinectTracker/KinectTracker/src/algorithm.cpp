@@ -223,16 +223,18 @@ void runAlgorithm() {
 	printf("%f\n",degDiff*dirDiffAngleSign(yawValue, estYaw));
 	float yawAvg = 1.0f - ((0.1f/5.0f)*degDiff);
 	yawValue = weighedAngleAvg(yawValue, estYaw, yawAvg);
-	numTdLines = 1;
-	tdLine[0].m = tan(-yawValue);
-	tdLine[0].b = 0;
 	
 	// Determine X and Z
 	performRotation(tdWall, -yawValue);
 	numTdWallPts = xzMedianFilter(tdWall, numTdWallPts);
 	determineAxisLines(tdWall, numTdWallPts, tdLineSegX, numLineSegX, tdLineSegZ, numLineSegZ);
-	zValue = -compareToMap(tdLineSegX, numLineSegX, lineMapX, numLineMapX, true);
-	xValue = -compareToMap(tdLineSegZ, numLineSegZ, lineMapZ, numLineMapZ, false);
+	if (mapRecord) {
+		addToMap(tdLineSegX, numLineSegX, lineMapX, numLineMapX, true);
+		addToMap(tdLineSegZ, numLineSegZ, lineMapZ, numLineMapZ, false);
+	} else {
+		zValue += compareToMap(tdLineSegX, numLineSegX, lineMapX, numLineMapX, true);
+		xValue += compareToMap(tdLineSegZ, numLineSegZ, lineMapZ, numLineMapZ, false);
+	}
 
 	#pragma region AVERAGING
 	// Determine new pitch and roll
@@ -242,8 +244,12 @@ void runAlgorithm() {
 		for (int i = 0; i < 3; i++) {
 			avgRate += curUpVector[i]*accelVector[i];
 		}
-		float degVal = acos(avgRate)*180.0f/PI;
-		avgRate = degVal*(AVG_STRENGTH/2.5f);
+		if (abs(avgRate) <= 1.0f) {
+			float degVal = acos(avgRate)*180.0f/PI;
+			avgRate = degVal*(AVG_STRENGTH/2.5f);
+		} else {
+			avgRate = 1.0f;
+		}
 		if (avgRate > 1.0f) {
 			avgRate = 1.0f;
 		}
@@ -259,8 +265,8 @@ void runAlgorithm() {
 	}
 
 	// Determine new height
-	floorHeight -= 16.4f;
 	if (numFloorPoints > MIN_FLOOR_POINTS) {
+		//floorHeight -= 16.4f;
 		float avgRate = abs(heightValue-floorHeight)*(AVG_STRENGTH/1.5f);
 		if (avgRate > 1.0f) {
 			avgRate = 1.0f;
@@ -323,7 +329,6 @@ void findRotationToUp(float xVect, float yVect, float zVect, float M[]) {
 void setPositionAndOrientation() {
 	// Camera Orientation
 	// Translation
-	heightValue -= 16.6f;
 	translationMatrix[0] = xValue; // x translation
 	translationMatrix[1] = heightValue; // height translation
 	translationMatrix[2] = zValue; // z translation
@@ -816,14 +821,60 @@ void determineAxisLines(SlicePoint tdWall[], int numTdWallPts, LineSeg lineSegX[
 	}
 }
 
-float compareToMap(LineSeg tdLineSeg[], int numLineSeg, LineSeg lineMap[], int &numLineMap, bool isTypeX) {
-	float diffTotal = 0.0;
-	int totalComp = 0;
-	for (int i = 0; i < numLineSeg; i++) {
-		float mLoc = tdLineSeg[i].loc;
-		float minDis = 999999.0;
+void addToMap(LineSeg tdLineSeg[], int numLineSeg, LineSeg lineMap[], int &numLineMap, bool isTypeX) {
+	for (int i = 0; i < numLineSeg; i++) { // Loop through all new line segments
+		float mLoc;
+		if (isTypeX) {
+			mLoc = tdLineSeg[i].loc + zValue;
+		} else {
+			mLoc = tdLineSeg[i].loc + xValue;
+		}
+		float mStart = tdLineSeg[i].start;
+		float mStop = tdLineSeg[i].stop;
+		float minDis = 999999.0f;
+		int mN = tdLineSeg[i].n;
 		int minJ = -1;
-		for (int j = 0; j < numLineMap; j++) {
+		for (int j = 0; j < numLineMap; j++) { // Compare to all current map segments
+			float disDiff = abs(mLoc - lineMap[j].loc);
+			if (disDiff < minDis) {
+				minDis = disDiff;
+				minJ = j;
+			}
+		}
+		if (minDis < 200.0f) { // Can be associated with map line
+			if (mStart < lineMap[minJ].start) {
+				lineMap[minJ].start = mStart;
+			}
+			if (mStop > lineMap[minJ].stop) {
+				lineMap[minJ].stop = mStop;
+			}
+			lineMap[minJ].loc = ((lineMap[minJ].loc * lineMap[minJ].n) + (mLoc * mN)) / (lineMap[minJ].n + mN);
+			lineMap[minJ].n += mN;
+		} else { // New Line
+			lineMap[numLineMap].isTypeX = isTypeX;
+			lineMap[numLineMap].loc = mLoc;
+			lineMap[numLineMap].n = mN;
+			lineMap[numLineMap].start = mStart;
+			lineMap[numLineMap].stop = mStop;
+			numLineMap++;
+		}
+	}
+}
+
+float compareToMap(LineSeg tdLineSeg[], int numLineSeg, LineSeg lineMap[], int &numLineMap, bool isTypeX) {
+	float diffTotal = 0.0f;
+	int nMax = -1;
+	for (int i = 0; i < numLineSeg; i++) { // Loop through all new line segments
+		float mLoc;
+		if (isTypeX) {
+			mLoc = tdLineSeg[i].loc + zValue;
+		} else {
+			mLoc = tdLineSeg[i].loc + xValue;
+		}
+		int mN = tdLineSeg[i].n;
+		float minDis = 999999.0f;
+		int minJ = -1;
+		for (int j = 0; j < numLineMap; j++) { // Compare to all current map segments
 			float disDiff = abs(mLoc - lineMap[j].loc);
 			if (disDiff < minDis) {
 				minDis = disDiff;
@@ -831,25 +882,14 @@ float compareToMap(LineSeg tdLineSeg[], int numLineSeg, LineSeg lineMap[], int &
 			}
 		}
 		if (minDis < 100.0f) { // Can be associated with map line
-			diffTotal += mLoc - lineMap[minJ].loc;
-			totalComp++;
-			lineMap[minJ].loc = (lineMap[minJ].loc * 0.8) + (mLoc * 0.2);
-		} else { // New Line
-			lineMap[numLineMap].isTypeX = isTypeX;
-			lineMap[numLineMap].loc = mLoc;
-			lineMap[numLineMap].n = 10;
-			lineMap[numLineMap].start = -500;
-			lineMap[numLineMap].stop = 500;
-			numLineMap++;
+			if (mN > nMax) {
+				nMax = mN;
+				diffTotal = lineMap[minJ].loc - mLoc;
+			}
 		}
 	}
-	if (totalComp > 0) {
-
-	} else {
-
-	}
-	if (numLineMap > 0) {
-		return lineMap[0].loc;
+	if (nMax > 0) {
+		return diffTotal;
 	} else {
 		return 0.0f;
 	}

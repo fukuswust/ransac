@@ -95,13 +95,16 @@ void AugModel::scaleMultiplier(float mult) {
 
 bool AugModel::mouseIsInside() {
 	if (tdVisible) {
-		return (mouseX-viewXOffset > tdPt1X && mouseX-viewXOffset < tdPt2X && mouseY-viewYOffset > tdPt1Z && mouseY-viewYOffset < tdPt2Z);
+		return (mouseX-viewXOffset > tdPt1X+cx && mouseX-viewXOffset < tdPt2X+cx && mouseY-viewYOffset > tdPt1Z+cy && mouseY-viewYOffset < tdPt2Z+cy);
 	} else {
 		return false;
 	}
 }
 
-void AugModel::drawTopDown(float cx, float cy, float r) {
+void AugModel::drawTopDown(float ccx, float ccy, float r) {
+	cx = ccx;
+	cy = ccy;
+
 	// Determine position if placing or moving
 	if (placing || moving) {
 		x = ((mouseX-cx-viewXOffset)*(MAX_ALLOWED_DIS/r))+xValue;
@@ -139,10 +142,10 @@ void AugModel::drawTopDown(float cx, float cy, float r) {
 	// Draw Top Down View
 	if (tdVisible) {
 		// Calculate points
-		tdPt1X = cx + (pt1X/(MAX_ALLOWED_DIS/r));
-		tdPt1Z = cy + (pt1Z/(MAX_ALLOWED_DIS/r));
-		tdPt2X = cx + (pt2X/(MAX_ALLOWED_DIS/r));
-		tdPt2Z = cy + (pt2Z/(MAX_ALLOWED_DIS/r));
+		tdPt1X = (pt1X/(MAX_ALLOWED_DIS/r));
+		tdPt1Z = (pt1Z/(MAX_ALLOWED_DIS/r));
+		tdPt2X = (pt2X/(MAX_ALLOWED_DIS/r));
+		tdPt2Z = (pt2Z/(MAX_ALLOWED_DIS/r));
 		// Draw solid rectangle
 		glColor3f(col[0], col[1], col[2]);
 		glBegin(GL_QUADS);				
@@ -167,7 +170,7 @@ void AugModel::drawTopDown(float cx, float cy, float r) {
 		orthoPrint(midX-3,midZ+4,tmp);
 	}
 	if (next != NULL) {
-		next->drawTopDown(cx, cy, r);
+		next->drawTopDown(ccx, ccy, r);
 	}
 }
 

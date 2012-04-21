@@ -13,6 +13,7 @@ private:
 	float minX, maxX, minY, maxY, minZ, maxZ;
 	float width, depth;
 	float scale, rot;
+	float cx, cy;
 	bool placing;
 	bool moving;
 	float tdPt1X, tdPt1Z, tdPt2X, tdPt2Z;
@@ -28,7 +29,7 @@ private:
 public:
 	AugModel(char file[], float cScale, float cRot, float cHeight, int cId, float cCol[3]);
 	~AugModel();
-	void drawTopDown(float cx, float cy, float r);
+	void drawTopDown(float ccx, float ccy, float r);
 	void drawAugmentation();
 	void addNewModel(char file[], float cScale, float cRot, float cHeight, int cId, float cCol[3]);
 	void cancelMovement();

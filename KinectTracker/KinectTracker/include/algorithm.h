@@ -36,4 +36,6 @@ int  xzMedianFilter(SlicePoint tdWall[], int numTdWallPts);
 
 void determineAxisLines(SlicePoint tdWall[], int numTdWallPts, LineSeg lineSegX[], int &numLineSegX, LineSeg lineSegZ[], int &numLineSegZ);
 
+void addToMap(LineSeg tdLineSeg[], int numLineSeg, LineSeg lineMap[], int &numLineMap, bool isTypeX);
+
 float compareToMap(LineSeg tdLineSeg[], int numLineSeg, LineSeg lineMap[], int &numLineMap, bool isTypeX);
