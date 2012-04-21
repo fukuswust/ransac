@@ -44,6 +44,10 @@ void handleKeypress(unsigned char key, //The key that was pressed
 			// The rest of this is handled in gui.cpp
 			break;
 		}
+		case 't': {
+			tdDisplayTracking = !tdDisplayTracking;
+			break;
+		}
 		case '1': {
 			showFloorPoints = !showFloorPoints;
 			break;
@@ -75,6 +79,11 @@ void handleKeypress(unsigned char key, //The key that was pressed
 		}
 		case 'e': {
 			if (modelHead != NULL) {modelHead->keyPressE();}
+			break;
+		}
+
+		case ' ': {
+			mapRecord = !mapRecord;
 			break;
 		}
 	}

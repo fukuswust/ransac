@@ -28,23 +28,36 @@ bool TopDownMap::drawPoint(float x, float z) {
 	}
 }
 
-void TopDownMap::drawLineSeg(LineSeg lineSeg) {
+void TopDownMap::drawLineSeg(LineSeg lineSeg, bool offset) {
 	float x1, x2, y1, y2;
-	if (lineSeg.isTypeX) {
-		x1 = lineSeg.start;
-		x2 = lineSeg.stop;
-		y1 = y2 = lineSeg.loc;
+	if (offset) {
+		if (lineSeg.isTypeX) {
+			x1 = lineSeg.start - xValue;
+			x2 = lineSeg.stop - xValue;
+			y1 = y2 = lineSeg.loc - zValue;
+		} else {
+			y1 = lineSeg.start - zValue;
+			y2 = lineSeg.stop - zValue;
+			x1 = x2 = lineSeg.loc - xValue;
+		}
 	} else {
-		y1 = lineSeg.start;
-		y2 = lineSeg.stop;
-		x1 = x2 = lineSeg.loc;
+		if (lineSeg.isTypeX) {
+			x1 = lineSeg.start;
+			x2 = lineSeg.stop;
+			y1 = y2 = lineSeg.loc;
+		} else {
+			y1 = lineSeg.start;
+			y2 = lineSeg.stop;
+			x1 = x2 = lineSeg.loc;
+		}
 	}
 	x1 /= (MAX_ALLOWED_DIS/radius);
 	x2 /= (MAX_ALLOWED_DIS/radius);
 	y1 /= (MAX_ALLOWED_DIS/radius);
 	y2 /= (MAX_ALLOWED_DIS/radius);
-	glVertex2f(cx+x1, cy+y1);
-	glVertex2f(cx+x2, cy+y2);
+
+	glVertex2f(x1, y1);
+	glVertex2f(x2, y2);	
 }
 
 void TopDownMap::drawLineSegBounded(LineSeg lineSeg) {
@@ -118,28 +131,6 @@ void TopDownMap::drawLineSegBounded(LineSeg lineSeg) {
 	glVertex2f(x2, y2);
 }
 
-void TopDownMap::drawLine(Line tdLine) {
-	float m = tdLine.m;
-	float b = tdLine.b/(MAX_ALLOWED_DIS/radius);
-	float x1 = 0;
-	float x2 = 1;
-	float y1 = b;
-	float y2 = m + b;
-	float dx = x2-x1;
-	float dy = y2-y1;
-	float dr = sqrt((dx*dx)+(dy*dy));
-	float D = (x1*y2)-(x2*y1);
-	float sgn = 0;
-	float r = radius;
-		if (dy < 0) {sgn = -1;} else {sgn = 1;}
-	float pt1x = (((D*dy) + (sgn*dx*sqrt((r*r*dr*dr)-(D*D))))/(dr*dr));
-	float pt2x = (((D*dy) - (sgn*dx*sqrt((r*r*dr*dr)-(D*D))))/(dr*dr));
-	float pt1y = (((-D*dx) + (abs(dy)*sqrt((r*r*dr*dr)-(D*D))))/(dr*dr));
-	float pt2y = (((-D*dx) - (abs(dy)*sqrt((r*r*dr*dr)-(D*D))))/(dr*dr));
-	glVertex2f(cx+pt1x, cy+pt1y);
-	glVertex2f(cx+pt2x, cy+pt2y);
-}
-
 void TopDownMap::draw() {
 	//Set Location
 	if (editMode) {
@@ -158,15 +149,25 @@ void TopDownMap::draw() {
 		btnRadius = HUD_MAP_BTN_RADIUS;
 	}
 
+	// Make all points relative to center of map
+	glPushMatrix();
+	glTranslatef(cx,cy,0.0f);
+
 	//Draw Local Top Down Map Background
 	if ((mouseIsInside() || mousePressed) && !editMode) {
 		glColor4f(1.0f, 1.0f, 1.0f, 0.9f); // White
 	} else {
 		glColor4f(1.0f, 1.0f, 1.0f, 0.5f); // Clear White
 	}
-	drawCircleSolid(cx, cy, radius, 64);
+	drawCircleSolid(0.0f, 0.0f, radius, 64);
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
-	drawCircle(cx, cy, radius, 64);
+	drawCircle(0.0f, 0.0f, radius, 64);
+
+	// Rotate if not editing and option chosen
+	if (!editMode && tdDisplayTracking) {
+		glRotatef(yawValue*180.0f/PI,0.0f,0.0f,1.0f);
+	}
+
 	//Draw Local Top Down Map 
 	float cam1X = 15.0f*cos(-yawValue - ((50.0f*PI)/180.0f) - (PI/2));
 	float cam1Y = 15.0f*sin(-yawValue - ((50.0f*PI)/180.0f) - (PI/2));
@@ -175,29 +176,29 @@ void TopDownMap::draw() {
 	//Draw Camera
 	glBegin(GL_TRIANGLES);
 	glColor3f(0.0f, 0.0f, 0.0f);
-	glVertex2f(cx, cy);
+	glVertex2f(0, 0);
 	glColor3f(0.0f, 0.0f, 1.0f);
-	glVertex2f(cx+cam1X, cy+cam1Y);
+	glVertex2f(cam1X, cam1Y);
 	glColor3f(0.0f, 0.0f, 1.0f);
-	glVertex2f(cx+cam2X, cy+cam2Y);
+	glVertex2f(cam2X, cam2Y);
 	glEnd();
 
 	// Draw Top Down Wall
 	glPointSize(5.0f);
-	glColor3f(1.0f, 0.0f, 0.0f);
+	glColor3f(0.0f, 0.0f, 0.0f);
 	glBegin(GL_POINTS);
 	for (int i = 0; i < numTdWallPts; i++) {
 		if (abs(tdWall[i].x) != 999999.0) {
 			float tmpX = tdWall[i].x/(MAX_ALLOWED_DIS/radius);
 			float tmpZ = tdWall[i].z/(MAX_ALLOWED_DIS/radius);
-			glVertex2f(cx+tmpX, cy+tmpZ);
+			glVertex2f(tmpX, tmpZ);
 		}
 	}
 	glEnd();
 
 	// Draw Line Segments
 	glLineWidth(3.0f);
-	glColor3f(0.0f, 0.0f, 1.0f);
+	glColor4f(0.0f, 1.0f, 0.0f, 0.5f);
 	glBegin(GL_LINES);
 
 	// MANUALLY ADDED LINE FOR DEBUGGING ////
@@ -216,12 +217,12 @@ void TopDownMap::draw() {
 
 	// Draw Map Line Segments
 	glLineWidth(3.0f);
-	glColor3f(1.0f, 0.0f, 1.0f);
+	glColor3f(1.0f, 0.0f, 0.0f);
 	glBegin(GL_LINES);
 	for (int i = 0; i < numLineMapX; i++) {
 		drawLineSegBounded(lineMapX[i]);
 	}
-	glColor3f(1.0f, 1.0f, 1.0f);
+	glColor3f(0.0f, 0.0f, 1.0f);
 	for (int i = 0; i < numLineMapZ; i++) {
 		drawLineSegBounded(lineMapZ[i]);
 	}
@@ -233,6 +234,7 @@ void TopDownMap::draw() {
 		modelHead->drawTopDown(cx,cy,radius);
 	}
 
+	glPopMatrix(); // Revert to before translation and rotation
 	// Set Button Locations and Draw
 	if (editMode) {
 		float dTheta = 2 * atan2((float)btnRadius, (float)(radius + btnRadius));
@@ -292,7 +294,7 @@ void TopDownMap::mouseRightPress() {
 }
 
 void TopDownMap::mouseRightRelease() {
-
+	// Nothing for now
 }
 
 void TopDownMap::gotoLevel(int level) {

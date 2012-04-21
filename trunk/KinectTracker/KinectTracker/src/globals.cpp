@@ -33,8 +33,6 @@ int numWallPoints;
 TopDownMap topDownMap;
 SlicePoint tdWall[40];
 int numTdWallPts = 0;
-Line tdLine[8];
-int numTdLines = 0;
 float tdPrevDir = 999999.0f;
 float tdPrevX = 999999.0f;
 float tdPrevZ = 999999.0f;
@@ -83,3 +81,6 @@ float editModelLength = 0.0f;
 
 // Icons
 NeHe::imageTGA editIcon[6];
+
+bool mapRecord = false;
+bool tdDisplayTracking = true;

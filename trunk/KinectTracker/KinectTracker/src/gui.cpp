@@ -193,6 +193,9 @@ void drawScene() {
 		#endif
 		glColor3f(0.0f, 0.0f, 0.0f);
 	}
+	if (mapRecord) {
+		orthoPrint(200, viewHeight - 60.0f, "RECORDING");
+	}
 	orthogonalEnd();
 
 	//Send the scene to the screen

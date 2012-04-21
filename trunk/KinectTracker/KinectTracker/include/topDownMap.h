@@ -23,8 +23,7 @@ private:
 	int selected;
 
 	bool drawPoint(float x, float z);
-	void drawLine(Line tdLine);
-	void drawLineSeg(LineSeg lineSeg);
+	void drawLineSeg(LineSeg lineSeg, bool offset);
 	void drawLineSegBounded(LineSeg lineSeg);
 	bool mouseIsInside();
 
