@@ -194,7 +194,19 @@ void drawScene() {
 		glColor3f(0.0f, 0.0f, 0.0f);
 	}
 	if (mapRecord) {
-		orthoPrint(200, viewHeight - 60.0f, "RECORDING");
+	// Draw Big White Background
+		int topX = 160;
+		int topY = 15;
+		glColor4f(1.0f, 1.0f, 1.0f, 0.7f); // White
+		glRectf(topX, topY, topX+180, topY+65);
+		// Draw Big White Background Border
+		glColor3f(0.0f, 0.0f, 0.0f); // Black
+		drawRectBorder(topX, topY, topX+180, topY+65);
+		glColor3f(1.0f, 0.0f, 0.0f);
+		orthoPrintLarge(topX+20, topY+25, "RECORDING");
+		glColor3f(0.0f, 0.0f, 0.0f);
+		orthoPrint(topX+7, topY+40, "Keep camera in same position");
+		orthoPrint(topX+7, topY+55, "and pan around room.");
 	}
 	orthogonalEnd();
 
