@@ -22,5 +22,6 @@ void orthogonalStart (int viewWidth, int viewHeight);
 void orthogonalEnd (void);
 void setGlTransformation();
 string** getAllFiles(string path, string searchPattern);
+void checkKinect(int value);
 
 #endif
