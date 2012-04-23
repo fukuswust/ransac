@@ -228,6 +228,9 @@ void runAlgorithm() {
 	int lineID[40];
 	numTdWallPts = flattenWall(wallSlicePoints, wallHist, tdWall, lineID);
 	float estYaw = estimateYaw(tdWall, numTdWallPts, yawValue);
+	if (estYaw == 999999.0f) {
+		estYaw = yawValue;
+	}
 
 	// Average new yaw
 	float degDiff = dirDiffAngle(yawValue, estYaw)*180.0f/PI;
@@ -247,31 +250,57 @@ void runAlgorithm() {
 	} else {
 		lastLargeDiffYaw = 1.0f;
 	}
-	yawValue = nyawValue;
-	printf("%f\n",degDiff);
 	#pragma endregion Determine yaw from top down view and dynamically average
 	
 	#pragma region X,Z
 	// Determine delX and delZ
-	performRotation(tdWall, -yawValue);
-	drawNumTdWallPts = numTdWallPts;
-	for (int i = 0; i < numTdWallPts; i++) {
-		drawTdWall[i] = tdWall[i];
-	}
+	performRotation(tdWall, -nyawValue);
 	numTdWallPts = xzMedianFilter(tdWall, numTdWallPts);
 	if (numTdWallPts >= 5) {
-		determineAxisLines(tdWall, numTdWallPts, tdLineSegX, numLineSegX, tdLineSegZ, numLineSegZ);
+		float estYaw2;
+		determineAxisLines(tdWall, numTdWallPts, tdLineSegX, numLineSegX, tdLineSegZ, numLineSegZ, estYaw2);
+		if (estYaw2 == 999999.0f) {
+			yawValue = nyawValue;
+		} else {
+			estYaw2 = estYaw - estYaw2;
+			// Average new yaw2
+			performRotation(tdWall, nyawValue);
+			float degDiff2 = dirDiffAngle(yawValue, estYaw2)*180.0f/PI;
+			float yawAvg2 = ((0.1f/5.0f)*degDiff2);
+			if (yawAvg2 > 1.0f) {
+				yawAvg2 = 1.0f;
+			}
+			static float lastLargeDiffYaw2 = 1.0f;
+			if (lastLargeDiffYaw2 != 0.0f && degDiff2 < 4.0f) {
+				assert(lastLargeDiffYaw2 > 0.0f);
+				yawAvg2 /= lastLargeDiffYaw2;
+			}
+			float nyawValue2 = weighedAngleAvg(yawValue, estYaw2, 1.0f - yawAvg2);
+			float yawDiff2 = dirDiffAngle(yawValue, nyawValue2);
+			if (yawDiff2 < 0.05f) {
+				lastLargeDiffYaw2 += 1.0f;
+			} else {
+				lastLargeDiffYaw2 = 1.0f;
+			}
+			yawValue = nyawValue2;
+			performRotation(tdWall, -yawValue);
+		}
+		drawNumTdWallPts = numTdWallPts;
+		for (int i = 0; i < numTdWallPts; i++) {
+			drawTdWall[i] = tdWall[i];
+		}
+
 		if (mapRecord) { // Recording new map
 			addToMap(tdLineSegX, numLineSegX, lineMapX, numLineMapX, true);
 			addToMap(tdLineSegZ, numLineSegZ, lineMapZ, numLineMapZ, false);
 		} else { // Compare to recorded map
 			float delX, delZ;
-			delZ = compareToMap(tdLineSegX, numLineSegX, lineMapX, numLineMapX, true);
-			if (delZ == 999999.0f) {
-				showWarningWallX = true;
+			delX = compareToMap(tdLineSegZ, numLineSegZ, lineMapZ, numLineMapZ, false);
+			if (delX == 999999.0f) {
+				showWarningWallZ = true;
 			} else {
 				// Determine new x with dynamic averaging
-				float avgRateX = abs(delX)*(AVG_STRENGTH/1.5f);
+ 				float avgRateX = abs(delX)*(AVG_STRENGTH/1.5f);
 				if (avgRateX > 1.0f) {
 					avgRateX = 1.0f;
 				}
@@ -291,9 +320,9 @@ void runAlgorithm() {
 				xValue = nxValue;
 				showWarningWallX = false;
 			}
-			delX = compareToMap(tdLineSegZ, numLineSegZ, lineMapZ, numLineMapZ, false);
-			if (delX == 999999.0f) {
-				showWarningWallZ = true;
+			delZ = compareToMap(tdLineSegX, numLineSegX, lineMapX, numLineMapX, true);
+			if (delZ == 999999.0f) {
+				showWarningWallX = true;
 			} else {
 				// Determine new z with dynamic averaging
 				float avgRateZ = abs(delZ)*(AVG_STRENGTH/1.5f);
@@ -317,6 +346,10 @@ void runAlgorithm() {
 				showWarningWallZ = false;
 			}
 		}
+	} else {
+		showWarningWallZ = true;
+		showWarningWallX = true;
+		yawValue = nyawValue;;
 	}
 	#pragma endregion Determine X,Z from top down view and dynamically average
 	
@@ -640,7 +673,7 @@ float estimateYaw(SlicePoint tdWall[], int numTdWallPts, float yawValue) {
 			curMaxI = i;
 		}
 	}
-	if (curMaxI == -1) {return yawValue;}
+	if (curMaxI == -1) {return 999999.0f;}
 
 	// Determine closest quadrant to current direction
 	float dirEstQuad = (((float)curMaxI/YAW_HIST_SIZE)*(PI/2.0f));
@@ -742,7 +775,7 @@ int xzMedianFilter(SlicePoint tdWall[], int numTdWallPts) {
 	}
 }
 
-void determineAxisLines(SlicePoint tdWall[], int numTdWallPts, LineSeg lineSegX[], int &numLineSegX, LineSeg lineSegZ[], int &numLineSegZ) {
+void determineAxisLines(SlicePoint tdWall[], int numTdWallPts, LineSeg lineSegX[], int &numLineSegX, LineSeg lineSegZ[], int &numLineSegZ, float &estYaw) {
 	// Initialize IDs
 	int idX[40], idZ[40];
 	for (int i = 0; i < numTdWallPts; i++) {
@@ -833,6 +866,7 @@ void determineAxisLines(SlicePoint tdWall[], int numTdWallPts, LineSeg lineSegX[
 	for (int i = 0; i < 8; i++) {
 		nX[i] = nZ[i] = 0;
 		avgX[i] = avgZ[i] = 0.0f; 
+
 	}
 	// Increment counters and calculate averages
 	for (int i = 0; i < numTdWallPts; i++) {
@@ -854,6 +888,17 @@ void determineAxisLines(SlicePoint tdWall[], int numTdWallPts, LineSeg lineSegX[
 		}
 	}
 
+	// Initialize Sums for Yaw
+	float xSumX[8] = {0.0f};
+	float xSumZ[8] = {0.0f};
+	float xSumXX[8] = {0.0f};
+	float xSumXZ[8] = {0.0f};
+	float zSumX[8] = {0.0f};
+	float zSumZ[8] = {0.0f};
+	float zSumXX[8] = {0.0f};
+	float zSumXZ[8] = {0.0f};
+	float xM = 0.0f, zM = 0.0f;
+	int xTotN = 0, zTotN = 0;
 	// Split lines based on spacing
 	float startX[8];
 	float prevX[8];
@@ -868,7 +913,6 @@ void determineAxisLines(SlicePoint tdWall[], int numTdWallPts, LineSeg lineSegX[
 		int midZ = idZ[i];
 		float mX = tdWall[i].x;
 		float mZ = tdWall[i].z;
-
 		// X line
 		if (nPtsX[midZ] > 0) {
 			if (abs(mX-prevX[midZ]) > 40.0f) { // X line discontinuity
@@ -884,17 +928,41 @@ void determineAxisLines(SlicePoint tdWall[], int numTdWallPts, LineSeg lineSegX[
 						lineSegX[numLineSegX].start = prevX[midZ];
 						lineSegX[numLineSegX++].stop = startX[midZ];
 					}
+					// Calculate Yaw
+					float dir = atan2(float(nPtsX[midZ]) * xSumXZ[midZ] - xSumZ[midZ] * xSumX[midZ], 
+						float(nPtsX[midZ]) * xSumXX[midZ] - xSumX[midZ] * xSumX[midZ]);
+					if (dir > PI/2.0f) {
+						dir -= PI;
+					} else if (dir < -PI/2.0f) {
+						dir += PI;
+					}
+					dir = 0.0f - dir; 
+					float w = xTotN/float(xTotN+nPtsX[midZ]);
+					xM = (xM*w) + (dir*(1.0f-w));
+					xTotN += nPtsX[midZ];
 				}
 				// Add new point to next line
 				nPtsX[midZ] = 1;
 				startX[midZ] = mX;
+				xSumX[midZ] = mX;
+				xSumZ[midZ] = mZ;
+				xSumXX[midZ] = mX * mX;
+				xSumXZ[midZ] = mX * mZ;
 			} else {
 				nPtsX[midZ]++;
+				xSumX[midZ] += mX;
+				xSumZ[midZ] += mZ;
+				xSumXX[midZ] += mX * mX;
+				xSumXZ[midZ] += mX * mZ;
 			}
 		} else {
 			// Add new point to next line
 			nPtsX[midZ] = 1;
 			startX[midZ] = mX;
+			xSumX[midZ] = mX;
+			xSumZ[midZ] = mZ;
+			xSumXX[midZ] = mX * mX;
+			xSumXZ[midZ] = mX * mZ;
 		}
 		prevX[midZ] = mX;
 
@@ -913,17 +981,41 @@ void determineAxisLines(SlicePoint tdWall[], int numTdWallPts, LineSeg lineSegX[
 						lineSegZ[numLineSegZ].start = prevZ[midX];
 						lineSegZ[numLineSegZ++].stop = startZ[midX];
 					}
+					// Calculate Yaw
+					float dir = atan2(float(nPtsZ[midX]) * zSumXZ[midX] - zSumZ[midX] * zSumX[midX], 
+						float(nPtsZ[midX]) * zSumXX[midX] - zSumX[midX] * zSumX[midX]);
+					if (dir > PI/2.0f) {
+						dir -= PI;
+					} else if (dir < -PI/2.0f) {
+						dir += PI;
+					}
+					dir = 0.0f - dir; 
+					float w = zTotN/float(zTotN+nPtsZ[midX]);
+					zM = (zM*w) + (dir*(1.0f-w));
+					zTotN += nPtsZ[midX];
 				}
 				// Add new point to next line
 				nPtsZ[midX] = 1;
 				startZ[midX] = mZ;
+				zSumX[midX] = mZ;
+				zSumZ[midX] = mX;
+				zSumXX[midX] = mZ * mZ;
+				zSumXZ[midX] = mZ * mX;
 			} else {
 				nPtsZ[midX]++;
+				zSumX[midX] += mZ;
+				zSumZ[midX] += mX;
+				zSumXX[midX] += mZ * mZ;
+				zSumXZ[midX] += mZ * mX;
 			}
 		} else {
 			// Add new point to next line
 			nPtsZ[midX] = 1;
 			startZ[midX] = mZ;
+			zSumX[midX] = mZ;
+			zSumZ[midX] = mX;
+			zSumXX[midX] = mZ * mZ;
+			zSumXZ[midX] = mZ * mX;
 		}
 		prevZ[midX] = mZ;
 	}
@@ -946,6 +1038,18 @@ void determineAxisLines(SlicePoint tdWall[], int numTdWallPts, LineSeg lineSegX[
 				lineSegX[numLineSegX].start = prevX[midZ];
 				lineSegX[numLineSegX++].stop = startX[midZ];
 			}
+			// Calculate Yaw
+			float dir = atan2(float(nPtsX[midZ]) * xSumXZ[midZ] - xSumZ[midZ] * xSumX[midZ], 
+				float(nPtsX[midZ]) * xSumXX[midZ] - xSumX[midZ] * xSumX[midZ]);
+			if (dir > PI/2.0f) {
+				dir -= PI;
+			} else if (dir < -PI/2.0f) {
+				dir += PI;
+			}
+			dir = 0.0f - dir; 
+			float w = xTotN/float(xTotN+nPtsX[midZ]);
+			xM = (xM*w) + (dir*(1.0f-w));
+			xTotN += nPtsX[midZ];
 		}
 
 		// Z line
@@ -961,7 +1065,27 @@ void determineAxisLines(SlicePoint tdWall[], int numTdWallPts, LineSeg lineSegX[
 				lineSegZ[numLineSegZ].start = prevZ[midX];
 				lineSegZ[numLineSegZ++].stop = startZ[midX];
 			}
+			// Calculate Yaw
+			float dir = atan2(float(nPtsZ[midX]) * zSumXZ[midX] - zSumZ[midX] * zSumX[midX], 
+				float(nPtsZ[midX]) * zSumXX[midX] - zSumX[midX] * zSumX[midX]);
+			if (dir > PI/2.0f) {
+				dir -= PI;
+			} else if (dir < -PI/2.0f) {
+				dir += PI;
+			}
+			dir = 0.0f - dir;
+			float w = zTotN/float(zTotN+nPtsZ[midX]);
+			zM = (zM*w) + (dir*(1.0f-w));
+			zTotN += nPtsZ[midX];
 		}
+	}
+
+	// Calculate Final Yaw Estimate
+	if (xTotN + zTotN <= 0) {
+		estYaw = 999999.0f;
+	} else {
+		float w = float(xTotN)/float((xTotN + zTotN));
+		estYaw = (xM*w)+(-zM*(1.0f-w));
 	}
 }
 
