@@ -12,6 +12,7 @@ void Listener::KinectDisconnected(Kinect::Kinect *K)
 		// object. This is to prevent needless processing in the wrong thread.
 void Listener::DepthReceived(Kinect::Kinect *K) 
 {
+	depthReceived++; // Mark that a depth frame was received - used for checkKinect function
 	K->ParseDepthBuffer(); 
 
 	// GET ACCEL DATA

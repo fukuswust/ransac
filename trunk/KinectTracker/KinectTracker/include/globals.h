@@ -69,7 +69,7 @@ extern int numLineMapZ;
 // Kinect Objects
 extern Kinect::Kinect *K;
 extern Listener *L;
-extern Kinect::KinectFinder KF;
+extern Kinect::KinectFinder *KF;
 
 // Texture for RGB feed
 extern GLuint texID;
@@ -103,5 +103,8 @@ extern bool showWarningFloor;
 extern bool showWarningWallX;
 extern bool showWarningWallZ;
 extern bool showWarningPR;
+
+extern int depthReceived;
+extern bool kinectConnected;
 
 #endif

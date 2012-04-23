@@ -8,6 +8,7 @@
 #include "augment.h"
 #include "augModel.h"
 #include "NeheTGATexture.h"
+#include "main.cpp"
 
 // For finding filenames for files
 #include <windows.h>
@@ -34,6 +35,9 @@ void initGui(int argc, char **argv) {
 	glutMouseFunc(handleMouseButtons);
 	glutReshapeFunc(handleResize);
 	glutTimerFunc(10, update, 0);
+	
+	// Check if Kinect is connected every 1s
+	glutTimerFunc(1000, checkKinect, 0);
 
 	// Determine all models in directories
 	modelPaths = getAllFiles("models/", "*.3ds");
@@ -111,9 +115,30 @@ void update(int value) {
 	#ifdef USE_KINECT
 		glBindTexture( GL_TEXTURE_2D, texID );
 		glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 640, 480, GL_RGB, GL_UNSIGNED_BYTE, K->mColorBuffer );
-    #endif
+	#endif
 	glutPostRedisplay();
 	glutTimerFunc(0, update, 0);
+}
+
+void checkKinect(int value) {
+	if (depthReceived == 0)
+	{
+		// Mark as disconnected so update function stops running.
+		kinectConnected = false;
+		printf("Unable to find Kinect devices... Is one connected? Trying to reconnect.\n");
+		delete K;
+		delete L;
+		//delete KF;
+		int ret = initKinect();
+		//delete KF;
+		//KF = new Kinect::KinectFinder;
+		/*if (KF->GetKinectCount() > 0) {
+			kinectConnected = true;
+			glutTimerFunc(0, update, 0);
+		}*/
+	}
+	depthReceived = 0;
+	glutTimerFunc(1000, checkKinect, 0);
 }
 
 //Called when the window is resized

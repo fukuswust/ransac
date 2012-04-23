@@ -51,7 +51,7 @@ int numLineMapZ = 0;
 // Kinect Objects
 Kinect::Kinect *K;
 Listener *L;
-Kinect::KinectFinder KF;
+Kinect::KinectFinder *KF;
 
 // Texture for RGB feed
 GLuint texID;
@@ -92,3 +92,7 @@ bool showWarningFloor = false;
 bool showWarningWallX = false;
 bool showWarningWallZ = false;
 bool showWarningPR = false;
+
+// Number of depth frames received since checkKinect last ran
+int depthReceived = 0;
+bool kinectConnected = false;

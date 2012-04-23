@@ -13,13 +13,17 @@
 #include <iostream>
 
 int initKinect() {
-	if (KF.GetKinectCount() < 1)
+	KF = new Kinect::KinectFinder;
+	while (KF->GetKinectCount() < 1)
 	{
 		printf("Unable to find Kinect devices... Is one connected?\n");
-		return 0;
+		delete KF;
+		Sleep(500);
+		KF = new Kinect::KinectFinder;
+		//return 0;
 	}
 
-	K = KF.GetKinect();
+	K = KF->GetKinect();
 	if (K == 0)
 	{
 		printf("error getting Kinect...\n");
@@ -38,7 +42,7 @@ int initKinect() {
 	K->SetLedMode(Kinect::Led_Red);
 	
 	// Grab 10 accelerometer values from the kinect
-	float x,y,z;
+	/*float x,y,z;
 	for (int i =0 ;i<10;i++)
 	{
 		if (K->GetAcceleroData(&x,&y,&z))
@@ -46,7 +50,8 @@ int initKinect() {
 			printf("accelerometer reports: %f,%f,%f\n", x,y,z);
 		}
 		Sleep(5);
-	};
+	};*/
+	kinectConnected = true;
 	return -1; //Do not exit
 }
 
