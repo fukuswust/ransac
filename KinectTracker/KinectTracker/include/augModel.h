@@ -30,6 +30,7 @@ public:
 	AugModel(char file[], float cScale, float cRot, float cHeight, int cId, float cCol[3]);
 	~AugModel();
 	void drawTopDown(float ccx, float ccy, float r);
+	void drawTopDownNum();
 	void drawAugmentation();
 	void addNewModel(char file[], float cScale, float cRot, float cHeight, int cId, float cCol[3]);
 	void cancelMovement();

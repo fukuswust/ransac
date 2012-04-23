@@ -198,8 +198,21 @@ void TopDownMap::draw() {
 	if (modelHead != NULL) {
 		modelHead->drawTopDown(cx,cy,radius);
 	}
-
 	glPopMatrix(); // Revert to before translation and rotation
+
+	// Make all points relative to center of map with font offset
+	glPushMatrix();
+	glTranslatef(cx-3,cy+4,0.0f);
+	// Rotate if not editing and option chosen
+	if (!editMode && tdDisplayTracking) {
+		glRotatef(yawValue*180.0f/PI,0.0f,0.0f,1.0f);
+	}
+	// Draw All Augmentation Top Down Numbers
+	if (modelHead != NULL) {
+		modelHead->drawTopDownNum();
+	}
+	glPopMatrix(); // Revert to before translation and rotation
+
 	// Set Button Locations and Draw
 	if (editMode) {
 		float dTheta = 2 * atan2((float)btnRadius, (float)(radius + btnRadius));
