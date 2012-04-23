@@ -34,7 +34,7 @@ float weighedAngleAvg(float dir1, float dir2, float w);
 
 int  xzMedianFilter(SlicePoint tdWall[], int numTdWallPts);
 
-void determineAxisLines(SlicePoint tdWall[], int numTdWallPts, LineSeg lineSegX[], int &numLineSegX, LineSeg lineSegZ[], int &numLineSegZ);
+void determineAxisLines(SlicePoint tdWall[], int numTdWallPts, LineSeg lineSegX[], int &numLineSegX, LineSeg lineSegZ[], int &numLineSegZ, float &estYaw);
 
 void addToMap(LineSeg tdLineSeg[], int numLineSeg, LineSeg lineMap[], int &numLineMap, bool isTypeX);
 
