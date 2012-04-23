@@ -1,6 +1,7 @@
 #include "algorithm.h"
 #include "globals.h"
 #include <math.h>
+#include <assert.h>
 
 #include <iostream>
 
@@ -82,14 +83,15 @@ void runAlgorithm() {
 			tmpZ = ((float)(K->mDepthBuffer[(j*640)+i]));
 				
 			//Check Sensor Data for Error
-			if (tmpZ == 2047.0f) {
+			if (tmpZ >= 1084.0f) {
 				depthPointCloud[offset] = 999999.0f;
 				offset += 3; // -> next
 				imOffset++;
 				ijOffset += 2;
 			} else {
+				assert(tmpZ >= 0.0f && tmpZ < 1084.0f);
 				// Depth to Z
-				tmpZ = (-100.0f/((-0.00307f * tmpZ) + 3.33f)); //z -> y
+				tmpZ = (-100.0f/((-0.00307f * tmpZ) + 3.33f));
 				// Z to Point Cloud
 				tmpX = (float)(i - 320) * (tmpZ - 10.0f) * -0.0021f;
 				tmpY = (float)(j - 240) * (tmpZ - 10.0f) * 0.0021f ;
@@ -103,7 +105,7 @@ void runAlgorithm() {
 				int imJ = floor(fj);
 				ijPointCloud[ijOffset++] = imI;
 				ijPointCloud[ijOffset++] = imJ;
-				if ( (imI >= 0) && (imI < 640-2) && (imJ >= 0) && (imJ < 480-2) ) {
+				/*if ( (imI >= 0) && (imI < 640-2) && (imJ >= 0) && (imJ < 480-2) ) {
 					int imSum = 0;
 					int imOffset3 = (((imJ*640)+imI)*3);
 					for (int count3 = 0; count3 < 3; count3++) { 
@@ -113,10 +115,10 @@ void runAlgorithm() {
 						}
 						imOffset3 += -9 + 640;
 					}
-					colorPointCloud[imOffset++] = imSum / (9.0 * 3.0 * 255.0);
+					colorPointCloud[imOffset++] = imSum / (9.0f * 3.0f * 255.0f);
 				} else {
 					colorPointCloud[imOffset++] = 999999.0f;
-				}
+				}*/
 
 				// Reorient Y-Axis to Gravity
 				tmpX2 = (tmpX*R11)+(tmpY*R21)+(tmpZ*R31); 
@@ -138,6 +140,7 @@ void runAlgorithm() {
 				int dirIndex = (int)floor((tmpDir+(3.0f*PI/4.0))/(PI/2.0f/40.0f));
 				if (dirIndex >= 0 && dirIndex < NUM_SLICES) {
 					if (tmpDis > wallSlicePoints[dirIndex].dis) {
+						assert(dirIndex >= 0 && dirIndex < NUM_SLICES);
 						wallSlicePoints[dirIndex].dir = tmpDir;
 						wallSlicePoints[dirIndex].dis = tmpDis;
 					}
@@ -183,6 +186,7 @@ void runAlgorithm() {
 					floorIJ[fpIjOffset++] = ijPointCloud[ijOffset++];
 					floorIJ[fpIjOffset++] = ijPointCloud[ijOffset++];
 					ijOffset -= 2;
+					assert(floorDiff >= 0 && floorDiff < 25);
 					floorHist[floorDiff]++;
 				}
 			}
@@ -199,6 +203,8 @@ void runAlgorithm() {
 						wallPoints[wOffset++] = tmpZ;
 						wallIJ[wijOffset++] = ijPointCloud[ijOffset++]; // i -> j
 						wallIJ[wijOffset++] = ijPointCloud[ijOffset++]; // j -> next
+						assert(dirIndex >= 0 && dirIndex < NUM_SLICES);
+						assert(disDiff >= 0 && disDiff < 20);
 						wallHist[dirIndex][disDiff]++;
 					} else {
 						ijOffset += 2;
@@ -231,6 +237,7 @@ void runAlgorithm() {
 	}
 	static float lastLargeDiffYaw = 0.0f;
 	if (lastLargeDiffYaw != 0.0f && degDiff < 4.0f) {
+		assert(lastLargeDiffYaw > 0.0f);
 		yawAvg /= lastLargeDiffYaw;
 	}
 	float nyawValue = weighedAngleAvg(yawValue, estYaw, 1.0f - yawAvg);
@@ -242,7 +249,6 @@ void runAlgorithm() {
 	}
 	yawValue = nyawValue;
 	printf("%f\n",degDiff);
-
 	#pragma endregion Determine yaw from top down view and dynamically average
 	
 	#pragma region X,Z
@@ -253,50 +259,56 @@ void runAlgorithm() {
 		drawTdWall[i] = tdWall[i];
 	}
 	numTdWallPts = xzMedianFilter(tdWall, numTdWallPts);
-	determineAxisLines(tdWall, numTdWallPts, tdLineSegX, numLineSegX, tdLineSegZ, numLineSegZ);
-	if (mapRecord) { // Recording new map
-		addToMap(tdLineSegX, numLineSegX, lineMapX, numLineMapX, true);
-		addToMap(tdLineSegZ, numLineSegZ, lineMapZ, numLineMapZ, false);
-	} else { // Compare to recorded map
-		float delX, delZ;
-		delZ = compareToMap(tdLineSegX, numLineSegX, lineMapX, numLineMapX, true);
-		delX = compareToMap(tdLineSegZ, numLineSegZ, lineMapZ, numLineMapZ, false);
+	if (numTdWallPts >= 5) {
+		determineAxisLines(tdWall, numTdWallPts, tdLineSegX, numLineSegX, tdLineSegZ, numLineSegZ);
+		if (mapRecord) { // Recording new map
+			addToMap(tdLineSegX, numLineSegX, lineMapX, numLineMapX, true);
+			addToMap(tdLineSegZ, numLineSegZ, lineMapZ, numLineMapZ, false);
+		} else { // Compare to recorded map
+			float delX, delZ;
+			delZ = compareToMap(tdLineSegX, numLineSegX, lineMapX, numLineMapX, true);
+			delX = compareToMap(tdLineSegZ, numLineSegZ, lineMapZ, numLineMapZ, false);
 
-		// Determine new x with dynamic averaging
-		float avgRateX = abs(delX)*(AVG_STRENGTH/1.5f);
-		if (avgRateX > 1.0f) {
-			avgRateX = 1.0f;
-		}
-		static float lastLargeDiffX = 0.0f;
-		if (lastLargeDiffX != 0.0f && abs(delX) < 5.0f) {
-			avgRateX /= lastLargeDiffX;
-		}
-		float nxValue = (xValue*(1.0f-avgRateX)) + ((delX+xValue)*avgRateX);
-		float xDiff = abs(nxValue - xValue);
-		if (xDiff < 1.0f) {
-			lastLargeDiffX += 1.0f;
-		} else {
-			lastLargeDiffX = 0.0f;
-		}
-		xValue = nxValue;
+			// Determine new x with dynamic averaging
+			float avgRateX = abs(delX)*(AVG_STRENGTH/1.5f);
+			if (avgRateX > 1.0f) {
+				avgRateX = 1.0f;
+			}
+			static float lastLargeDiffX = 0.0f;
+			if (lastLargeDiffX != 0.0f && abs(delX) < 5.0f) {
+				avgRateX /= lastLargeDiffX;
+				assert(lastLargeDiffX > 0.0f);
+			}
+			assert(avgRateX >= 0.0f && avgRateX <= 1.0f);
+			float nxValue = (xValue*(1.0f-avgRateX)) + ((delX+xValue)*avgRateX);
+			float xDiff = abs(nxValue - xValue);
+			if (xDiff < 1.0f) {
+				lastLargeDiffX += 1.0f;
+			} else {
+				lastLargeDiffX = 0.0f;
+			}
+			xValue = nxValue;
 
-		// Determine new z with dynamic averaging
-		float avgRateZ = abs(delZ)*(AVG_STRENGTH/1.5f);
-		if (avgRateZ > 1.0f) {
-			avgRateZ = 1.0f;
+			// Determine new z with dynamic averaging
+			float avgRateZ = abs(delZ)*(AVG_STRENGTH/1.5f);
+			if (avgRateZ > 1.0f) {
+				avgRateZ = 1.0f;
+			}
+			static float lastLargeDiffZ = 0.0f;
+			if (lastLargeDiffZ != 0.0f && abs(delZ) < 5.0f) {
+				avgRateZ /= lastLargeDiffZ;
+				assert(lastLargeDiffZ > 0.0f);
+			}
+			assert(avgRateZ >= 0.0f && avgRateZ <= 1.0f);
+			float nzValue = (zValue*(1.0f-avgRateZ)) + ((delZ+zValue)*avgRateZ);
+			float zDiff = abs(nzValue - zValue);
+			if (zDiff < 1.0f) {
+				lastLargeDiffZ += 1.0f;
+			} else {
+				lastLargeDiffZ = 0.0f;
+			}
+			zValue = nzValue;
 		}
-		static float lastLargeDiffZ = 0.0f;
-		if (lastLargeDiffZ != 0.0f && abs(delZ) < 5.0f) {
-			avgRateZ /= lastLargeDiffZ;
-		}
-		float nzValue = (zValue*(1.0f-avgRateZ)) + ((delZ+zValue)*avgRateZ);
-		float zDiff = abs(nzValue - zValue);
-		if (zDiff < 1.0f) {
-			lastLargeDiffZ += 1.0f;
-		} else {
-			lastLargeDiffZ = 0.0f;
-		}
-		zValue = nzValue;
 	}
 	#pragma endregion Determine X,Z from top down view and dynamically average
 	
@@ -322,6 +334,7 @@ void runAlgorithm() {
 			//if (numFloorPoints > MIN_FLOOR_POINTS) {
 			//	curUpVector[i] = (curUpVector[i]*(1.0f-avgRate)) + (alignFloor[i]*avgRate);
 			//} else {
+				assert(avgRate >= 0.0f && avgRate <= 1.0f);
 				curUpVector[i] = (curUpVector[i]*avgRate) + (accelVector[i]*(1.0f-avgRate));
 			//}
 		}
@@ -339,8 +352,10 @@ void runAlgorithm() {
 		}
 		static float lastLargeDiffY = 0.0f;
 		if (lastLargeDiffY != 0.0f && abs(heightValue-floorHeight) < 5.0f) {
+			assert(lastLargeDiffY > 0.0f);
 			avgRateY /= lastLargeDiffY;
 		}
+		assert(avgRateY >= 0.0f && avgRateY <= 1.0f);
 		float nheightValue = (heightValue*(1.0f-avgRateY)) + (floorHeight*avgRateY);
 		float heightDiff = abs(nheightValue - heightValue);
 		if (heightDiff < 1.0f) {
@@ -362,10 +377,12 @@ void findRotationToUp(float xVect, float yVect, float zVect, float M[]) {
 	//Get unit vector and magnitude of gravity
 	float gravMag = sqrt((xVect*xVect)+(yVect*yVect)+(zVect*zVect)); //Quality = diff from 819/512
 	if (gravMag == 0.0f) {return;}
+	assert(gravMag != 0.0f);
 	float uGravX = xVect/gravMag;
 	float uGravY = yVect/gravMag;
 	float uGravZ = zVect/gravMag;
 	//Set temporary variables to reduce calculations
+	assert(1-(uGravY*uGravY) >= 0.0f);
 	float s = sqrt(1-(uGravY*uGravY));
 	float t = 1-uGravY;
 	//Perform the cross product of the UP vector and gravity to produce the following rotational axis
@@ -440,6 +457,7 @@ void performRotation(SlicePoint set[], float rot) {
 }
 
 void solveVector(float M[3][3], float R[3]) {
+	assert(M[0][0] != 0.0f);
 	float r = -M[1][0]/M[0][0];
 	//M[1][0] = 0;
 	M[1][1] += r*M[0][1];
@@ -452,6 +470,7 @@ void solveVector(float M[3][3], float R[3]) {
 	M[2][2] += r*M[0][2];
 	R[2]    += r*R[0];
 
+	assert(M[1][1] != 0.0f);
 	r = -M[2][1]/M[1][1];
 	//M[2][1] = 0;
 	M[2][2] += r*M[1][2];
@@ -462,6 +481,7 @@ void solveVector(float M[3][3], float R[3]) {
 	M[0][2] += r*M[1][2];
 	R[0]    += r*R[1];
 
+	assert(M[2][2] != 0.0f);
 	r = -M[1][2]/M[2][2];
 	//M[1][2] = 0;
 	R[1]    += r*R[2];
@@ -477,6 +497,7 @@ void solveVector(float M[3][3], float R[3]) {
 
 float normalizeVector(float R[3]) {
 	float mag = sqrt((R[0]*R[0])+(R[1]*R[1])+(R[2]*R[2]));
+	assert(mag != 0.0f);
 	R[0] /= mag;
 	R[1] /= mag;
 	R[2] /= mag;
@@ -590,6 +611,7 @@ float estimateYaw(SlicePoint tdWall[], int numTdWallPts, float yawValue) {
 				float dir = atan2(tdWall[i].z - tdWall[j].z, tdWall[i].x - tdWall[j].x) + PI;
 				float integral;
 				dir = modf(dir/(PI/2.0f), &integral);
+				assert((int)floor(dir*YAW_HIST_SIZE) >= 0 && (int)floor(dir*YAW_HIST_SIZE) < YAW_HIST_SIZE);
 				yawHist[(int)floor(dir*YAW_HIST_SIZE)]++;
 			}
 		}
@@ -635,6 +657,7 @@ float dirDiffAngleSign(float dir1, float dir2) {
 }
 
 float weighedAngleAvg(float dir1, float dir2, float w) {
+	assert(w >= 0.0f && w <= 1.0f);
 	if (abs(dir2-dir1) < PI) {
 		return (dir1*w)+(dir2*(1-w));
 	} else {
@@ -690,7 +713,11 @@ int xzMedianFilter(SlicePoint tdWall[], int numTdWallPts) {
 		}
 		tdWall[i-2].z = minVal[2];
 	}
-	return numTdWallPts-4;
+	if (numTdWallPts-4 <= 0) {
+		return 0;
+	} else {
+		return numTdWallPts-4;
+	}
 }
 
 void determineAxisLines(SlicePoint tdWall[], int numTdWallPts, LineSeg lineSegX[], int &numLineSegX, LineSeg lineSegZ[], int &numLineSegZ) {
@@ -720,23 +747,35 @@ void determineAxisLines(SlicePoint tdWall[], int numTdWallPts, LineSeg lineSegX[
 			avgZ[midZ] += tdWall[i].z;
 		}
 		for (int i = 0; i < 8; i++) {
-			avgX[i] /= nX[i];
-			avgZ[i] /= nZ[i];
+			if (nX[i] > 0) {
+				assert(nX[i] > 0);
+				avgX[i] /= nX[i];
+			}
+			if (nZ[i] > 0) {
+				assert(nZ[i] > 0);
+				avgZ[i] /= nZ[i];
+			}
 		}
 
 		// Join Similar Lines
 		if (rep >= 2)  {
 			for (int id1 = 0; id1 < 8; id1++) {
 				for (int id2 = id1+1; id2 < 8; id2++) {
-					if (abs(avgX[id1] - avgX[id2]) < 20) {
-						avgX[id2] = ((avgX[id1]*nX[id1])+(avgX[id2]*nX[id2]))/(nX[id1]+nX[id2]);
-						nX[id2] += nX[id1];
-						nX[id1] = 0;
+					if (nX[id1] > 0 && nX[id2] > 0) {
+						if (abs(avgX[id1] - avgX[id2]) < 20) {
+							assert(nX[id1]+nX[id2] > 0);
+							avgX[id2] = ((avgX[id1]*nX[id1])+(avgX[id2]*nX[id2]))/(nX[id1]+nX[id2]);
+							nX[id2] += nX[id1];
+							nX[id1] = 0;
+						}
 					}
-					if (abs(avgZ[id1] - avgZ[id2]) < 20) {
-						avgZ[id2] = ((avgZ[id1]*nZ[id1])+(avgZ[id2]*nZ[id2]))/(nZ[id1]+nZ[id2]);
-						nZ[id2] += nZ[id1];
-						nZ[id1] = 0;
+					if (nZ[id1] > 0 && nZ[id2] > 0) {
+						if (abs(avgZ[id1] - avgZ[id2]) < 20) {
+							assert(nZ[id1]+nZ[id2]);
+							avgZ[id2] = ((avgZ[id1]*nZ[id1])+(avgZ[id2]*nZ[id2]))/(nZ[id1]+nZ[id2]);
+							nZ[id2] += nZ[id1];
+							nZ[id1] = 0;
+						}
 					}
 				}
 			}
@@ -783,8 +822,14 @@ void determineAxisLines(SlicePoint tdWall[], int numTdWallPts, LineSeg lineSegX[
 		avgZ[midZ] += tdWall[i].z;
 	}
 	for (int i = 0; i < 8; i++) {
-		avgX[i] /= nX[i];
-		avgZ[i] /= nZ[i];
+		if (nX[i] > 0) {
+			assert(nX[i] > 0);
+			avgX[i] /= nX[i];
+		}
+		if (nZ[i] > 0) {
+			assert(nZ[i] > 0);
+			avgZ[i] /= nZ[i];
+		}
 	}
 
 	// Split lines based on spacing
@@ -925,6 +970,7 @@ void addToMap(LineSeg tdLineSeg[], int numLineSeg, LineSeg lineMap[], int &numLi
 			if (mStop > lineMap[minJ].stop) {
 				lineMap[minJ].stop = mStop;
 			}
+			assert(lineMap[minJ].n + mN > 0);
 			lineMap[minJ].loc = ((lineMap[minJ].loc * lineMap[minJ].n) + (mLoc * mN)) / (lineMap[minJ].n + mN);
 			lineMap[minJ].n += mN;
 		} else { // New Line

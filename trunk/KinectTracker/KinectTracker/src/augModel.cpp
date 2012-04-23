@@ -162,15 +162,23 @@ void AugModel::drawTopDown(float ccx, float ccy, float r) {
 		glVertex2f(tdPt2X, tdPt2Z);		
 		glVertex2f(tdPt2X, tdPt1Z);		
 		glEnd();
+	}
+	if (next != NULL) {
+		next->drawTopDown(ccx, ccy, r);
+	}
+}
+
+void AugModel::drawTopDownNum() {
+	if (tdVisible) {
 		// Draw number
 		float midX = tdPt1X+((tdPt2X-tdPt1X)/2.0f);
 		float midZ = tdPt1Z+((tdPt2Z-tdPt1Z)/2.0f);
 		char tmp[2];
 		sprintf(tmp, "%i", id);
-		orthoPrint(midX-3,midZ+4,tmp);
+		orthoPrint(midX,midZ,tmp);
 	}
 	if (next != NULL) {
-		next->drawTopDown(ccx, ccy, r);
+		next->drawTopDownNum();
 	}
 }
 

@@ -152,7 +152,7 @@ void handleResize(int w, int h) {
 }
 
 void drawScene() {
-//Clear information from last draw
+	//Clear information from last draw
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	//Draw 2D Scene in Background
