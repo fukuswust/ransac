@@ -235,7 +235,7 @@ void runAlgorithm() {
 	if (yawAvg > 1.0f) {
 		yawAvg = 1.0f;
 	}
-	static float lastLargeDiffYaw = 0.0f;
+	static float lastLargeDiffYaw = 1.0f;
 	if (lastLargeDiffYaw != 0.0f && degDiff < 4.0f) {
 		assert(lastLargeDiffYaw > 0.0f);
 		yawAvg /= lastLargeDiffYaw;
@@ -245,7 +245,7 @@ void runAlgorithm() {
 	if (yawDiff < 0.05f) {
 		lastLargeDiffYaw += 1.0f;
 	} else {
-		lastLargeDiffYaw = 0.0f;
+		lastLargeDiffYaw = 1.0f;
 	}
 	yawValue = nyawValue;
 	printf("%f\n",degDiff);
@@ -267,47 +267,55 @@ void runAlgorithm() {
 		} else { // Compare to recorded map
 			float delX, delZ;
 			delZ = compareToMap(tdLineSegX, numLineSegX, lineMapX, numLineMapX, true);
+			if (delZ == 999999.0f) {
+				showWarningWallX = true;
+			} else {
+				// Determine new x with dynamic averaging
+				float avgRateX = abs(delX)*(AVG_STRENGTH/1.5f);
+				if (avgRateX > 1.0f) {
+					avgRateX = 1.0f;
+				}
+				static float lastLargeDiffX = 0.0f;
+				if (lastLargeDiffX != 0.0f && abs(delX) < 5.0f) {
+					avgRateX /= lastLargeDiffX;
+					assert(lastLargeDiffX > 0.0f);
+				}
+				assert(avgRateX >= 0.0f && avgRateX <= 1.0f);
+				float nxValue = (xValue*(1.0f-avgRateX)) + ((delX+xValue)*avgRateX);
+				float xDiff = abs(nxValue - xValue);
+				if (xDiff < 1.0f) {
+					lastLargeDiffX += 1.0f;
+				} else {
+					lastLargeDiffX = 0.0f;
+				}
+				xValue = nxValue;
+				showWarningWallX = false;
+			}
 			delX = compareToMap(tdLineSegZ, numLineSegZ, lineMapZ, numLineMapZ, false);
-
-			// Determine new x with dynamic averaging
-			float avgRateX = abs(delX)*(AVG_STRENGTH/1.5f);
-			if (avgRateX > 1.0f) {
-				avgRateX = 1.0f;
-			}
-			static float lastLargeDiffX = 0.0f;
-			if (lastLargeDiffX != 0.0f && abs(delX) < 5.0f) {
-				avgRateX /= lastLargeDiffX;
-				assert(lastLargeDiffX > 0.0f);
-			}
-			assert(avgRateX >= 0.0f && avgRateX <= 1.0f);
-			float nxValue = (xValue*(1.0f-avgRateX)) + ((delX+xValue)*avgRateX);
-			float xDiff = abs(nxValue - xValue);
-			if (xDiff < 1.0f) {
-				lastLargeDiffX += 1.0f;
+			if (delX == 999999.0f) {
+				showWarningWallZ = true;
 			} else {
-				lastLargeDiffX = 0.0f;
+				// Determine new z with dynamic averaging
+				float avgRateZ = abs(delZ)*(AVG_STRENGTH/1.5f);
+				if (avgRateZ > 1.0f) {
+					avgRateZ = 1.0f;
+				}
+				static float lastLargeDiffZ = 0.0f;
+				if (lastLargeDiffZ != 0.0f && abs(delZ) < 5.0f) {
+					avgRateZ /= lastLargeDiffZ;
+					assert(lastLargeDiffZ > 0.0f);
+				}
+				assert(avgRateZ >= 0.0f && avgRateZ <= 1.0f);
+				float nzValue = (zValue*(1.0f-avgRateZ)) + ((delZ+zValue)*avgRateZ);
+				float zDiff = abs(nzValue - zValue);
+				if (zDiff < 1.0f) {
+					lastLargeDiffZ += 1.0f;
+				} else {
+					lastLargeDiffZ = 0.0f;
+				}
+				zValue = nzValue;
+				showWarningWallZ = false;
 			}
-			xValue = nxValue;
-
-			// Determine new z with dynamic averaging
-			float avgRateZ = abs(delZ)*(AVG_STRENGTH/1.5f);
-			if (avgRateZ > 1.0f) {
-				avgRateZ = 1.0f;
-			}
-			static float lastLargeDiffZ = 0.0f;
-			if (lastLargeDiffZ != 0.0f && abs(delZ) < 5.0f) {
-				avgRateZ /= lastLargeDiffZ;
-				assert(lastLargeDiffZ > 0.0f);
-			}
-			assert(avgRateZ >= 0.0f && avgRateZ <= 1.0f);
-			float nzValue = (zValue*(1.0f-avgRateZ)) + ((delZ+zValue)*avgRateZ);
-			float zDiff = abs(nzValue - zValue);
-			if (zDiff < 1.0f) {
-				lastLargeDiffZ += 1.0f;
-			} else {
-				lastLargeDiffZ = 0.0f;
-			}
-			zValue = nzValue;
 		}
 	}
 	#pragma endregion Determine X,Z from top down view and dynamically average
@@ -339,6 +347,9 @@ void runAlgorithm() {
 			//}
 		}
 		normalizeVector(curUpVector);
+		showWarningPR = false;
+	} else {
+		showWarningPR = true;
 	}
 	#pragma endregion Dynamically average in new pitch and roll values 
 
@@ -364,6 +375,9 @@ void runAlgorithm() {
 			lastLargeDiffY = 0.0f;
 		}
 		heightValue = nheightValue;
+		showWarningFloor = false;
+	} else {
+		showWarningFloor = true;
 	}
 	#pragma endregion Dynamically average in new height value
 
@@ -637,7 +651,15 @@ float estimateYaw(SlicePoint tdWall[], int numTdWallPts, float yawValue) {
 }
 
 float dirDiffAngle(float dir1, float dir2) {
-	return acos((cos(dir1)*cos(dir2)) + (sin(dir1)*sin(dir2)));
+	float tmp = (cos(dir1)*cos(dir2)) + (sin(dir1)*sin(dir2));
+	if (tmp >= 1.0f) { 
+		return 0.0f;
+	} else if (tmp <= -1.0f) {
+		return PI;
+	} else {
+		assert(tmp >= -1.0f && tmp <= 1.0f);
+		return acos(tmp);
+	}
 }
 
 float dirDiffAngleSign(float dir1, float dir2) {
@@ -1014,6 +1036,6 @@ float compareToMap(LineSeg tdLineSeg[], int numLineSeg, LineSeg lineMap[], int &
 	if (nMax > 0) {
 		return diffTotal;
 	} else {
-		return 0.0f;
+		return 999999.0f;
 	}
 }

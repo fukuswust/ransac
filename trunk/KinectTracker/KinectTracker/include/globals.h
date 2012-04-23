@@ -98,4 +98,10 @@ extern float editModelLength;
 // Icons
 extern NeHe::imageTGA editIcon[6];
 
+// Warnings
+extern bool showWarningFloor;
+extern bool showWarningWallX;
+extern bool showWarningWallZ;
+extern bool showWarningPR;
+
 #endif

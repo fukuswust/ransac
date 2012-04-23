@@ -86,3 +86,9 @@ bool editPlacing = false;
 
 // Icons
 NeHe::imageTGA editIcon[6];
+
+// Warnings
+bool showWarningFloor = false;
+bool showWarningWallX = false;
+bool showWarningWallZ = false;
+bool showWarningPR = false;
