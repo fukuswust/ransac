@@ -37,7 +37,9 @@ void initGui(int argc, char **argv) {
 	glutTimerFunc(10, update, 0);
 	
 	// Check if Kinect is connected every 1s
-	glutTimerFunc(1000, checkKinect, 0);
+	#ifdef USE_KINECT
+		glutTimerFunc(1000, checkKinect, 0);
+	#endif
 
 	// Determine all models in directories
 	modelPaths = getAllFiles("models/", "*.3ds");
