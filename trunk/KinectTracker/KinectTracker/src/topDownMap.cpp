@@ -17,10 +17,10 @@ bool TopDownMap::drawPoint(float x, float z) {
 	float tmpX = x;// - xValue;
 	float tmpZ = z;// - zValue;
 	float tmpDis = sqrt((tmpX*tmpX)+(tmpZ*tmpZ));
-	if (tmpDis < MAX_ALLOWED_DIS) {
+	if (tmpDis < maxAllowedDis) {
 		float tmpDir = atan2(tmpZ,tmpX) + yawValue;
-		tmpX = (tmpDis*cos(tmpDir))/(MAX_ALLOWED_DIS/radius);
-		tmpZ = (tmpDis*sin(tmpDir))/(MAX_ALLOWED_DIS/radius);
+		tmpX = (tmpDis*cos(tmpDir))/(maxAllowedDis/radius);
+		tmpZ = (tmpDis*sin(tmpDir))/(maxAllowedDis/radius);
 		glVertex2f(cx+tmpX, cy+tmpZ);
 		return true;
 	} else { // Point out of range
@@ -55,10 +55,10 @@ void TopDownMap::drawLineSeg(LineSeg lineSeg, bool offset) {
 	}
 
 	// Transferring into proper coordinates to plot in hud
-	x1 /= (MAX_ALLOWED_DIS/radius);
-	x2 /= (MAX_ALLOWED_DIS/radius);
-	y1 /= (MAX_ALLOWED_DIS/radius);
-	y2 /= (MAX_ALLOWED_DIS/radius);
+	x1 /= (maxAllowedDis/radius);
+	x2 /= (maxAllowedDis/radius);
+	y1 /= (maxAllowedDis/radius);
+	y2 /= (maxAllowedDis/radius);
 
 	// Make sure lines are within bounding box of circle
 	if (lineSeg.isTypeX) {
@@ -161,8 +161,8 @@ void TopDownMap::draw() {
 	glBegin(GL_POINTS);
 	for (int i = 0; i < drawNumTdWallPts; i++) {
 		if (abs(drawTdWall[i].x) != 999999.0) {
-			float tmpX = drawTdWall[i].x/(MAX_ALLOWED_DIS/radius);
-			float tmpZ = drawTdWall[i].z/(MAX_ALLOWED_DIS/radius);
+			float tmpX = drawTdWall[i].x/(maxAllowedDis/radius);
+			float tmpZ = drawTdWall[i].z/(maxAllowedDis/radius);
 			glVertex2f(tmpX, tmpZ);
 		}
 	}
