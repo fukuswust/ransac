@@ -107,8 +107,8 @@ void AugModel::drawTopDown(float ccx, float ccy, float r) {
 
 	// Determine position if placing or moving
 	if (placing || moving) {
-		x = ((mouseX-cx-viewXOffset)*(MAX_ALLOWED_DIS/r))+xValue;
-		z = ((mouseY-cy-viewYOffset)*(MAX_ALLOWED_DIS/r))+zValue;
+		x = ((mouseX-cx-viewXOffset)*(maxAllowedDis/r))+xValue;
+		z = ((mouseY-cy-viewYOffset)*(maxAllowedDis/r))+zValue;
 		editModelHeight = y;
 		editModelWidth = width;
 		editModelLength = depth;
@@ -127,13 +127,13 @@ void AugModel::drawTopDown(float ccx, float ccy, float r) {
 		pt2X = x - xValue + (depth/2.0f);
 		pt2Z = z - zValue + (width/2.0f);
 	}
-	if        (sqrt(pow(pt1X,2)+pow(pt1Z,2)) > MAX_ALLOWED_DIS) {
+	if        (sqrt(pow(pt1X,2)+pow(pt1Z,2)) > maxAllowedDis) {
 		tdVisible = false;
-	} else if (sqrt(pow(pt1X,2)+pow(pt2Z,2)) > MAX_ALLOWED_DIS) {
+	} else if (sqrt(pow(pt1X,2)+pow(pt2Z,2)) > maxAllowedDis) {
 		tdVisible = false;
-	} else if (sqrt(pow(pt2X,2)+pow(pt2Z,2)) > MAX_ALLOWED_DIS) {
+	} else if (sqrt(pow(pt2X,2)+pow(pt2Z,2)) > maxAllowedDis) {
 		tdVisible = false;
-	} else if (sqrt(pow(pt2X,2)+pow(pt1Z,2)) > MAX_ALLOWED_DIS) {
+	} else if (sqrt(pow(pt2X,2)+pow(pt1Z,2)) > maxAllowedDis) {
 		tdVisible = false;
 	} else {
 		tdVisible = true;
@@ -142,10 +142,10 @@ void AugModel::drawTopDown(float ccx, float ccy, float r) {
 	// Draw Top Down View
 	if (tdVisible) {
 		// Calculate points
-		tdPt1X = (pt1X/(MAX_ALLOWED_DIS/r));
-		tdPt1Z = (pt1Z/(MAX_ALLOWED_DIS/r));
-		tdPt2X = (pt2X/(MAX_ALLOWED_DIS/r));
-		tdPt2Z = (pt2Z/(MAX_ALLOWED_DIS/r));
+		tdPt1X = (pt1X/(maxAllowedDis/r));
+		tdPt1Z = (pt1Z/(maxAllowedDis/r));
+		tdPt2X = (pt2X/(maxAllowedDis/r));
+		tdPt2Z = (pt2Z/(maxAllowedDis/r));
 		// Draw solid rectangle
 		glColor3f(col[0], col[1], col[2]);
 		glBegin(GL_QUADS);				

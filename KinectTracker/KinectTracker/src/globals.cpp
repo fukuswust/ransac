@@ -13,6 +13,7 @@ int viewXOffset = 0;
 int viewYOffset = 0;
 float xViewFactor = 0.0f;
 float yViewFactor = 0.0f;
+float maxAllowedDis = 500.0f;
 
 // Sensor Orientation and Position
 float heightValue, xValue, zValue;
@@ -92,6 +93,7 @@ bool showWarningFloor = false;
 bool showWarningWallX = false;
 bool showWarningWallZ = false;
 bool showWarningPR = false;
+bool showWarningYaw = false;
 
 // Number of depth frames received since checkKinect last ran
 int depthReceived = 0;

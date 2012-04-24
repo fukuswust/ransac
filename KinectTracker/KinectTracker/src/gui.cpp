@@ -210,16 +210,6 @@ void drawScene() {
 	if (showHud) {
 		drawHud();
 	}
-	//Draw Warnings
-	if (numFloorPoints <= MIN_FLOOR_POINTS) {
-		glColor3f(1.0f, 0.0f, 0.0f);
-		#ifdef HUD_DEBUG
-			orthoPrint(250, viewHeight - 30.0f, "WARNING: CANNOT SEE FLOOR");
-		#else
-			orthoPrint(250, viewHeight - 7.0f, "WARNING: CANNOT SEE FLOOR");
-		#endif
-		glColor3f(0.0f, 0.0f, 0.0f);
-	}
 	if (mapRecord) {
 	// Draw Big White Background
 		int topX = 160;
@@ -235,7 +225,67 @@ void drawScene() {
 		orthoPrint(topX+7, topY+40, "Keep camera in same position");
 		orthoPrint(topX+7, topY+55, "and pan around room.");
 	}
+
+	//Draw Bottom Bar (in 2D)
+	int bbOffsetY = viewHeight - 5;
+	glColor4f(1.0f, 1.0f, 1.0f, 0.7f);
+	glRectf(0, viewHeight-20, viewWidth, viewHeight);
+	glColor3f(0.0f, 0.0f, 0.0f);
+	drawRectBorder(-1, viewHeight-20, viewWidth+1, viewHeight+1);
+	// Draw FPS
+	drawFps(3, bbOffsetY);
+	// Draw Warnings
+	int numDof = 6;
+	char warnStr[256] = "WARNING: ";
+	if (showWarningFloor) {
+		strcat(warnStr, "Cannot See Floor   ");
+		numDof -= 1;
+	}
+	if (showWarningWallX || showWarningWallZ) {
+		if (showWarningYaw) {
+			strcat(warnStr, "Cannot See Walls   ");
+			numDof -= 1;
+		} else {
+			strcat(warnStr, "Cannot See Corner   ");
+		}
+		if (showWarningWallX && showWarningWallZ) {
+			numDof -= 2;
+		} else {
+			numDof -= 1;
+		}
+	}
+
+	if (showWarningPR) {
+		strcat(warnStr, "Accelerometer Data Invalid");
+		numDof -= 2;
+	}
+	if (showWarningFloor || showWarningWallX || showWarningWallZ || showWarningPR) {
+		glColor3f(0.75f, 0.0f, 0.0f);
+		int warnStrX = (int)( ((viewWidth/2.0f) - getOrthoPrintWidth(warnStr)/2.0f)) - 30;
+		orthoPrint(warnStrX, bbOffsetY, warnStr);
+		glColor3f(0.0f, 0.0f, 0.0f);
+	}
+	// DOF Notification
+	int dofRightX = viewWidth - 105;
+	char dofStr[8];
+	sprintf(dofStr, "%iDOF: ", numDof);
+	glColor3f(0.75f*(1.0f-(numDof/6.0f)), 0.0f, 0.0f);
+	orthoPrint(dofRightX, bbOffsetY, dofStr);
+	if (showWarningPR) {glColor3f(0.75f, 0.0f, 0.0f);} else {glColor3f(0.0f, 0.0f, 0.0f);}
+	orthoPrint(dofRightX+42, bbOffsetY, "P");
+	orthoPrint(dofRightX+52, bbOffsetY, "R");
+	if (showWarningYaw) {glColor3f(0.75f, 0.0f, 0.0f);} else {glColor3f(0.0f, 0.0f, 0.0f);}
+	orthoPrint(dofRightX+62, bbOffsetY, "Y");
+	if (showWarningWallZ) {glColor3f(0.75f, 0.0f, 0.0f);} else {glColor3f(0.0f, 0.0f, 0.0f);}
+	orthoPrint(dofRightX+72, bbOffsetY, "X");
+	if (showWarningFloor) {glColor3f(0.75f, 0.0f, 0.0f);} else {glColor3f(0.0f, 0.0f, 0.0f);}
+	orthoPrint(dofRightX+82, bbOffsetY, "Y");
+	if (showWarningWallX) {glColor3f(0.75f, 0.0f, 0.0f);} else {glColor3f(0.0f, 0.0f, 0.0f);}
+	orthoPrint(dofRightX+92, bbOffsetY, "Z");
+
 	orthogonalEnd();
+
+
 
 	//Send the scene to the screen
 	glutSwapBuffers();
@@ -290,4 +340,19 @@ void setGlTransformation() {
 						   0.0f,					0.0f,					 1.0f,					  0.0f,
 						   -translationMatrix[0],	-translationMatrix[1],	 -translationMatrix[2],	  1.0f}; // Column major form
 	glMultMatrixf(tsMatrix);
+}
+
+void drawFps(int cx, int cy) {
+	static float avgFrameTime = 0.0f;
+	static CStopWatch fpsStopWatch;
+	char printBuff[256];
+	glColor3f(0.0f, 0.0f, 0.0f);
+	if (avgFrameTime == 0.0f) {
+		fpsStopWatch.startTimer();
+	}
+	fpsStopWatch.stopTimer();
+	avgFrameTime = (0.1*(float)(fpsStopWatch.getElapsedTime()))+(0.9f*avgFrameTime);
+	sprintf(printBuff, "FPS: %u", (unsigned int)(1.0f/avgFrameTime));
+	orthoPrint(cx, cy, printBuff);
+	fpsStopWatch.startTimer();
 }

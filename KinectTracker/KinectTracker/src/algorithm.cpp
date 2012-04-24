@@ -193,8 +193,8 @@ void runAlgorithm() {
 
 			// Find Wall Points
 			int dirIndex = (int)floor((tmpDir+(3.0f*PI/4.0))/(PI/2.0f/40.0f));
-			if (dirIndex >= 0 && dirIndex < NUM_SLICES && tmpDis < MAX_ALLOWED_DIS) {
-				if (tmpY - currentMinHeight > 50.0f && tmpY - currentMinHeight < 200.0f && tmpDis < MAX_ALLOWED_DIS) {
+			if (dirIndex >= 0 && dirIndex < NUM_SLICES && tmpDis < maxAllowedDis) {
+				if (tmpY - currentMinHeight > 50.0f && tmpY - currentMinHeight < 200.0f && tmpDis < maxAllowedDis) {
 					int disDiff = floor(wallSlicePoints[dirIndex].dis - tmpDis);
 					if (disDiff < 20) {
 						numWallPoints++;
@@ -230,6 +230,9 @@ void runAlgorithm() {
 	float estYaw = estimateYaw(tdWall, numTdWallPts, yawValue);
 	if (estYaw == 999999.0f) {
 		estYaw = yawValue;
+		showWarningYaw = true;
+	} else {
+		showWarningYaw = false;
 	}
 
 	// Average new yaw
@@ -293,6 +296,8 @@ void runAlgorithm() {
 		if (mapRecord) { // Recording new map
 			addToMap(tdLineSegX, numLineSegX, lineMapX, numLineMapX, true);
 			addToMap(tdLineSegZ, numLineSegZ, lineMapZ, numLineMapZ, false);
+			showWarningWallZ = true;
+			showWarningWallX = true;
 		} else { // Compare to recorded map
 			float delX, delZ;
 			delX = compareToMap(tdLineSegZ, numLineSegZ, lineMapZ, numLineMapZ, false);
@@ -318,7 +323,7 @@ void runAlgorithm() {
 					lastLargeDiffX = 0.0f;
 				}
 				xValue = nxValue;
-				showWarningWallX = false;
+				showWarningWallZ = false;
 			}
 			delZ = compareToMap(tdLineSegX, numLineSegX, lineMapX, numLineMapX, true);
 			if (delZ == 999999.0f) {
@@ -343,7 +348,7 @@ void runAlgorithm() {
 					lastLargeDiffZ = 0.0f;
 				}
 				zValue = nzValue;
-				showWarningWallZ = false;
+				showWarningWallX = false;
 			}
 		}
 	} else {
@@ -1091,41 +1096,43 @@ void determineAxisLines(SlicePoint tdWall[], int numTdWallPts, LineSeg lineSegX[
 
 void addToMap(LineSeg tdLineSeg[], int numLineSeg, LineSeg lineMap[], int &numLineMap, bool isTypeX) {
 	for (int i = 0; i < numLineSeg; i++) { // Loop through all new line segments
-		float mLoc;
-		if (isTypeX) {
-			mLoc = tdLineSeg[i].loc + zValue;
-		} else {
-			mLoc = tdLineSeg[i].loc + xValue;
-		}
-		float mStart = tdLineSeg[i].start;
-		float mStop = tdLineSeg[i].stop;
-		float minDis = 999999.0f;
-		int mN = tdLineSeg[i].n;
-		int minJ = -1;
-		for (int j = 0; j < numLineMap; j++) { // Compare to all current map segments
-			float disDiff = abs(mLoc - lineMap[j].loc);
-			if (disDiff < minDis) {
-				minDis = disDiff;
-				minJ = j;
+		if (tdLineSeg[i].n > 5) {
+			float mLoc;
+			if (isTypeX) {
+				mLoc = tdLineSeg[i].loc + zValue;
+			} else {
+				mLoc = tdLineSeg[i].loc + xValue;
 			}
-		}
-		if (minDis < 200.0f) { // Can be associated with map line
-			if (mStart < lineMap[minJ].start) {
-				lineMap[minJ].start = mStart;
+			float mStart = tdLineSeg[i].start;
+			float mStop = tdLineSeg[i].stop;
+			float minDis = 999999.0f;
+			int mN = tdLineSeg[i].n;
+			int minJ = -1;
+			for (int j = 0; j < numLineMap; j++) { // Compare to all current map segments
+				float disDiff = abs(mLoc - lineMap[j].loc);
+				if (disDiff < minDis) {
+					minDis = disDiff;
+					minJ = j;
+				}
 			}
-			if (mStop > lineMap[minJ].stop) {
-				lineMap[minJ].stop = mStop;
+			if (minDis < 200.0f) { // Can be associated with map line
+				if (mStart < lineMap[minJ].start) {
+					lineMap[minJ].start = mStart;
+				}
+				if (mStop > lineMap[minJ].stop) {
+					lineMap[minJ].stop = mStop;
+				}
+				assert(lineMap[minJ].n + mN > 0);
+				lineMap[minJ].loc = ((lineMap[minJ].loc * lineMap[minJ].n) + (mLoc * mN)) / (lineMap[minJ].n + mN);
+				lineMap[minJ].n += mN;
+			} else { // New Line
+				lineMap[numLineMap].isTypeX = isTypeX;
+				lineMap[numLineMap].loc = mLoc;
+				lineMap[numLineMap].n = mN;
+				lineMap[numLineMap].start = mStart;
+				lineMap[numLineMap].stop = mStop;
+				numLineMap++;
 			}
-			assert(lineMap[minJ].n + mN > 0);
-			lineMap[minJ].loc = ((lineMap[minJ].loc * lineMap[minJ].n) + (mLoc * mN)) / (lineMap[minJ].n + mN);
-			lineMap[minJ].n += mN;
-		} else { // New Line
-			lineMap[numLineMap].isTypeX = isTypeX;
-			lineMap[numLineMap].loc = mLoc;
-			lineMap[numLineMap].n = mN;
-			lineMap[numLineMap].start = mStart;
-			lineMap[numLineMap].stop = mStop;
-			numLineMap++;
 		}
 	}
 }

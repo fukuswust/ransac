@@ -23,5 +23,6 @@ void orthogonalEnd (void);
 void setGlTransformation();
 string** getAllFiles(string path, string searchPattern);
 void checkKinect(int value);
+void drawFps(int cx, int cy);
 
 #endif

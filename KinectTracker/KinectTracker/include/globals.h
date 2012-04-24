@@ -31,6 +31,7 @@ extern int viewXOffset;
 extern int viewYOffset;
 extern float xViewFactor;
 extern float yViewFactor;
+extern float maxAllowedDis;
 
 // Sensor Orientation and Position
 extern float heightValue, xValue, zValue;
@@ -103,6 +104,7 @@ extern bool showWarningFloor;
 extern bool showWarningWallX;
 extern bool showWarningWallZ;
 extern bool showWarningPR;
+extern bool showWarningYaw;
 
 extern int depthReceived;
 extern bool kinectConnected;

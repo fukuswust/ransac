@@ -8,26 +8,6 @@ void drawHud() {
 	// Draw Crosshair (in 2D)
 	drawCrosshair(viewWidth, viewHeight);
 
-	//Draw Frame Count (in 2D)
-	drawFps(HUD_FPS_X, viewHeight - HUD_FPS_Y);
-
-	#ifdef HUD_DEBUG
-		//Yaw
-		glColor3f(1.0f, 1.0f, 1.0f);
-		sprintf(printBuff, "Yaw: %f", (yawValue/PI)*180.0f);
-		orthoPrint(150, viewHeight - HUD_FPS_Y, printBuff);
-
-		//X
-		glColor3f(1.0f, 1.0f, 1.0f);
-		sprintf(printBuff, "X: %f", xValue);
-		orthoPrint(300, viewHeight - HUD_FPS_Y, printBuff);
-
-		//Z
-		glColor3f(1.0f, 1.0f, 1.0f);
-		sprintf(printBuff, "Z: %f", zValue);
-		orthoPrint(450, viewHeight - HUD_FPS_Y, printBuff);
-	#endif
-
 	// Draw Height Measurement Bar
 	drawHeightHud(HUD_HEIGHT_BAR_X, HUD_HEIGHT_BAR_Y, heightValue);
 
@@ -219,19 +199,4 @@ void drawPitchHud(int cx, int cy, int r, float pitch) {
 	// Draw center point
 	glColor3f(0.0f, 0.0f, 0.0f); // Black
 	drawCircleSolid(cx, cy, 3.5, 8);
-}
-
-void drawFps(int cx, int cy) {
-	static float avgFrameTime = 0.0f;
-	static CStopWatch fpsStopWatch;
-	char printBuff[256];
-	glColor3f(1.0f, 1.0f, 1.0f);
-	if (avgFrameTime == 0.0f) {
-		fpsStopWatch.startTimer();
-	}
-	fpsStopWatch.stopTimer();
-	avgFrameTime = (0.1*(float)(fpsStopWatch.getElapsedTime()))+(0.9f*avgFrameTime);
-	sprintf(printBuff, "FPS: %u", (unsigned int)(1.0f/avgFrameTime));
-	orthoPrint(cx, cy, printBuff);
-	fpsStopWatch.startTimer();
 }

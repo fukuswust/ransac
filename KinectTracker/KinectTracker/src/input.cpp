@@ -99,6 +99,17 @@ void handleKeypress(unsigned char key, //The key that was pressed
 			if (modelHead != NULL) {modelHead->keyPressE();}
 			break;
 		}
+
+		case '=': {
+			maxAllowedDis += 100.0f;
+			break;
+		}
+		case '-': {
+			if (maxAllowedDis > 100.0f) {
+				maxAllowedDis -= 100.0f;
+			}
+			break;
+		}
 	}
 }
 

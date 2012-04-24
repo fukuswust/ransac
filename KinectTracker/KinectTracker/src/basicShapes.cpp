@@ -25,6 +25,15 @@ void orthoPrintLarge(int x, int y, char *string)
   }
 }
 
+int getOrthoPrintWidth(char *string) {
+	int totWidth = 0;
+	int len = (int) strlen(string);
+	for (int i = 0; i < len; i++) {
+		totWidth += glutBitmapWidth(GLUT_BITMAP_HELVETICA_12, string[i]);
+	}
+	return totWidth;
+}
+
 void drawRectBorder(int x1, int y1, int x2, int y2){
 	// Draws the border for a rectangle with the four corners, similar to glRectd
 	glBegin(GL_LINE_LOOP);
