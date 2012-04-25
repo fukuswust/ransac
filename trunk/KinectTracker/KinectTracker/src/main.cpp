@@ -56,14 +56,13 @@ int initKinect() {
 }
 
 int main(int argc, char **argv) {
-	if (!SHOW_COMMAND_LINE) {
-		HWND hWnd = GetConsoleWindow();
-		ShowWindow( hWnd, SW_HIDE );
-	}
-
 	#ifdef USE_KINECT
 		int ret = initKinect();
 		if (ret != -1) {return ret;}
 	#endif
+	if (!SHOW_COMMAND_LINE) {
+		HWND hWnd = GetConsoleWindow();
+		ShowWindow( hWnd, SW_HIDE );
+	}
 	initGui(argc, argv); // Contains GUI loop
 };
